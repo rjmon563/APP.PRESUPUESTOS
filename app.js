@@ -22,108 +22,60 @@ const CONFIG_MEDIDAS = {
     'horas': { n: 'Horas Admin', i: '🕒', pasos: 1, m1: 'Número de Horas' }
 };
 
-// Formateador de números (Estilo España)
 const fNum = (n) => Number(n).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const asegurarGuardado = () => localStorage.setItem('presupro_v3', JSON.stringify(db));
 
 // ==========================================
-// 2. SISTEMA DE NAVEGACIÓN
+// 2. NAVEGACIÓN
 // ==========================================
 window.irAPantalla = (id) => {
     document.querySelectorAll('[id^="pantalla-"]').forEach(p => p.classList.add('hidden'));
     const p = document.getElementById(`pantalla-${id}`);
     if(p) p.classList.remove('hidden');
     if (id === 'clientes') renderListaClientes();
-    if (id === 'ajustes') cargarAjustesEnInputs();
 };
 
-function cargarAjustesEnInputs() {
-    ['nombre','cif','tel','dir','cp','ciudad','nPresu'].forEach(k => {
-        const el = document.getElementById(`config-${k}`);
-        if(el) el.value = db.ajustes[k] || (k === 'nPresu' ? 1 : '');
-    });
-}
-
 // ==========================================
-// 3. CALCULADORA (COMA DECIMAL Y SUMA INFINITA)
+// 3. CALCULADORA (COMA Y SUMA INFINITA)
 // ==========================================
 window.teclear = (n) => {
     if (n === '+') {
-        let valorPantalla = parseFloat(calcEstado.memoria.replace(',', '.')) || 0;
-        calcEstado.acumulado += valorPantalla;
-        calcEstado.memoria = ''; 
-        actualizarDisplay();
-    } 
-    else if (n === 'OK') {
-        let valorFinal = parseFloat(calcEstado.memoria.replace(',', '.')) || 0;
-        let resultadoTotal = calcEstado.acumulado + valorFinal;
-
+        let vP = parseFloat(calcEstado.memoria.replace(',', '.')) || 0;
+        calcEstado.acumulado += vP; calcEstado.memoria = ''; actualizarDisplay();
+    } else if (n === 'OK') {
+        let vF = parseFloat(calcEstado.memoria.replace(',', '.')) || 0;
+        let res = calcEstado.acumulado + vF;
         if (calcEstado.modo === 'medida') {
             const conf = CONFIG_MEDIDAS[calcEstado.tipo];
             if (calcEstado.paso < conf.pasos) { 
-                calcEstado.v1 = resultadoTotal; 
-                calcEstado.paso++; 
-                calcEstado.memoria = ''; 
-                calcEstado.acumulado = 0;
-                abrirCalculadora(); 
+                calcEstado.v1 = res; calcEstado.paso++; calcEstado.memoria = ''; calcEstado.acumulado = 0; abrirCalculadora(); 
             } else { 
-                calcEstado.totalMetros = (conf.pasos === 1) ? resultadoTotal : calcEstado.v1 * resultadoTotal; 
-                calcEstado.modo = 'precio'; 
-                calcEstado.memoria = ''; 
-                calcEstado.acumulado = 0; 
-                abrirCalculadora(); 
+                calcEstado.totalMetros = (conf.pasos === 1) ? res : calcEstado.v1 * res; 
+                calcEstado.modo = 'precio'; calcEstado.memoria = ''; calcEstado.acumulado = 0; abrirCalculadora(); 
             }
         } else {
-            // Guardar línea de medición
-            const nuevaLinea = { 
-                id: calcEstado.editandoId || Date.now(), 
-                tipo: calcEstado.tipo, 
-                tarea: calcEstado.tarea, 
-                zona: calcEstado.zona, 
-                nombre: `${CONFIG_MEDIDAS[calcEstado.tipo].i} ${calcEstado.tarea} - ${calcEstado.zona}`, 
-                cantidad: calcEstado.totalMetros, 
-                precio: resultadoTotal, 
-                subtotal: calcEstado.totalMetros * resultadoTotal 
-            };
-
+            const l = { id: calcEstado.editandoId || Date.now(), tipo: calcEstado.tipo, tarea: calcEstado.tarea, zona: calcEstado.zona, nombre: `${CONFIG_MEDIDAS[calcEstado.tipo].i} ${calcEstado.tarea} - ${calcEstado.zona}`, cantidad: calcEstado.totalMetros, precio: res, subtotal: calcEstado.totalMetros * res };
             if (calcEstado.editandoId) {
-                const idx = obraEnCurso.lineas.findIndex(l => l.id === calcEstado.editandoId);
-                obraEnCurso.lineas[idx] = nuevaLinea;
-            } else {
-                obraEnCurso.lineas.push(nuevaLinea);
-            }
-            
-            document.getElementById('modal-calc').classList.add('hidden'); 
-            renderMedidas();
+                const idx = obraEnCurso.lineas.findIndex(x => x.id === calcEstado.editandoId);
+                obraEnCurso.lineas[idx] = l;
+            } else { obraEnCurso.lineas.push(l); }
+            document.getElementById('modal-calc').classList.add('hidden'); renderMedidas();
         }
     } else if (n === 'DEL') { 
-        calcEstado.memoria = ''; 
-        calcEstado.acumulado = 0;
-        actualizarDisplay(); 
+        calcEstado.memoria = ''; calcEstado.acumulado = 0; actualizarDisplay(); 
     } else if (n === '.') {
-        // Tratamos el punto como coma visual
-        if (!calcEstado.memoria.includes(',')) {
-            calcEstado.memoria += (calcEstado.memoria === '' ? '0,' : ',');
-        }
+        if (!calcEstado.memoria.includes(',')) calcEstado.memoria += (calcEstado.memoria === '' ? '0,' : ',');
         actualizarDisplay();
-    } else { 
-        calcEstado.memoria += n; 
-        actualizarDisplay(); 
-    }
+    } else { calcEstado.memoria += n; actualizarDisplay(); }
 };
 
 function actualizarDisplay() {
     let visual = calcEstado.memoria || '0';
-    const display = document.getElementById('calc-display');
-    if (calcEstado.acumulado > 0) {
-        display.innerHTML = `<span class="text-sm opacity-50 font-normal">Suma: ${fNum(calcEstado.acumulado)} +</span><br>${visual}`;
-    } else {
-        display.innerText = visual;
-    }
+    document.getElementById('calc-display').innerHTML = calcEstado.acumulado > 0 ? `<span class="text-sm opacity-50">Suma: ${fNum(calcEstado.acumulado)} +</span><br>${visual}` : visual;
 }
 
 // ==========================================
-// 4. GESTIÓN DE MEDICIONES Y TOTALES
+// 4. VER Y EDITAR MEDICIONES
 // ==========================================
 window.renderMedidas = () => {
     const cont = document.getElementById('lista-medidas-obra');
@@ -142,46 +94,63 @@ window.renderMedidas = () => {
         </div>`).reverse().join('') + 
         (subtotal > 0 ? `
         <div class="bg-slate-900 text-white p-6 rounded-[35px] mt-5 italic shadow-xl">
-            <div class="flex justify-between text-[10px] opacity-60 font-black mb-1">
-                <span>Base Imponible:</span>
-                <span>${fNum(subtotal)}€</span>
-            </div>
-            <div class="flex justify-between text-[10px] opacity-60 font-black mb-2">
-                <span>IVA (${obraEnCurso.iva}%):</span>
-                <span>${fNum(cuotaIva)}€</span>
-            </div>
-            <div class="flex justify-between text-xl font-black text-green-400 border-t border-white/10 pt-2">
-                <span>TOTAL:</span>
-                <span>${fNum(total)}€</span>
-            </div>
+            <div class="flex justify-between text-[10px] opacity-60 font-black mb-1"><span>Base:</span><span>${fNum(subtotal)}€</span></div>
+            <div class="flex justify-between text-[10px] opacity-60 font-black mb-2"><span>IVA (${obraEnCurso.iva}%):</span><span>${fNum(cuotaIva)}€</span></div>
+            <div class="flex justify-between text-xl font-black text-green-400 border-t border-white/10 pt-2"><span>TOTAL:</span><span>${fNum(total)}€</span></div>
         </div>` : '');
 };
 
-window.editarLinea = (id) => {
-    const l = obraEnCurso.lineas.find(x => x.id === id);
-    calcEstado = { 
-        tipo: l.tipo, paso: 1, v1: l.cantidad, v2: 0, 
-        memoria: l.precio.toString().replace('.', ','), 
-        acumulado: 0, zona: l.zona, tarea: l.tarea, 
-        modo: 'precio', totalMetros: l.cantidad, editandoId: id 
+// ==========================================
+// 5. HISTORIAL: REABRIR PRESUPUESTO
+// ==========================================
+window.verPresupuestoGuardado = (idPresu) => {
+    const p = clienteActual.presupuestos.find(x => x.id === idPresu);
+    if (!p) return;
+    
+    // Cargamos los datos guardados en la obra actual
+    obraEnCurso = {
+        nombre: p.nombreObra,
+        lineas: [...p.lineas],
+        iva: p.iva || 21,
+        fotos: []
     };
-    abrirCalculadora();
+    
+    document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre;
+    irAPantalla('trabajo');
+    renderBotones();
+    renderMedidas();
 };
 
-window.borrarLinea = (id) => { 
-    if(confirm("¿Eliminar esta línea?")) { 
-        obraEnCurso.lineas = obraEnCurso.lineas.filter(x => x.id !== id); 
-        renderMedidas(); 
-    } 
+window.abrirExpediente = (id) => {
+    clienteActual = db.clientes.find(x => x.id === id);
+    const historial = clienteActual.presupuestos || [];
+    
+    document.getElementById('ficha-cliente-detalle').innerHTML = `
+        <div class="bg-blue-600 text-white p-7 rounded-[40px] italic shadow-lg mb-4">
+            <h2 class="text-xl font-black uppercase mb-1">${clienteActual.nombre}</h2>
+            <p class="text-[10px] opacity-80 uppercase">${clienteActual.dir}</p>
+        </div>
+        <div class="space-y-2 mb-4">
+            <p class="text-[9px] font-black opacity-40 ml-2 uppercase">Historial (Pulsa para abrir)</p>
+            ${historial.map(p => `
+                <div onclick="verPresupuestoGuardado(${p.id})" class="bg-white p-4 rounded-2xl border shadow-sm flex justify-between items-center active:scale-95 transition-all">
+                    <div>
+                        <p class="text-[10px] font-bold">#${p.numero} - ${p.nombreObra}</p>
+                        <p class="text-[8px] opacity-40">${p.fecha}</p>
+                    </div>
+                    <p class="text-xs font-black text-blue-600">${fNum(p.total)}€</p>
+                </div>
+            `).reverse().join('') || '<p class="text-center opacity-30 text-[10px] py-4">Sin presupuestos</p>'}
+        </div>
+    `;
+    irAPantalla('expediente');
 };
 
 // ==========================================
-// 5. GUARDADO, PDF Y COMPARTIR
+// 6. GUARDADO Y COMPARTIR
 // ==========================================
 window.guardarObraCompleta = async () => {
-    if (obraEnCurso.lineas.length === 0) return alert("Añade medidas primero");
-
-    // Guardar en el historial del cliente
+    if (obraEnCurso.lineas.length === 0) return alert("Añade medidas");
     if (!clienteActual.presupuestos) clienteActual.presupuestos = [];
     
     const subtotal = obraEnCurso.lineas.reduce((a, b) => a + b.subtotal, 0);
@@ -198,26 +167,17 @@ window.guardarObraCompleta = async () => {
     };
     
     clienteActual.presupuestos.push(nuevoPresu);
+    db.ajustes.nPresu++; 
+    asegurarGuardado();
 
-    // Generar PDF para compartir
     const element = document.getElementById('pantalla-trabajo');
-    const opt = { 
-        margin: 10, 
-        filename: `Presu_${db.ajustes.nPresu}_${obraEnCurso.nombre}.pdf`, 
-        html2canvas: { scale: 2 }, 
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
-    };
+    const opt = { margin: 10, filename: `Presu_${nuevoPresu.numero}.pdf`, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
     
     try {
         const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
         const file = new File([pdfBlob], `Presupuesto_${obraEnCurso.nombre}.pdf`, { type: 'application/pdf' });
-
         if (navigator.share) {
-            await navigator.share({
-                files: [file],
-                title: 'Presupuesto ' + obraEnCurso.nombre,
-                text: 'Hola, le adjunto el presupuesto solicitado.'
-            });
+            await navigator.share({ files: [file], title: 'Presupuesto', text: 'Adjunto envío presupuesto.' });
         } else {
             html2pdf().set(opt).from(element).save();
         }
@@ -225,135 +185,35 @@ window.guardarObraCompleta = async () => {
         html2pdf().set(opt).from(element).save();
     }
 
-    db.ajustes.nPresu++; 
-    asegurarGuardado();
     abrirExpediente(clienteActual.id);
 };
 
 // ==========================================
-// 6. GESTIÓN DE CLIENTES Y EXPEDIENTES
+// 7. RESTO DE FUNCIONES (SIN CAMBIOS)
 // ==========================================
-window.abrirExpediente = (id) => {
-    clienteActual = db.clientes.find(x => x.id === id);
-    const historial = clienteActual.presupuestos || [];
-    
-    document.getElementById('ficha-cliente-detalle').innerHTML = `
-        <div class="bg-blue-600 text-white p-7 rounded-[40px] italic shadow-lg mb-4">
-            <h2 class="text-xl font-black uppercase mb-1">${clienteActual.nombre}</h2>
-            <p class="text-[10px] opacity-80 uppercase">${clienteActual.dir}</p>
-        </div>
-        <div class="space-y-2 mb-4">
-            <p class="text-[9px] font-black opacity-40 ml-2 uppercase">Historial de Presupuestos</p>
-            ${historial.map(p => `
-                <div class="bg-white p-4 rounded-2xl border shadow-sm flex justify-between items-center">
-                    <div>
-                        <p class="text-[10px] font-bold">#${p.numero} - ${p.nombreObra}</p>
-                        <p class="text-[8px] opacity-40">${p.fecha}</p>
-                    </div>
-                    <p class="text-xs font-black text-blue-600">${fNum(p.total)}€</p>
-                </div>
-            `).reverse().join('') || '<p class="text-center opacity-30 text-[10px] py-4">No hay presupuestos previos</p>'}
-        </div>
-    `;
-    irAPantalla('expediente');
-};
-
 window.renderListaClientes = () => {
     const cont = document.getElementById('lista-clientes');
     if(!cont) return;
     cont.innerHTML = db.clientes.length === 0 ? '<p class="text-center opacity-40 py-10 italic">SIN CLIENTES</p>' :
-    db.clientes.map(c => `
-        <div onclick="abrirExpediente(${c.id})" class="bg-white p-5 rounded-[30px] border shadow-sm flex justify-between items-center mb-3 active-scale">
-            <p class="font-black text-slate-800 uppercase italic text-sm">${c.nombre}</p>
-            <span class="text-[10px] opacity-30">❯</span>
-        </div>`).reverse().join('');
+    db.clientes.map(c => `<div onclick="abrirExpediente(${c.id})" class="bg-white p-5 rounded-[30px] border shadow-sm flex justify-between items-center mb-3 active-scale"><p class="font-black text-slate-800 uppercase italic text-sm">${c.nombre}</p></div>`).reverse().join('');
 };
 
-window.guardarDatosCliente = () => {
-    const nom = document.getElementById('cli-nombre').value.trim();
-    if (!nom) return alert("El nombre es obligatorio");
-    const nuevo = { 
-        id: Date.now(), 
-        nombre: nom.toUpperCase(), 
-        cif: document.getElementById('cli-cif').value.toUpperCase(), 
-        tel: document.getElementById('cli-tel').value, 
-        dir: document.getElementById('cli-dir').value.toUpperCase(),
-        presupuestos: []
-    };
-    db.clientes.push(nuevo);
-    asegurarGuardado(); 
-    irAPantalla('clientes');
-};
-
-// ==========================================
-// 7. INICIO DE OBRA Y BOTONES
-// ==========================================
 window.confirmarNombreObra = () => {
     const v = document.getElementById('input-nombre-obra').value;
-    if (!v) return alert("¿Cómo se llama la obra?");
+    if (!v) return alert("Nombre de obra?");
     obraEnCurso = { nombre: v.toUpperCase(), lineas: [], iva: 21, fotos: [] };
     document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre;
-    irAPantalla('trabajo'); 
-    renderBotones(); 
-    renderMedidas();
+    irAPantalla('trabajo'); renderBotones(); renderMedidas();
 };
 
-window.renderBotones = () => {
-    const cont = document.getElementById('botones-trabajo');
-    if(!cont) return;
-    cont.innerHTML = Object.keys(CONFIG_MEDIDAS).map(k => `
-        <button onclick="prepararMedida('${k}')" class="bg-white p-6 rounded-[30px] border flex flex-col items-center active-scale shadow-sm">
-            <span class="text-3xl mb-1">${CONFIG_MEDIDAS[k].i}</span>
-            <span class="text-[9px] font-black uppercase opacity-60">${CONFIG_MEDIDAS[k].n}</span>
-        </button>`).join('');
-};
-
-window.prepararMedida = (t) => {
-    const zona = prompt("¿ZONA?", "GENERAL"); if (!zona) return;
-    const tarea = (t === 'horas') ? prompt("¿CONCEPTO?", "ADMINISTRACIÓN") : prompt("¿TRABAJO?", "MONTAJE"); 
-    if (!tarea) return;
-    calcEstado = { 
-        tipo: t, paso: 1, v1: 0, v2: 0, memoria: '', acumulado: 0, 
-        zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), 
-        modo: 'medida', editandoId: null 
-    };
-    abrirCalculadora();
-};
-
-function abrirCalculadora() {
-    const conf = CONFIG_MEDIDAS[calcEstado.tipo];
-    let txt = calcEstado.modo === 'precio' ? `PRECIO PARA ${calcEstado.tarea}` : (calcEstado.paso === 1 ? conf.m1 : conf.m2);
-    document.getElementById('calc-titulo').innerText = txt;
-    actualizarDisplay();
-    document.getElementById('modal-calc').classList.remove('hidden');
-}
-
-window.cambiarIVA = (valor) => {
-    obraEnCurso.iva = valor;
-    document.querySelectorAll('.iva-btn').forEach(btn => { 
-        btn.classList.remove('bg-blue-600', 'text-white'); 
-        btn.classList.add('bg-slate-100'); 
-    });
-    const b = document.getElementById(`btn-iva-${valor}`);
-    if(b) { b.classList.replace('bg-slate-100', 'bg-blue-600'); b.classList.add('text-white'); }
-    renderMedidas();
-};
-
-window.guardarAjustes = () => {
-    db.ajustes = {
-        nombre: document.getElementById('config-nombre').value.toUpperCase(),
-        cif: document.getElementById('config-cif').value.toUpperCase(),
-        tel: document.getElementById('config-tel').value,
-        dir: document.getElementById('config-dir').value.toUpperCase(),
-        cp: document.getElementById('config-cp').value,
-        ciudad: document.getElementById('config-ciudad').value.toUpperCase(),
-        nPresu: parseInt(document.getElementById('config-nPresu').value) || 1
-    };
-    asegurarGuardado(); 
-    alert("Ajustes guardados correctamente"); 
-    irAPantalla('clientes');
-};
-
+window.renderBotones = () => { document.getElementById('botones-trabajo').innerHTML = Object.keys(CONFIG_MEDIDAS).map(k => `<button onclick="prepararMedida('${k}')" class="bg-white p-6 rounded-[30px] border flex flex-col items-center active-scale shadow-sm"><span class="text-3xl mb-1">${CONFIG_MEDIDAS[k].i}</span><span class="text-[9px] font-black uppercase opacity-60">${CONFIG_MEDIDAS[k].n}</span></button>`).join(''); };
+window.prepararMedida = (t) => { const zona = prompt("¿ZONA?", "GENERAL"); if (!zona) return; const tarea = (t === 'horas') ? prompt("¿CONCEPTO?", "ADMINISTRACIÓN") : prompt("¿TRABAJO?", "MONTAJE"); if (!tarea) return; calcEstado = { tipo: t, paso: 1, v1: 0, v2: 0, memoria: '', acumulado: 0, zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), modo: 'medida', editandoId: null }; abrirCalculadora(); };
+function abrirCalculadora() { const conf = CONFIG_MEDIDAS[calcEstado.tipo]; document.getElementById('calc-titulo').innerText = calcEstado.modo === 'precio' ? `PRECIO PARA ${calcEstado.tarea}` : (calcEstado.paso === 1 ? conf.m1 : conf.m2); actualizarDisplay(); document.getElementById('modal-calc').classList.remove('hidden'); }
+window.editarLinea = (id) => { const l = obraEnCurso.lineas.find(x => x.id === id); calcEstado = { tipo: l.tipo, paso: 1, v1: l.cantidad, v2: 0, memoria: l.precio.toString().replace('.', ','), acumulado: 0, zona: l.zona, tarea: l.tarea, modo: 'precio', totalMetros: l.cantidad, editandoId: id }; abrirCalculadora(); };
+window.borrarLinea = (id) => { if(confirm("¿Eliminar?")) { obraEnCurso.lineas = obraEnCurso.lineas.filter(x => x.id !== id); renderMedidas(); } };
+window.guardarDatosCliente = () => { const nom = document.getElementById('cli-nombre').value.trim(); if (!nom) return alert("Nombre obligatorio"); db.clientes.push({ id: Date.now(), nombre: nom.toUpperCase(), cif: document.getElementById('cli-cif').value.toUpperCase(), tel: document.getElementById('cli-tel').value, dir: document.getElementById('cli-dir').value.toUpperCase(), presupuestos: [] }); asegurarGuardado(); irAPantalla('clientes'); };
+window.guardarAjustes = () => { db.ajustes = { nombre: document.getElementById('config-nombre').value.toUpperCase(), cif: document.getElementById('config-cif').value.toUpperCase(), tel: document.getElementById('config-tel').value, dir: document.getElementById('config-dir').value.toUpperCase(), cp: document.getElementById('config-cp').value, ciudad: document.getElementById('config-ciudad').value.toUpperCase(), nPresu: parseInt(document.getElementById('config-nPresu').value) || 1 }; asegurarGuardado(); alert("Guardado"); irAPantalla('clientes'); };
+window.cambiarIVA = (valor) => { obraEnCurso.iva = valor; document.querySelectorAll('.iva-btn').forEach(btn => { btn.classList.remove('bg-blue-600', 'text-white'); btn.classList.add('bg-slate-100'); }); const b = document.getElementById(`btn-iva-${valor}`); if(b) { b.classList.replace('bg-slate-100', 'bg-blue-600'); b.classList.add('text-white'); } renderMedidas(); };
 window.nuevoCliente = () => irAPantalla('nuevo-cliente');
 window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
 window.onload = () => renderListaClientes();
