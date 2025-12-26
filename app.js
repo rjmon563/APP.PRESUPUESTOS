@@ -1,6 +1,3 @@
-// ==========================================
-// 1. MEMORIA Y VARIABLES GLOBALES
-// ==========================================
 let db = JSON.parse(localStorage.getItem('presupro_v3')) || { clientes: [] };
 let clienteActual = null;
 let obraEnCurso = { nombre: '', lineas: [] };
@@ -17,9 +14,6 @@ const CONFIG_MEDIDAS = {
 
 const asegurarGuardado = () => localStorage.setItem('presupro_v3', JSON.stringify(db));
 
-// ==========================================
-// 2. NAVEGACIÓN
-// ==========================================
 window.irAPantalla = (id) => {
     const pantallas = ['pantalla-clientes', 'pantalla-expediente', 'pantalla-trabajo', 'pantalla-nombre-obra'];
     pantallas.forEach(p => document.getElementById(p).classList.add('hidden'));
@@ -27,99 +21,71 @@ window.irAPantalla = (id) => {
     if(id === 'clientes') renderListaClientes();
 };
 
-// ==========================================
-// 3. GESTIÓN DE CLIENTES
-// ==========================================
 window.nuevoCliente = () => {
     const n = prompt("Nombre del Cliente:");
     if (!n) return;
-    db.clientes.push({
-        id: Date.now(),
-        nombre: n.toUpperCase(),
-        cif: prompt("CIF/DNI:") || "S/N",
-        telefono: prompt("Teléfono:") || "",
-        direccion: prompt("Dirección:") || "S/D",
-        cp: prompt("CP:") || "",
-        ciudad: prompt("Ciudad:") || "",
-        presupuestos: []
-    });
+    db.clientes.push({ id: Date.now(), nombre: n.toUpperCase(), cif: "S/N", budgets: [] });
     asegurarGuardado();
     renderListaClientes();
 };
 
 window.renderListaClientes = () => {
     const cont = document.getElementById('lista-clientes');
-    cont.innerHTML = db.clientes.length === 0 ? '<p class="text-center opacity-30 mt-10 font-bold uppercase italic text-[10px]">Sin clientes</p>' : 
-    db.clientes.map(c => `
-        <div onclick="abrirExpediente(${c.id})" class="bg-white p-5 rounded-3xl border shadow-sm flex justify-between items-center mb-3 active-scale">
-            <p class="font-black text-slate-800 uppercase italic leading-none">${c.nombre}</p>
+    cont.innerHTML = db.clientes.map(c => `
+        <div onclick="abrirExpediente(${c.id})" class="bg-white p-5 rounded-3xl border shadow-sm flex justify-between items-center mb-3">
+            <p class="font-black text-slate-800 uppercase italic">${c.nombre}</p>
             <span class="text-blue-600 font-bold">➔</span>
         </div>`).reverse().join('');
 };
 
 window.abrirExpediente = (id) => {
     clienteActual = db.clientes.find(cli => cli.id === id);
-    if(!clienteActual) return;
     document.getElementById('ficha-cliente-detalle').innerHTML = `
-        <div class="bg-blue-600 text-white p-6 rounded-[35px] shadow-lg italic text-left">
-            <h2 class="text-2xl font-black uppercase leading-none">${clienteActual.nombre}</h2>
-            <p class="text-[11px] font-bold opacity-80 mb-3 tracking-widest">CIF: ${clienteActual.cif}</p>
-            <p class="text-xs font-bold italic">📍 ${clienteActual.direccion}, ${clienteActual.ciudad}</p>
+        <div class="bg-blue-600 text-white p-6 rounded-[35px] shadow-lg italic">
+            <h2 class="text-2xl font-black uppercase">${clienteActual.nombre}</h2>
         </div>`;
     irAPantalla('expediente');
 };
 
-// ==========================================
-// 4. CALCULADORA CON CALENDARIO
-// ==========================================
 window.confirmarNombreObra = () => {
     const input = document.getElementById('input-nombre-obra');
-    if (!input.value) return alert("Indica el nombre del trabajo");
+    if (!input.value) return alert("Pon un nombre");
     obraEnCurso = { nombre: input.value.toUpperCase(), lineas: [] };
     document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre;
-    document.getElementById('lista-medidas-obra').innerHTML = "";
     irAPantalla('trabajo');
 };
 
 window.prepararMedida = (t) => {
-    const zona = prompt("¿Zona o Concepto?", (t === 'horas') ? "ADMINISTRACIÓN" : "GENERAL");
+    const zona = prompt("¿Zona?", (t === 'horas' ? "ADMINISTRACIÓN" : "GENERAL"));
     if(!zona) return;
-    
     calcEstado = { tipo: t, paso: 1, valor1: 0, memoria: '', concepto: zona.toUpperCase() };
     
-    // Si son horas, mostramos el calendario
-    const divFecha = document.getElementById('contenedor-fecha-horas');
     if (t === 'horas') {
-        divFecha.classList.remove('hidden');
+        document.getElementById('contenedor-fecha-horas').classList.remove('hidden');
         document.getElementById('fecha-trabajo').valueAsDate = new Date();
     } else {
-        divFecha.classList.add('hidden');
+        document.getElementById('contenedor-fecha-horas').classList.add('hidden');
     }
-    
     abrirCalculadora();
 };
 
 function abrirCalculadora() {
     const conf = CONFIG_MEDIDAS[calcEstado.tipo];
-    const titulo = document.getElementById('calc-titulo');
-    if (conf.pasos === 2) {
-        titulo.innerText = (calcEstado.paso === 1) ? `${conf.m1.toUpperCase()} - ${calcEstado.concepto}` : `${conf.m2.toUpperCase()} - ${calcEstado.concepto}`;
-    } else {
-        titulo.innerText = `${conf.m1.toUpperCase()} - ${calcEstado.concepto}`;
-    }
+    document.getElementById('calc-titulo').innerText = (conf.pasos === 2) ? 
+        `${(calcEstado.paso === 1 ? conf.m1 : conf.m2).toUpperCase()} - ${calcEstado.concepto}` : 
+        `${conf.m1.toUpperCase()} - ${calcEstado.concepto}`;
+
     document.getElementById('calc-display').innerText = '0';
     document.getElementById('modal-calc').classList.remove('hidden');
+    document.body.classList.add('no-scroll'); // Bloqueamos el fondo
 }
 
 window.teclear = (n) => {
     const disp = document.getElementById('calc-display');
     if (n === 'OK') {
         if (!calcEstado.memoria) return;
-        let cifra = 0;
-        try { cifra = eval(calcEstado.memoria.replace(/,/g, '.')) || 0; } catch(e) { return alert("Revisa la suma"); }
-        
-        const conf = CONFIG_MEDIDAS[calcEstado.tipo];
-        if (conf.pasos === 1) {
+        let cifra = eval(calcEstado.memoria.replace(/,/g, '.'));
+        if (CONFIG_MEDIDAS[calcEstado.tipo].pasos === 1) {
             finalizarLinea(cifra);
         } else {
             if (calcEstado.paso === 1) {
@@ -130,55 +96,35 @@ window.teclear = (n) => {
         }
     } 
     else if (n === 'DEL') { calcEstado.memoria = ''; disp.innerText = '0'; }
-    else if (n === '+') { if(calcEstado.memoria) { calcEstado.memoria += '+'; disp.innerText = calcEstado.memoria; } }
     else { calcEstado.memoria += n; disp.innerText = calcEstado.memoria; }
 };
 
-function finalizarLinea(cantidadFinal) {
-    const conf = CONFIG_MEDIDAS[calcEstado.tipo];
-    const pStr = prompt(`Precio para ${conf.n} por ${conf.uni} (€):`, "0");
-    const p = parseFloat(pStr.replace(',','.')) || 0;
-
-    let txtFecha = "";
+function finalizarLinea(cant) {
+    const p = parseFloat(prompt("Precio (€):", "0").replace(',','.')) || 0;
+    let fecha = "";
     if (calcEstado.tipo === 'horas') {
-        const fechaVal = document.getElementById('fecha-trabajo').value;
-        const f = new Date(fechaVal);
-        txtFecha = ` [${f.toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit'})}]`;
+        const f = new Date(document.getElementById('fecha-trabajo').value);
+        fecha = ` [${f.toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit'})}]`;
     }
-
     obraEnCurso.lineas.push({
-        nombre: `${conf.i} ${conf.n}${txtFecha} (${calcEstado.concepto})`,
-        cantidad: cantidadFinal, precio: p, subtotal: cantidadFinal * p, unidad: conf.uni
+        nombre: `${CONFIG_MEDIDAS[calcEstado.tipo].i} ${CONFIG_MEDIDAS[calcEstado.tipo].n}${fecha} (${calcEstado.concepto})`,
+        cantidad: cant, precio: p, subtotal: cant * p, unidad: CONFIG_MEDIDAS[calcEstado.tipo].uni
     });
-
-    document.getElementById('modal-calc').classList.add('hidden');
+    cerrarCalc();
     renderMedidas();
 }
 
 function renderMedidas() {
-    const lista = document.getElementById('lista-medidas-obra');
-    lista.innerHTML = obraEnCurso.lineas.map((l, i) => `
-        <div class="bg-white p-4 rounded-2xl border flex justify-between items-center mb-2 shadow-sm italic text-[11px]">
-            <div>
-                <p class="font-black text-slate-800 uppercase leading-none mb-1">${l.nombre}</p>
-                <p class="font-bold text-slate-400">${l.cantidad.toFixed(2)}${l.unidad} x ${l.precio.toFixed(2)}€</p>
-            </div>
-            <div class="flex items-center gap-3">
-                <span class="font-black text-blue-700">${l.subtotal.toFixed(2)}€</span>
-                <button onclick="if(confirm('¿Borrar línea?')){obraEnCurso.lineas.splice(${i}, 1); renderMedidas();}" class="text-red-300">✕</button>
-            </div>
+    document.getElementById('lista-medidas-obra').innerHTML = obraEnCurso.lineas.map((l, i) => `
+        <div class="bg-white p-4 rounded-2xl border flex justify-between items-center mb-2 text-[11px] font-bold italic">
+            <span>${l.nombre}</span>
+            <span class="text-blue-700">${l.subtotal.toFixed(2)}€</span>
         </div>`).reverse().join('');
 }
 
-window.guardarObraCompleta = () => {
-    if(obraEnCurso.lineas.length === 0) return alert("No hay medidas anotadas");
-    const total = obraEnCurso.lineas.reduce((acc, l) => acc + l.subtotal, 0);
-    if(!clienteActual.presupuestos) clienteActual.presupuestos = [];
-    clienteActual.presupuestos.push({ ...obraEnCurso, total, fecha: new Date().toLocaleDateString() });
-    asegurarGuardado();
-    alert("✔ Obra guardada correctamente");
-    irAPantalla('expediente');
+window.cerrarCalc = () => {
+    document.getElementById('modal-calc').classList.add('hidden');
+    document.body.classList.remove('no-scroll');
 };
 
-window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
 window.onload = () => renderListaClientes();
