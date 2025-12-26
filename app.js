@@ -1,6 +1,4 @@
-// ==========================================
-// 1. MEMORIA Y DATOS
-// ==========================================
+// MEMORIA Y DATOS
 let db = JSON.parse(localStorage.getItem('presupro_v3')) || { 
     clientes: [], 
     ajustes: { nombre: '', tel: '', cif: '', dir: '', cp: '', ciudad: '' } 
@@ -11,18 +9,15 @@ let obraEnCurso = { nombre: '', lineas: [] };
 let calcEstado = { tipo: '', paso: 1, v1: 0, v2: 0, memoria: '', zona: '', tarea: '', modo: 'medida' }; 
 
 const CONFIG_MEDIDAS = {
-    'techos': { n: 'Techo', i: '🏠', uni: 'm²', pasos: 2, m1: 'Ancho', m2: 'Largo' },
-    'tabiques': { n: 'Tabique', i: '🧱', uni: 'm²', pasos: 2, m1: 'Suma de tramos (5+3+8...)', m2: 'Altura' },
-    'cajones': { n: 'Cajón', i: '📦', uni: 'm²', pasos: 2, m1: 'Suma de tramos (5+3+8...)', m2: 'Altura/Ancho' },
-    'tabicas': { n: 'Tabica', i: '📐', uni: 'm²', pasos: 2, m1: 'Largo', m2: 'Ancho' },
-    'cantoneras': { n: 'Cantonera', i: '📏', uni: 'ml', pasos: 1, m1: 'Metros Totales (puedes sumar +)' }
+    'techos': { n: 'Techo', i: '🏠', pasos: 2, m1: 'Ancho', m2: 'Largo' },
+    'tabiques': { n: 'Tabique', i: '🧱', pasos: 2, m1: 'Suma de tramos (Ej: 2+3.5)', m2: 'Altura' },
+    'cajones': { n: 'Cajón', i: '📦', pasos: 2, m1: 'Suma de tramos', m2: 'Altura/Fondo' },
+    'tabicas': { n: 'Tabica', i: '📐', pasos: 2, m1: 'Ancho', m2: 'Largo' },
+    'cantoneras': { n: 'Cantonera', i: '📏', pasos: 1, m1: 'Metros Totales' }
 };
 
 const asegurarGuardado = () => localStorage.setItem('presupro_v3', JSON.stringify(db));
 
-// ==========================================
-// 2. NAVEGACIÓN Y AJUSTES FISCALES
-// ==========================================
 window.irAPantalla = (id) => {
     document.querySelectorAll('[id^="pantalla-"]').forEach(p => p.classList.add('hidden'));
     document.getElementById(`pantalla-${id}`).classList.remove('hidden');
@@ -42,13 +37,10 @@ window.guardarAjustes = () => {
         ciudad: document.getElementById('config-ciudad').value.toUpperCase()
     };
     asegurarGuardado();
-    alert("✅ Datos Guardados");
+    alert("✅ Configuración Guardada");
     irAPantalla('clientes');
 };
 
-// ==========================================
-// 3. GESTIÓN DE CLIENTES
-// ==========================================
 window.nuevoCliente = () => {
     ['cli-nombre', 'cli-cif', 'cli-tel', 'cli-dir'].forEach(i => document.getElementById(i).value = "");
     irAPantalla('nuevo-cliente');
@@ -70,7 +62,7 @@ window.guardarDatosCliente = () => {
 
 window.renderListaClientes = () => {
     const cont = document.getElementById('lista-clientes');
-    cont.innerHTML = db.clientes.length === 0 ? '<p class="text-center opacity-40 py-10">SIN CLIENTES</p>' :
+    cont.innerHTML = db.clientes.length === 0 ? '<p class="text-center opacity-40 py-10 italic">NO HAY CLIENTES</p>' :
     db.clientes.map(c => `
         <div onclick="abrirExpediente(${c.id})" class="bg-white p-5 rounded-[30px] border shadow-sm flex justify-between items-center mb-3 active-scale">
             <p class="font-black text-slate-800 uppercase italic text-sm">${c.nombre}</p>
@@ -88,9 +80,6 @@ window.abrirExpediente = (id) => {
     irAPantalla('expediente');
 };
 
-// ==========================================
-// 4. CALCULADORA INTELIGENTE CON SUMA
-// ==========================================
 window.confirmarNombreObra = () => {
     const v = document.getElementById('input-nombre-obra').value;
     if (!v) return alert("Indica la zona");
@@ -118,49 +107,24 @@ window.prepararMedida = (t) => {
 
 function abrirCalculadora() {
     const conf = CONFIG_MEDIDAS[calcEstado.tipo];
-    let txt = "";
-    if(calcEstado.modo === 'precio') {
-        txt = "PRECIO PARA " + calcEstado.tarea;
-    } else {
-        txt = (calcEstado.paso === 1 ? conf.m1 : conf.m2);
-    }
-    document.getElementById('calc-titulo').innerText = txt.toUpperCase();
+    let txt = calcEstado.modo === 'precio' ? `PRECIO PARA ${calcEstado.tarea}` : (calcEstado.paso === 1 ? conf.m1 : conf.m2);
+    document.getElementById('calc-titulo').innerText = txt;
     document.getElementById('calc-display').innerText = calcEstado.memoria || '0';
     document.getElementById('modal-calc').classList.remove('hidden');
-    
-    // Inyectar el botón "+" dinámicamente si no existe (reemplaza al borrar si quieres)
-    // O simplemente lo habilitamos en la interfaz. Asegúrate de que el HTML tenga el botón "+".
-    actualizarTecladoSuma();
-}
-
-function actualizarTecladoSuma() {
-    // Reemplazamos el botón de borrar por uno de suma para que sea más útil en tabiques
-    const botones = document.querySelector('#modal-calc .grid');
-    // Si quieres que el botón "+" aparezca, vamos a modificar el HTML de la calculadora para que lo tenga.
 }
 
 window.teclear = (n) => {
     const disp = document.getElementById('calc-display');
     if (n === 'OK') {
         let cifra = 0;
-        try {
-            cifra = eval(calcEstado.memoria.replace(/,/g, '.')) || 0;
-        } catch(e) { alert("Error en la suma"); return; }
-
+        try { cifra = eval(calcEstado.memoria.replace(/,/g, '.')) || 0; } catch(e) { alert("Error en suma"); return; }
         const conf = CONFIG_MEDIDAS[calcEstado.tipo];
-        
         if (calcEstado.modo === 'medida') {
             if (calcEstado.paso < conf.pasos) {
-                calcEstado.v1 = cifra;
-                calcEstado.paso++; 
-                calcEstado.memoria = ''; 
-                abrirCalculadora();
+                calcEstado.v1 = cifra; calcEstado.paso++; calcEstado.memoria = ''; abrirCalculadora();
             } else {
-                let totalM = (conf.pasos === 1) ? cifra : calcEstado.v1 * cifra;
-                calcEstado.totalMetros = totalM;
-                calcEstado.modo = 'precio';
-                calcEstado.memoria = '';
-                abrirCalculadora();
+                calcEstado.totalMetros = (conf.pasos === 1) ? cifra : calcEstado.v1 * cifra;
+                calcEstado.modo = 'precio'; calcEstado.memoria = ''; abrirCalculadora();
             }
         } else {
             obraEnCurso.lineas.push({
@@ -171,17 +135,10 @@ window.teclear = (n) => {
             document.getElementById('modal-calc').classList.add('hidden');
             renderMedidas();
         }
-    } else if (n === 'DEL') { 
-        calcEstado.memoria = ''; disp.innerText = '0'; 
-    } else { 
-        calcEstado.memoria += n; 
-        disp.innerText = calcEstado.memoria; 
-    }
+    } else if (n === 'DEL') { calcEstado.memoria = ''; disp.innerText = '0'; }
+    else { calcEstado.memoria += n; disp.innerText = calcEstado.memoria; }
 };
 
-// ==========================================
-// 5. EDITOR Y LISTA
-// ==========================================
 function renderMedidas() {
     const cont = document.getElementById('lista-medidas-obra');
     const total = obraEnCurso.lineas.reduce((a, b) => a + b.subtotal, 0);
@@ -201,29 +158,19 @@ function renderMedidas() {
 }
 
 window.editarLinea = (id) => {
-    let linea = obraEnCurso.lineas.find(x => x.id === id);
-    let nMetros = prompt("EDITAR METROS:", linea.cantidad);
-    if(nMetros === null) return;
-    let nPrecio = prompt("EDITAR PRECIO:", linea.precio);
-    if(nPrecio === null) return;
-    linea.cantidad = parseFloat(nMetros.replace(',','.'));
-    linea.precio = parseFloat(nPrecio.replace(',','.'));
-    linea.subtotal = linea.cantidad * linea.precio;
+    let l = obraEnCurso.lineas.find(x => x.id === id);
+    let m = prompt("NUEVOS METROS:", l.cantidad); if(m === null) return;
+    let p = prompt("NUEVO PRECIO:", l.precio); if(p === null) return;
+    l.cantidad = parseFloat(m.replace(',','.'));
+    l.precio = parseFloat(p.replace(',','.'));
+    l.subtotal = l.cantidad * l.precio;
     renderMedidas();
 };
 
-window.borrarLinea = (id) => {
-    if(confirm("¿Borrar?")) {
-        obraEnCurso.lineas = obraEnCurso.lineas.filter(x => x.id !== id);
-        renderMedidas();
-    }
-};
+window.borrarLinea = (id) => { if(confirm("¿Borrar?")) { obraEnCurso.lineas = obraEnCurso.lineas.filter(x => x.id !== id); renderMedidas(); } };
 
 window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
 
-// ==========================================
-// 6. PDF FINAL
-// ==========================================
 window.guardarObraCompleta = async () => {
     if (obraEnCurso.lineas.length === 0) return alert("No hay datos");
     const total = obraEnCurso.lineas.reduce((a,b) => a+b.subtotal, 0);
@@ -233,17 +180,17 @@ window.guardarObraCompleta = async () => {
             <div style="display:flex; justify-content:space-between; border-bottom:4px solid #2563eb; padding-bottom:15px; margin-bottom:20px;">
                 <div style="width: 70%;">
                     <h1 style="margin:0; color:#2563eb; font-size:24px; font-style:italic;">PRESUPUESTO</h1>
-                    <p style="margin:5px 0 0 0; font-weight:bold; font-size:16px; text-transform:uppercase;">${db.ajustes.nombre}</p>
+                    <p style="margin:5px 0 0 0; font-weight:bold; font-size:16px;">${db.ajustes.nombre}</p>
                     <p style="margin:0; font-size:11px; color:#555;">CIF: ${db.ajustes.cif}</p>
-                    <p style="margin:0; font-size:11px; color:#555;">${db.ajustes.dir} - ${db.ajustes.cp} ${db.ajustes.ciudad}</p>
+                    <p style="margin:0; font-size:11px; color:#555;">${db.ajustes.dir}</p>
+                    <p style="margin:0; font-size:11px; color:#555;">${db.ajustes.cp} ${db.ajustes.ciudad}</p>
                     <p style="margin:0; font-size:11px; color:#555;">TEL: ${db.ajustes.tel}</p>
                 </div>
-                <div style="text-align:right;">
-                    <svg width="60" height="60" viewBox="0 0 100 100">
-                        <polygon points="50,5 95,25 95,75 50,95 5,75 5,25" fill="#2563eb"/>
-                        <text x="50" y="65" font-family="Arial" font-size="45" font-weight="bold" fill="white" text-anchor="middle">P</text>
-                    </svg>
-                </div>
+            </div>
+            <div style="background:#f8fafc; padding:15px; border-radius:10px; margin-bottom:20px; font-size:12px; border:1px solid #e2e8f0;">
+                <p style="margin:0; color:#64748b; font-weight:bold; font-size:10px;">CLIENTE</p>
+                <p style="margin:0; font-weight:bold;">${clienteActual.nombre}</p>
+                <p style="margin:0;">DIRECCIÓN: ${clienteActual.dir}</p>
             </div>
             <table style="width:100%; border-collapse:collapse;">
                 <thead>
@@ -253,35 +200,34 @@ window.guardarObraCompleta = async () => {
                     </tr>
                 </thead>
                 <tbody>
-                    ${obraEnCurso.lineas.map(l => `
-                    <tr>
-                        <td style="padding:10px; border-bottom:1px solid #e2e8f0; font-size:12px;">
-                            <b>${l.nombre}</b><br>
-                            <span style="color:#666;">${l.cantidad.toFixed(2)} unid. x ${l.precio.toFixed(2)}€</span>
-                        </td>
-                        <td style="padding:10px; border-bottom:1px solid #e2e8f0; text-align:right; font-weight:bold;">${l.subtotal.toFixed(2)}€</td>
-                    </tr>`).join('')}
+                    ${obraEnCurso.lineas.map(l => `<tr><td style="padding:10px; border-bottom:1px solid #e2e8f0; font-size:12px;"><b>${l.nombre}</b><br><span style="color:#666;">${l.cantidad.toFixed(2)} unid. x ${l.precio.toFixed(2)}€</span></td><td style="padding:10px; border-bottom:1px solid #e2e8f0; text-align:right; font-weight:bold;">${l.subtotal.toFixed(2)}€</td></tr>`).join('')}
                 </tbody>
             </table>
             <div style="margin-top:30px; text-align:right;">
                 <h2 style="margin:0; color:#16a34a; font-size:32px;">TOTAL: ${total.toFixed(2)}€</h2>
             </div>
         </div>`;
-    
-    html2pdf().from(el).set({
-        margin: 0.5,
-        filename: `Presu_${clienteActual.nombre}.pdf`,
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-    }).save();
-
+    html2pdf().from(el).set({ margin: 0.5, filename: `Presu_${clienteActual.nombre}.pdf`, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).save();
     setTimeout(() => {
         if(confirm("✅ PDF Guardado. ¿WhatsApp?")){
-            const txt = `*PRESUPUESTO*%0A*Cliente:* ${clienteActual.nombre}%0A*Total:* ${total.toFixed(2)}€`;
-            window.open(`https://wa.me/?text=${txt}`, '_blank');
+            window.open(`https://wa.me/?text=*PRESUPUESTO*%0A*Cliente:* ${clienteActual.nombre}%0A*Total:* ${total.toFixed(2)}€`, '_blank');
         }
-        clienteActual.presupuestos.push({...obraEnCurso, total});
-        asegurarGuardado(); irAPantalla('expediente');
+        clienteActual.presupuestos.push({...obraEnCurso, total}); asegurarGuardado(); irAPantalla('expediente');
     }, 1500);
+};
+
+// COPIA DE SEGURIDAD
+window.exportarDatos = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+    const a = document.createElement('a'); a.setAttribute("href", dataStr); a.setAttribute("download", "copia_presupro.json");
+    document.body.appendChild(a); a.click(); a.remove();
+};
+window.importarDatos = () => {
+    const f = document.createElement('input'); f.type = 'file';
+    f.onchange = e => {
+        const reader = new FileReader(); reader.readAsText(e.target.files[0],'UTF-8');
+        reader.onload = r => { if(confirm("¿Restaurar copia?")){ db = JSON.parse(r.target.result); asegurarGuardado(); location.reload(); } }
+    }; f.click();
 };
 
 window.onload = () => renderListaClientes();
