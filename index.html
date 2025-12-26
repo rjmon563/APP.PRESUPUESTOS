@@ -66,13 +66,14 @@
     <div id="pantalla-expediente" class="hidden p-4 max-w-lg mx-auto">
         <button onclick="irAPantalla('clientes')" class="text-blue-600 font-bold mb-4 uppercase text-xs">← Volver</button>
         <div id="ficha-cliente-detalle"></div>
-        <button onclick="irAPantalla('nombre-obra')" class="w-full bg-blue-600 text-white py-6 rounded-[35px] font-black uppercase mt-6 shadow-xl active-scale italic tracking-widest">Nueva Zona</button>
+        <button onclick="irAPantalla('nombre-obra')" class="w-full bg-blue-600 text-white py-6 rounded-[35px] font-black uppercase mt-6 shadow-xl active-scale italic tracking-widest">Nuevo Presupuesto</button>
     </div>
 
     <div id="pantalla-nombre-obra" class="hidden p-6 max-w-lg mx-auto text-center">
         <button onclick="irAPantalla('expediente')" class="text-blue-600 font-bold mb-4 uppercase text-xs block text-left">← Volver</button>
-        <input type="text" id="input-nombre-obra" placeholder="ZONA: EJ. SALÓN" class="w-full p-6 rounded-3xl border-2 mb-6 font-black text-xl text-center shadow-inner outline-none uppercase">
-        <button onclick="confirmarNombreObra()" class="w-full bg-green-600 text-white py-6 rounded-[35px] font-black uppercase shadow-lg active-scale text-lg italic tracking-widest">Medir Ahora ➔</button>
+        <h2 class="text-sm font-black opacity-40 uppercase mb-4 italic">¿Qué obra o reforma es?</h2>
+        <input type="text" id="input-nombre-obra" placeholder="EJ: REFORMA COCINA" class="w-full p-6 rounded-3xl border-2 mb-6 font-black text-xl text-center shadow-inner outline-none uppercase">
+        <button onclick="confirmarNombreObra()" class="w-full bg-green-600 text-white py-6 rounded-[35px] font-black uppercase shadow-lg active-scale text-lg italic tracking-widest">Empezar a Medir ➔</button>
     </div>
 
     <div id="pantalla-trabajo" class="hidden p-4 max-w-lg mx-auto">
