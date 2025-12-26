@@ -112,7 +112,15 @@ function abrirCalculadora() {
     const conf = CONFIG_MEDIDAS[calcEstado.tipo];
     let txt = calcEstado.modo === 'precio' ? `PRECIO PARA ${calcEstado.tarea}` : (calcEstado.paso === 1 ? conf.m1 : conf.m2);
     document.getElementById('calc-titulo').innerText = txt;
-    document.getElementById('calc-display').innerText = calcEstado.memoria.replace(/\./g, ',') || '0';
+    
+    const disp = document.getElementById('calc-display');
+    disp.innerText = calcEstado.memoria.replace(/\./g, ',') || '0';
+    
+    // Ajuste de tamaño de fuente según longitud
+    if (calcEstado.memoria.length > 12) disp.style.fontSize = "1.5rem";
+    else if (calcEstado.memoria.length > 8) disp.style.fontSize = "2rem";
+    else disp.style.fontSize = "2.5rem";
+
     document.getElementById('modal-calc').classList.remove('hidden');
 }
 
@@ -120,7 +128,15 @@ window.teclear = (n) => {
     const disp = document.getElementById('calc-display');
     if (n === 'OK') {
         let cifra = 0;
-        try { cifra = eval(calcEstado.memoria) || 0; } catch(e) { alert("Error"); return; }
+        try { 
+            // Evaluamos la cadena de la memoria
+            cifra = eval(calcEstado.memoria) || 0; 
+        } catch(e) { 
+            alert("Operación no válida"); 
+            calcEstado.memoria = '';
+            return; 
+        }
+        
         const conf = CONFIG_MEDIDAS[calcEstado.tipo];
         if (calcEstado.modo === 'medida') {
             if (calcEstado.paso < conf.pasos) {
@@ -138,8 +154,13 @@ window.teclear = (n) => {
             document.getElementById('modal-calc').classList.add('hidden');
             renderMedidas();
         }
-    } else if (n === 'DEL') { calcEstado.memoria = ''; disp.innerText = '0'; }
-    else { calcEstado.memoria += n; disp.innerText = calcEstado.memoria.replace(/\./g, ','); }
+    } else if (n === 'DEL') { 
+        calcEstado.memoria = ''; 
+        abrirCalculadora();
+    } else { 
+        calcEstado.memoria += n; 
+        abrirCalculadora();
+    }
 };
 
 function renderMedidas() {
