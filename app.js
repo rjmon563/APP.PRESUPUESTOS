@@ -1,3 +1,6 @@
+// ==========================================
+// 1. MEMORIA Y DATOS INICIALES
+// ==========================================
 let db = JSON.parse(localStorage.getItem('presupro_v3')) || { clientes: [] };
 let clienteActual = null;
 let obraEnCurso = { nombre: '', lineas: [] };
@@ -13,12 +16,18 @@ const CONFIG_MEDIDAS = {
 
 const asegurarGuardado = () => localStorage.setItem('presupro_v3', JSON.stringify(db));
 
+// ==========================================
+// 2. NAVEGACIÓN Y PANTALLAS
+// ==========================================
 window.irAPantalla = (id) => {
     document.querySelectorAll('[id^="pantalla-"]').forEach(p => p.classList.add('hidden'));
     document.getElementById(`pantalla-${id}`).classList.remove('hidden');
     if (id === 'clientes') renderListaClientes();
 };
 
+// ==========================================
+// 3. GESTIÓN DE CLIENTES
+// ==========================================
 window.nuevoCliente = () => {
     ['cli-nombre', 'cli-cif', 'cli-tel', 'cli-dir'].forEach(i => document.getElementById(i).value = "");
     irAPantalla('nuevo-cliente');
@@ -34,7 +43,8 @@ window.guardarDatosCliente = () => {
         dir: document.getElementById('cli-dir').value || "S/D",
         presupuestos: [] 
     });
-    asegurarGuardado(); irAPantalla('clientes');
+    asegurarGuardado();
+    irAPantalla('clientes');
 };
 
 window.renderListaClientes = () => {
@@ -57,38 +67,47 @@ window.abrirExpediente = (id) => {
     irAPantalla('expediente');
 };
 
+// ==========================================
+// 4. LÓGICA DE OBRA (ZONA Y TAREA)
+// ==========================================
 window.confirmarNombreObra = () => {
     const v = document.getElementById('input-nombre-obra').value;
     if (!v) return alert("Indica la zona");
     obraEnCurso = { nombre: v.toUpperCase(), lineas: [] };
     document.getElementById('titulo-obra-actual').innerText = "ZONA: " + obraEnCurso.nombre;
-    irAPantalla('trabajo'); renderBotones(); renderMedidas();
+    irAPantalla('trabajo');
+    renderBotones();
+    renderMedidas();
 };
 
 function renderBotones() {
     document.getElementById('botones-trabajo').innerHTML = Object.keys(CONFIG_MEDIDAS).map(k => `
-        <button onclick="prepararMedida('${k}')" class="bg-white p-4 rounded-3xl shadow-sm border flex flex-col items-center">
+        <button onclick="prepararMedida('${k}')" class="bg-white p-4 rounded-3xl shadow-sm border flex flex-col items-center active:scale-95">
             <span class="text-2xl">${CONFIG_MEDIDAS[k].i}</span>
             <span class="text-[8px] font-black uppercase opacity-40">${CONFIG_MEDIDAS[k].n}</span>
         </button>`).join('');
 }
 
 window.prepararMedida = (t) => {
-    const zona = prompt("ZONA DE TRABAJO (Salón, Cocina...):", "GENERAL");
+    const zona = prompt("¿ZONA DE TRABAJO? (Habitación, Cocina...):", "GENERAL");
     if (!zona) return;
-    const tarea = prompt("¿TAREA? (Cinta, Montaje, Placa...):", "MONTAJE");
+    const tarea = prompt("¿QUÉ HACEMOS? (Montaje, Cinta, Placa...):", "MONTAJE");
     if (!tarea) return;
+    
     calcEstado = { tipo: t, paso: 1, v1: 0, v2: 0, memoria: '', zona: zona.toUpperCase(), tarea: tarea.toUpperCase() };
     abrirCalculadora();
 };
 
+// ==========================================
+// 5. CALCULADORA PRO (SIN TECLADO MÓVIL)
+// ==========================================
 function abrirCalculadora() {
     const conf = CONFIG_MEDIDAS[calcEstado.tipo];
     let txt = (conf.pasos === 1) ? conf.m1 : (calcEstado.paso === 1 ? conf.m1 : (calcEstado.paso === 2 ? conf.m2 : conf.m3));
     document.getElementById('calc-titulo').innerText = txt.toUpperCase() + " - " + calcEstado.zona;
     document.getElementById('calc-display').innerText = '0';
     document.getElementById('modal-calc').classList.remove('hidden');
-    document.activeElement.blur();
+    document.activeElement.blur(); // Cierra teclado del móvil
 }
 
 window.teclear = (n) => {
@@ -102,29 +121,31 @@ window.teclear = (n) => {
             calcEstado.paso++; calcEstado.memoria = ''; abrirCalculadora();
         } else {
             let total = (conf.pasos === 1) ? cifra : (conf.pasos === 2 ? calcEstado.v1 * cifra : calcEstado.v1 * calcEstado.v2 * cifra);
-            pedirPrecio(total);
+            document.getElementById('modal-calc').classList.add('hidden');
+            setTimeout(() => pedirPrecioYFinalizar(total), 200);
         }
     } else if (n === 'DEL') { calcEstado.memoria = ''; disp.innerText = '0'; }
     else { calcEstado.memoria += n; disp.innerText = calcEstado.memoria; }
 };
 
-function pedirPrecio(cant) {
-    document.getElementById('modal-calc').classList.add('hidden');
-    setTimeout(() => {
-        const p = prompt(`METROS: ${cant.toFixed(2)}\nPRECIO (€):`, "20");
-        const precio = parseFloat(p ? p.replace(',','.') : 0) || 0;
-        obraEnCurso.lineas.push({
-            id: Date.now(), tipo: calcEstado.tipo,
-            nombre: `${CONFIG_MEDIDAS[calcEstado.tipo].i} ${calcEstado.tarea} EN ${calcEstado.zona}`,
-            cantidad: cant, precio: precio, subtotal: cant * precio
-        });
-        renderMedidas();
-    }, 150);
+function pedirPrecioYFinalizar(cant) {
+    const p = prompt(`METROS TOTALES: ${cant.toFixed(2)}\nINDICAR PRECIO (€):`, "20");
+    const precio = parseFloat(p ? p.replace(',','.') : 0) || 0;
+    obraEnCurso.lineas.push({
+        id: Date.now(),
+        nombre: `${CONFIG_MEDIDAS[calcEstado.tipo].i} ${calcEstado.tarea} EN ${calcEstado.zona}`,
+        cantidad: cant, precio: precio, subtotal: cant * precio
+    });
+    renderMedidas();
 }
 
+// ==========================================
+// 6. RESUMEN, PAPELERA Y PDF
+// ==========================================
 function renderMedidas() {
     const cont = document.getElementById('lista-medidas-obra');
     const total = obraEnCurso.lineas.reduce((a, b) => a + b.subtotal, 0);
+    
     cont.innerHTML = obraEnCurso.lineas.map(l => `
         <div class="bg-white p-3 rounded-2xl border flex justify-between items-center mb-2 shadow-sm font-bold italic">
             <div class="text-[9px] uppercase">
@@ -132,44 +153,56 @@ function renderMedidas() {
                 <p class="opacity-40">${l.cantidad.toFixed(2)} x ${l.precio.toFixed(2)}€</p>
             </div>
             <div class="flex items-center gap-2">
-                <span class="text-xs">${l.subtotal.toFixed(2)}€</span>
-                <button onclick="borrarLinea(${l.id})" class="text-red-500 p-2">✕</button>
+                <span class="text-xs font-black">${l.subtotal.toFixed(2)}€</span>
+                <button onclick="borrarLinea(${l.id})" class="text-red-500 bg-red-50 p-2 rounded-xl">✕</button>
             </div>
         </div>`).reverse().join('') + 
         (total > 0 ? `<div class="bg-slate-900 text-green-400 p-5 rounded-[30px] text-center font-black mt-4 shadow-xl">TOTAL OBRA: ${total.toFixed(2)}€</div>` : '');
 }
 
 window.borrarLinea = (id) => {
-    obraEnCurso.lineas = obraEnCurso.lineas.filter(x => x.id !== id);
-    renderMedidas();
+    if(confirm("¿Borrar esta medida?")) {
+        obraEnCurso.lineas = obraEnCurso.lineas.filter(x => x.id !== id);
+        renderMedidas();
+    }
 };
 
 window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
 
 window.guardarObraCompleta = async () => {
-    if (obraEnCurso.lineas.length === 0) return alert("Sin datos");
+    if (obraEnCurso.lineas.length === 0) return alert("No hay datos");
     const total = obraEnCurso.lineas.reduce((a,b) => a+b.subtotal, 0);
     
-    // PDF
+    // Generar PDF con diseño limpio
     const el = document.createElement('div');
-    el.innerHTML = `<div style="padding:40px;font-family:sans-serif;">
-        <h1 style="color:#2563eb">PRESUPUESTO ANTONIO</h1>
-        <p><b>Cliente:</b> ${clienteActual.nombre}</p>
-        <p><b>Zona:</b> ${obraEnCurso.nombre}</p>
-        <p><b>Total:</b> ${total.toFixed(2)}€</p>
-        <hr>${obraEnCurso.lineas.map(l => `<p>${l.nombre}: ${l.subtotal.toFixed(2)}€</p>`).join('')}
-    </div>`;
+    el.innerHTML = `
+        <div style="padding:40px; font-family:sans-serif; color:#333;">
+            <h1 style="color:#2563eb; border-bottom:2px solid #2563eb;">PRESUPUESTO</h1>
+            <p><b>CLIENTE:</b> ${clienteActual.nombre}</p>
+            <p><b>ZONA:</b> ${obraEnCurso.nombre}</p>
+            <p><b>FECHA:</b> ${new Date().toLocaleDateString()}</p>
+            <div style="margin-top:20px;">
+                ${obraEnCurso.lineas.map(l => `<p style="border-bottom:1px solid #eee; padding:5px 0;">${l.nombre}: <b>${l.subtotal.toFixed(2)}€</b></p>`).join('')}
+            </div>
+            <h2 style="text-align:right; color:#16a34a; margin-top:30px;">TOTAL: ${total.toFixed(2)}€</h2>
+        </div>`;
     
-    html2pdf().from(el).set({filename: `Obra_${clienteActual.nombre}.pdf`, margin:1}).save();
+    html2pdf().from(el).set({
+        filename: `Presupuesto_${clienteActual.nombre}.pdf`,
+        margin: 1,
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    }).save();
 
+    // Opción WhatsApp
     setTimeout(() => {
-        if(confirm("PDF generado. ¿WhatsApp?")){
+        if(confirm("PDF descargado. ¿Quieres enviar el resumen por WhatsApp?")){
             const txt = `*PRESUPUESTO*%0ACliente: ${clienteActual.nombre}%0AObra: ${obraEnCurso.nombre}%0ATOTAL: ${total.toFixed(2)}€`;
             window.open(`https://wa.me/?text=${txt}`, '_blank');
         }
         clienteActual.presupuestos.push({...obraEnCurso, total});
-        asegurarGuardado(); irAPantalla('expediente');
-    }, 1000);
+        asegurarGuardado();
+        irAPantalla('expediente');
+    }, 1200);
 };
 
 window.onload = () => renderListaClientes();
