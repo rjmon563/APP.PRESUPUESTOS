@@ -1,4 +1,4 @@
-// 1. CONFIGURACIÓN
+// 1. CONFIGURACIÓN Y BASE DE DATOS
 const CONFIG = {
     'tabiques': { n: 'Tabiques', i: '🧱', uni: 'm²' },
     'techos': { n: 'Techos', i: '🏠', uni: 'm²' },
@@ -13,35 +13,60 @@ let clienteActual = null;
 let trabajoActual = { lineas: [], total: 0, lugar: "", firma: null };
 let calcEstado = { tipo: '', campo: '', valor: '', precio: 0, datos: {}, concepto: '' };
 
-// 2. NAVEGACIÓN
-window.irAPantalla = id => {
-    document.querySelectorAll('body > div').forEach(d => d.classList.add('hidden'));
-    document.getElementById(`pantalla-${id}`).classList.remove('hidden');
-    if(id === 'clientes') renderListaClientes();
+// 2. GESTIÓN DE CLIENTES (FICHA COMPLETA)
+window.nuevoCliente = () => {
+    const n = prompt("Nombre del Cliente:");
+    if(!n) return;
+    const tlf = prompt("Teléfono:");
+    const obra = prompt("Dirección de la Obra:");
+    
+    db.clientes.push({ 
+        id: Date.now(), 
+        nombre: n, 
+        telefono: tlf || "No indicado",
+        direccion: obra || "No indicada",
+        presupuestos: [] 
+    });
+    save();
+    renderListaClientes();
 };
 
-window.cambiarVista = v => {
-    document.querySelectorAll('.vista-trabajo').forEach(div => div.classList.add('hidden'));
-    document.getElementById(`vista-${v}`).classList.remove('hidden');
-    document.getElementById('tab-medidas').className = v === 'medidas' ? 'flex-1 py-4 font-black uppercase text-[10px] border-b-4 border-blue-600 text-blue-600' : 'flex-1 py-4 font-black uppercase text-[10px] text-slate-400';
-    document.getElementById('tab-economico').className = v === 'economico' ? 'flex-1 py-4 font-black uppercase text-[10px] border-b-4 border-blue-600 text-blue-600' : 'flex-1 py-4 font-black uppercase text-[10px] text-slate-400';
-    if(v === 'economico') renderPresupuesto();
+window.renderListaClientes = () => {
+    document.getElementById('lista-clientes').innerHTML = db.clientes.map((c, i) => `
+        <div class="flex items-center gap-2 mb-3">
+            <div onclick="abrirExpediente(${c.id})" class="flex-1 bg-white p-5 rounded-3xl border font-black uppercase flex justify-between items-center shadow-sm italic overflow-hidden">
+                <div class="flex flex-col">
+                    <span class="truncate text-blue-800">${c.nombre}</span>
+                    <span class="text-[9px] text-slate-400 font-bold lowercase">${c.direccion}</span>
+                </div>
+                <span class="text-blue-500 ml-2">➔</span>
+            </div>
+            <button onclick="borrarCliente(${i})" class="bg-red-50 text-red-500 border border-red-200 h-[64px] w-[60px] rounded-3xl flex items-center justify-center text-xl">🗑️</button>
+        </div>`).join('');
 };
 
-// 3. CALCULADORA INTELIGENTE (SUMAS)
+window.abrirExpediente = id => { 
+    clienteActual = db.clientes.find(c => c.id === id); 
+    irAPantalla('expediente'); 
+    renderHistorial(); 
+};
+
+// 3. CALCULADORA INTELIGENTE (SUMAS 1+5+8)
 window.teclear = n => {
     const disp = document.getElementById('calc-display');
     if (n === 'DEL') {
         calcEstado.valor = calcEstado.valor.toString().slice(0, -1);
     } else if (n === 'OK') {
         try {
-            const resultado = eval(calcEstado.valor.replace(/,/g, '.'));
+            let formula = calcEstado.valor.replace(/,/g, '.');
+            if(!formula) formula = "0";
+            const resultado = eval(formula);
             calcEstado.datos[calcEstado.campo] = resultado;
             cerrarCalc(); 
             siguientePaso(); 
             return;
         } catch (e) {
-            alert("Operación no válida");
+            alert("Operación no válida. Revisa los signos.");
             calcEstado.valor = "";
         }
     } else {
@@ -54,7 +79,7 @@ window.teclear = n => {
 window.prepararMedida = tipo => {
     const p = prompt(`Precio para ${CONFIG[tipo].n}:`, "0");
     if(!p) return;
-    let conc = (tipo === 'horas') ? prompt(`Días y trabajo:`, "Admin") : prompt(`¿Qué trabajo?`, "Montaje");
+    let conc = (tipo === 'horas') ? prompt(`Días/Trabajo:`, "Administración") : prompt(`¿En qué parte?`, "Montaje");
     calcEstado = { tipo: tipo, precio: parseFloat(p.replace(',','.')), valor: '', datos: {}, concepto: conc || "" };
     siguientePaso();
 };
@@ -84,7 +109,7 @@ function finalizarMedicion() {
     }
 }
 
-// 5. RENDERIZADO (MOSTRAR ICONOS Y RESULTADOS)
+// 5. PANTALLAS Y VISTAS
 window.renderListaMedidas = () => {
     const contenedor = document.getElementById('resumen-medidas-pantalla');
     if (!contenedor) return;
@@ -97,76 +122,81 @@ window.renderListaMedidas = () => {
                     <span class="text-[9px] text-slate-400 font-bold">${l.cantidad.toFixed(2)} ${CONFIG[l.tipo].uni} x ${l.precio}€</span>
                 </div>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
                 <span class="font-black text-slate-700">${(l.cantidad * l.precio).toFixed(2)}€</span>
                 <button onclick="trabajoActual.lineas.splice(${i},1);renderListaMedidas()" class="text-red-400 p-2">✕</button>
             </div>
         </div>`).join('');
 };
 
+window.renderHistorial = () => { 
+    document.getElementById('ficha-cliente-detalle').innerHTML = `
+        <div class="bg-blue-50 p-5 rounded-3xl mb-6 border border-blue-100 shadow-inner">
+            <div class="font-black text-blue-700 uppercase text-xl italic">${clienteActual.nombre}</div>
+            <div class="flex gap-4 mt-2">
+                <div class="text-[10px] text-slate-500 font-bold uppercase">📞 ${clienteActual.telefono}</div>
+                <div class="text-[10px] text-slate-500 font-bold uppercase">📍 ${clienteActual.direccion}</div>
+            </div>
+        </div>
+    `;
+    document.getElementById('archivo-presupuestos').innerHTML = (clienteActual.presupuestos || []).map((p, i) => `
+        <div class="bg-white p-4 rounded-2xl border mb-2 flex justify-between items-center shadow-sm">
+            <span class="text-[11px] font-black uppercase italic text-slate-600">${p.lugar}</span>
+            <div class="flex gap-2">
+                <button onclick="generarPDF(${i})" class="bg-red-500 text-white px-3 py-1 rounded-lg text-[10px] font-black">PDF</button>
+                <button onclick="borrarPresu(${i})" class="text-slate-300 text-xs px-2">✕</button>
+            </div>
+        </div>`).reverse().join('');
+};
+
+// 6. FUNCIONES DE SISTEMA (PDF, GUARDAR, FIRMA)
+window.save = () => localStorage.setItem('presupro_v3', JSON.stringify(db));
+window.irAPantalla = id => {
+    document.querySelectorAll('body > div').forEach(d => d.classList.add('hidden'));
+    document.getElementById(`pantalla-${id}`).classList.remove('hidden');
+    if(id === 'clientes') renderListaClientes();
+};
+window.cambiarVista = v => {
+    document.querySelectorAll('.vista-trabajo').forEach(div => div.classList.add('hidden'));
+    document.getElementById(`vista-${v}`).classList.remove('hidden');
+    document.getElementById('tab-medidas').className = v === 'medidas' ? 'flex-1 py-4 font-black uppercase text-[10px] border-b-4 border-blue-600 text-blue-600' : 'flex-1 py-4 font-black uppercase text-[10px] text-slate-400';
+    document.getElementById('tab-economico').className = v === 'economico' ? 'flex-1 py-4 font-black uppercase text-[10px] border-b-4 border-blue-600 text-blue-600' : 'flex-1 py-4 font-black uppercase text-[10px] text-slate-400';
+    if(v === 'economico') renderPresupuesto();
+};
+
+window.abrirCalc = t => { document.getElementById('calc-titulo').innerText = t; document.getElementById('calc-display').innerText = '0'; calcEstado.valor = ''; document.getElementById('modal-calc').classList.remove('hidden'); };
+window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
+window.iniciarNuevaMedicion = () => { const l = prompt("Nombre de la Obra:"); if(l) { trabajoActual = { lugar: l, lineas: [], total: 0, firma: null }; irAPantalla('trabajo'); renderListaMedidas(); } };
+window.guardarTodo = () => { clienteActual.presupuestos.push(JSON.parse(JSON.stringify(trabajoActual))); save(); irAPantalla('expediente'); renderHistorial(); };
+
 window.renderPresupuesto = () => {
     let sub = trabajoActual.lineas.reduce((acc, l) => acc + (l.cantidad * l.precio), 0);
     let total = sub * 1.21;
     document.getElementById('desglose-precios').innerHTML = `
         <div class="text-[10px] font-black text-blue-500 mb-2 uppercase italic">${trabajoActual.lugar}</div>
-        ${trabajoActual.lineas.map(l => `<div class="border-b py-2 text-[11px] font-bold"><div class="flex justify-between"><span>${l.icono} ${l.nombre}</span><span>${(l.cantidad*l.precio).toFixed(2)}€</span></div></div>`).join('')}
+        ${trabajoActual.lineas.map(l => `<div class="border-b py-2 text-[11px] font-bold flex justify-between"><span>${l.icono} ${l.nombre}</span><span>${(l.cantidad*l.precio).toFixed(2)}€</span></div>`).join('')}
         <button onclick="abrirFirma()" class="w-full mt-4 border-2 border-dashed border-blue-200 py-3 rounded-xl text-blue-500 font-bold text-[10px] italic">AÑADIR FIRMA CLIENTE</button>
         ${trabajoActual.firma ? `<img src="${trabajoActual.firma}" class="h-16 mx-auto mt-2">` : ''}`;
     document.getElementById('total-final').innerText = total.toFixed(2) + "€";
     trabajoActual.total = total;
 };
 
-// 6. GESTIÓN DE DATOS Y CLIENTES
-window.save = () => localStorage.setItem('presupro_v3', JSON.stringify(db));
-
-window.renderListaClientes = () => {
-    document.getElementById('lista-clientes').innerHTML = db.clientes.map((c, i) => `
-        <div class="flex items-center gap-2 mb-3">
-            <div onclick="abrirExpediente(${c.id})" class="flex-1 bg-white p-5 rounded-3xl border font-black uppercase flex justify-between shadow-sm italic overflow-hidden">
-                <span class="truncate">${c.nombre}</span><span class="text-blue-500 ml-2">➔</span>
-            </div>
-            <button onclick="borrarCliente(${i})" class="bg-red-50 text-red-500 border border-red-200 h-[64px] w-[60px] rounded-3xl flex items-center justify-center text-xl">🗑️</button>
-        </div>`).join('');
-};
-
-window.abrirExpediente = id => { clienteActual = db.clientes.find(c => c.id === id); irAPantalla('expediente'); renderHistorial(); };
-window.nuevoCliente = () => { const n = prompt("Nombre Cliente:"); if(n) { db.clientes.push({ id: Date.now(), nombre: n, presupuestos: [] }); save(); renderListaClientes(); } };
-window.iniciarNuevaMedicion = () => { const l = prompt("Nombre de la Obra:"); if(l) { trabajoActual = { lugar: l, lineas: [], total: 0, firma: null }; irAPantalla('trabajo'); renderListaMedidas(); } };
-window.guardarTodo = () => { clienteActual.presupuestos.push(JSON.parse(JSON.stringify(trabajoActual))); save(); irAPantalla('expediente'); renderHistorial(); };
-
-window.renderHistorial = () => { 
-    document.getElementById('titulo-cliente').innerHTML = `<div class="font-black text-blue-600 uppercase text-lg italic">${clienteActual.nombre}</div>`;
-    document.getElementById('archivo-presupuestos').innerHTML = (clienteActual.presupuestos || []).map((p, i) => `
-        <div class="bg-white p-4 rounded-2xl border mb-2 flex justify-between items-center shadow-sm">
-            <span class="text-xs font-bold uppercase italic">${p.lugar}</span>
-            <div class="flex gap-2">
-                <button onclick="generarPDF(${i})" class="bg-red-500 text-white px-3 py-1 rounded-lg text-[10px] font-bold">PDF</button>
-                <button onclick="borrarPresu(${i})" class="text-slate-300 text-xs">✕</button>
-            </div>
-        </div>`).reverse().join('');
+window.generarPDF = i => {
+    const p = clienteActual.presupuestos[i];
+    const el = document.createElement('div');
+    el.style.padding = '40px'; el.style.fontFamily = 'sans-serif';
+    el.innerHTML = `<h1 style="color:#1e40af">PRESUPUESTO: ${p.lugar}</h1><p><b>Cliente:</b> ${clienteActual.nombre}</p><p><b>Obra:</b> ${clienteActual.direccion}</p><hr>` + 
+        p.lineas.map(l => `<p>${l.nombre}: ${l.cantidad.toFixed(2)} x ${l.precio}€ = <b>${(l.cantidad*l.precio).toFixed(2)}€</b></p>`).join('') +
+        `<hr><h2 style="text-align:right">TOTAL CON IVA: ${p.total.toFixed(2)}€</h2>` + (p.firma ? `<p>Firma Cliente:</p><img src="${p.firma}" style="width:200px">` : '');
+    html2pdf().from(el).save(`${p.lugar}.pdf`);
 };
 
 window.borrarPresu = i => { if(confirm('¿Borrar?')) { clienteActual.presupuestos.splice(i,1); save(); renderHistorial(); } };
 window.borrarCliente = i => { if(confirm('¿Borrar cliente?')) { db.clientes.splice(i,1); save(); renderListaClientes(); } };
 
-// 7. PDF Y FIRMA
-window.generarPDF = i => {
-    const p = clienteActual.presupuestos[i];
-    const el = document.createElement('div');
-    el.style.padding = '40px';
-    el.innerHTML = `<h1 style="color:#1e40af">PRESUPUESTO: ${p.lugar}</h1><p>Cliente: ${clienteActual.nombre}</p><hr>` + 
-        p.lineas.map(l => `<p>${l.nombre}: ${l.cantidad.toFixed(2)} x ${l.precio}€ = ${(l.cantidad*l.precio).toFixed(2)}€</p>`).join('') +
-        `<hr><h2>TOTAL CON IVA: ${p.total.toFixed(2)}€</h2>` + (p.firma ? `<p>Firma:</p><img src="${p.firma}" style="width:200px">` : '');
-    html2pdf().from(el).save(`${p.lugar}.pdf`);
-};
-
-// 8. FUNCIONES AUXILIARES
-window.abrirCalc = t => { document.getElementById('calc-titulo').innerText = t; document.getElementById('calc-display').innerText = '0'; calcEstado.valor = ''; document.getElementById('modal-calc').classList.remove('hidden'); };
-window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
-
 let canvas, ctx, dibujando = false;
 window.abrirFirma = () => {
-    const h = `<div id="mf" class="fixed inset-0 bg-black/80 z-[300] flex items-center justify-center p-4"><div class="bg-white p-6 rounded-3xl w-full max-w-sm"><h3>Firma del Cliente</h3><canvas id="cf" class="border-2 border-dashed w-full h-40 bg-slate-50 rounded-xl touch-none"></canvas><div class="flex gap-2 mt-4"><button onclick="document.getElementById('mf').remove()" class="flex-1 bg-slate-100 py-3 rounded-xl font-bold">CANCELAR</button><button onclick="gf()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">GUARDAR</button></div></div></div>`;
+    const h = `<div id="mf" class="fixed inset-0 bg-black/80 z-[300] flex items-center justify-center p-4"><div class="bg-white p-6 rounded-3xl w-full max-w-sm"><h3>Firma del Cliente</h3><canvas id="cf" class="border-2 border-dashed w-full h-40 bg-slate-50 rounded-xl touch-none"></canvas><div class="flex gap-2 mt-4"><button onclick="document.getElementById('mf').remove()" class="flex-1 bg-slate-100 py-3 rounded-xl font-bold uppercase text-[10px]">Cancelar</button><button onclick="gf()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold uppercase text-[10px]">Guardar Firma</button></div></div></div>`;
     document.body.insertAdjacentHTML('beforeend', h);
     canvas = document.getElementById('cf'); ctx = canvas.getContext('2d'); canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
     canvas.ontouchstart = e => { dibujando = true; ctx.beginPath(); ctx.moveTo(e.touches[0].clientX - canvas.getBoundingClientRect().left, e.touches[0].clientY - canvas.getBoundingClientRect().top); };
