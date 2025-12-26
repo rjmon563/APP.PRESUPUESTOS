@@ -10,7 +10,7 @@ let calcEstado = { tipo: '', paso: 1, v1: 0, v2: 0, memoria: '', zona: '', tarea
 
 const CONFIG_MEDIDAS = {
     'techos': { n: 'Techo', i: '🏠', pasos: 2, m1: 'Ancho', m2: 'Largo' },
-    'tabiques': { n: 'Tabique', i: '🧱', pasos: 2, m1: 'Suma de tramos (Ej: 2+3,5)', m2: 'Altura' },
+    'tabiques': { n: 'Tabique', i: '🧱', pasos: 2, m1: 'Suma de tramos', m2: 'Altura' },
     'cajones': { n: 'Cajón', i: '📦', pasos: 2, m1: 'Suma de tramos', m2: 'Altura/Fondo' },
     'tabicas': { n: 'Tabica', i: '📐', pasos: 2, m1: 'Ancho', m2: 'Largo' },
     'cantoneras': { n: 'Cantonera', i: '📏', pasos: 1, m1: 'Metros Totales' }
@@ -41,7 +41,7 @@ window.guardarAjustes = () => {
         nPresu: parseInt(document.getElementById('config-nPresu').value) || 1
     };
     asegurarGuardado();
-    alert("✅ Configuración Guardada");
+    alert("✅ Datos guardados correctamente");
     irAPantalla('clientes');
 };
 
@@ -54,10 +54,11 @@ window.guardarDatosCliente = () => {
     const nom = document.getElementById('cli-nombre').value.trim();
     if (!nom) return alert("El nombre es obligatorio");
     db.clientes.push({ 
-        id: Date.now(), nombre: nom.toUpperCase(), 
+        id: Date.now(), 
+        nombre: nom.toUpperCase(), 
         cif: document.getElementById('cli-cif').value.toUpperCase() || "S/N",
         tel: document.getElementById('cli-tel').value || "S/T",
-        dir: document.getElementById('cli-dir').value || "S/D",
+        dir: document.getElementById('cli-dir').value.toUpperCase() || "S/D",
         presupuestos: [] 
     });
     asegurarGuardado();
@@ -101,10 +102,8 @@ function renderBotones() {
 }
 
 window.prepararMedida = (t) => {
-    const zona = prompt("¿HABITACIÓN / LUGAR?", "GENERAL");
-    if (!zona) return;
-    const tarea = prompt("¿QUÉ TRABAJO?", "MONTAJE");
-    if (!tarea) return;
+    const zona = prompt("¿ZONA/ESTANCIA?", "GENERAL"); if (!zona) return;
+    const tarea = prompt("¿TAREA?", "MONTAJE"); if (!tarea) return;
     calcEstado = { tipo: t, paso: 1, v1: 0, v2: 0, memoria: '', zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), modo: 'medida' };
     abrirCalculadora();
 };
@@ -121,7 +120,7 @@ window.teclear = (n) => {
     const disp = document.getElementById('calc-display');
     if (n === 'OK') {
         let cifra = 0;
-        try { cifra = eval(calcEstado.memoria) || 0; } catch(e) { alert("Error en suma"); return; }
+        try { cifra = eval(calcEstado.memoria) || 0; } catch(e) { alert("Error"); return; }
         const conf = CONFIG_MEDIDAS[calcEstado.tipo];
         if (calcEstado.modo === 'medida') {
             if (calcEstado.paso < conf.pasos) {
@@ -147,47 +146,34 @@ function renderMedidas() {
     const cont = document.getElementById('lista-medidas-obra');
     const total = obraEnCurso.lineas.reduce((a, b) => a + b.subtotal, 0);
     cont.innerHTML = obraEnCurso.lineas.map(l => `
-        <div class="bg-white p-4 rounded-2xl border flex justify-between items-center mb-2 shadow-sm italic font-bold text-xs uppercase">
+        <div class="bg-white p-4 rounded-2xl border flex justify-between items-center mb-2 shadow-sm font-bold text-[10px] uppercase italic">
             <div>
                 <p class="text-blue-800">${l.nombre}</p>
-                <p class="opacity-40 text-[9px]">${fNum(l.cantidad)} x ${fNum(l.precio)}€</p>
+                <p class="opacity-40">${fNum(l.cantidad)} x ${fNum(l.precio)}€</p>
             </div>
             <div class="flex items-center gap-2">
-                <span class="font-black">${fNum(l.subtotal)}€</span>
-                <button onclick="editarLinea(${l.id})" class="text-blue-500 bg-blue-50 p-2 rounded-xl">✏️</button>
-                <button onclick="borrarLinea(${l.id})" class="text-red-400 p-2 rounded-xl">✕</button>
+                <span class="font-black text-xs">${fNum(l.subtotal)}€</span>
+                <button onclick="borrarLinea(${l.id})" class="text-red-400 p-2 rounded-xl bg-red-50 text-xs">✕</button>
             </div>
         </div>`).reverse().join('') + 
         (total > 0 ? `<div class="bg-slate-900 text-green-400 p-6 rounded-[35px] text-center font-black mt-5 shadow-xl">TOTAL: ${fNum(total)}€</div>` : '');
 }
 
-window.editarLinea = (id) => {
-    let l = obraEnCurso.lineas.find(x => x.id === id);
-    let m = prompt("NUEVOS METROS:", fNum(l.cantidad)); if(m === null) return;
-    let p = prompt("NUEVO PRECIO:", fNum(l.precio)); if(p === null) return;
-    l.cantidad = parseFloat(m.replace(',','.'));
-    l.precio = parseFloat(p.replace(',','.'));
-    l.subtotal = l.cantidad * l.precio;
-    renderMedidas();
-};
-
 window.borrarLinea = (id) => { if(confirm("¿Borrar?")) { obraEnCurso.lineas = obraEnCurso.lineas.filter(x => x.id !== id); renderMedidas(); } };
-
 window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
 
 window.guardarObraCompleta = async () => {
-    if (obraEnCurso.lineas.length === 0) return alert("No hay datos");
+    if (obraEnCurso.lineas.length === 0) return alert("Sin datos");
     const total = obraEnCurso.lineas.reduce((a,b) => a+b.subtotal, 0);
     const numFactura = `${new Date().getFullYear()}/${String(db.ajustes.nPresu).padStart(3, '0')}`;
-    
     const el = document.createElement('div');
     el.innerHTML = `
         <div style="padding:40px; font-family:sans-serif; color:#333;">
             <div style="display:flex; justify-content:space-between; border-bottom:4px solid #2563eb; padding-bottom:15px; margin-bottom:20px;">
-                <div style="width: 60%;">
+                <div>
                     <h1 style="margin:0; color:#2563eb; font-size:24px; font-style:italic;">PRESUPUESTO</h1>
                     <p style="margin:5px 0 0 0; font-weight:bold;">${db.ajustes.nombre}</p>
-                    <p style="margin:0; font-size:11px;">CIF: ${db.ajustes.cif}</p>
+                    <p style="margin:0; font-size:11px;">CIF: ${db.ajustes.cif} | TEL: ${db.ajustes.tel}</p>
                     <p style="margin:0; font-size:11px;">${db.ajustes.dir} - ${db.ajustes.cp} ${db.ajustes.ciudad}</p>
                 </div>
                 <div style="text-align:right;">
@@ -195,36 +181,32 @@ window.guardarObraCompleta = async () => {
                     <p style="margin:0; font-size:11px;">Fecha: ${new Date().toLocaleDateString('es-ES')}</p>
                 </div>
             </div>
-            <div style="background:#f8fafc; padding:15px; border-radius:10px; margin-bottom:20px; font-size:12px; border:1px solid #e2e8f0;">
-                <p style="margin:0; color:#64748b; font-weight:bold; font-size:10px;">CLIENTE</p>
-                <p style="margin:0; font-weight:bold;">${clienteActual.nombre}</p>
+            <div style="background:#f8fafc; padding:15px; border-radius:10px; margin-bottom:20px; font-size:11px; border:1px solid #e2e8f0;">
+                <p style="margin:0; color:#64748b; font-weight:bold; font-size:9px; text-transform:uppercase;">Datos del Cliente</p>
+                <p style="margin:0; font-weight:bold; font-size:13px;">${clienteActual.nombre}</p>
                 <p style="margin:0;">DIRECCIÓN: ${clienteActual.dir}</p>
+                <p style="margin:0;">CIF: ${clienteActual.cif}</p>
             </div>
             <table style="width:100%; border-collapse:collapse;">
                 <thead>
-                    <tr style="background:#2563eb; color:white;">
-                        <th style="padding:10px; text-align:left; font-size:11px;">DESCRIPCIÓN</th>
-                        <th style="padding:10px; text-align:right; font-size:11px;">SUBTOTAL</th>
+                    <tr style="background:#2563eb; color:white; font-size:10px;">
+                        <th style="padding:10px; text-align:left;">DESCRIPCIÓN / ZONA</th>
+                        <th style="padding:10px; text-align:right;">TOTAL</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${obraEnCurso.lineas.map(l => `<tr><td style="padding:10px; border-bottom:1px solid #e2e8f0; font-size:12px;"><b>${l.nombre}</b><br><span style="color:#666;">${fNum(l.cantidad)} unid. x ${fNum(l.precio)}€</span></td><td style="padding:10px; border-bottom:1px solid #e2e8f0; text-align:right; font-weight:bold;">${fNum(l.subtotal)}€</td></tr>`).join('')}
+                    ${obraEnCurso.lineas.map(l => `<tr><td style="padding:10px; border-bottom:1px solid #e2e8f0; font-size:11px;"><b>${l.nombre}</b><br><span style="color:#666;">${fNum(l.cantidad)} unid. x ${fNum(l.precio)}€</span></td><td style="padding:10px; border-bottom:1px solid #e2e8f0; text-align:right; font-weight:bold; font-size:11px;">${fNum(l.subtotal)}€</td></tr>`).join('')}
                 </tbody>
             </table>
             <div style="margin-top:30px; text-align:right;">
-                <h2 style="margin:0; color:#16a34a; font-size:32px;">TOTAL: ${fNum(total)}€</h2>
+                <h2 style="margin:0; color:#16a34a; font-size:28px;">TOTAL: ${fNum(total)}€</h2>
             </div>
         </div>`;
-    
-    html2pdf().from(el).set({ margin: 0.5, filename: `Presu_${numFactura.replace('/','-')}_${clienteActual.nombre}.pdf`, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).save();
-    
+    html2pdf().from(el).set({ margin: 0.5, filename: `Presu_${numFactura.replace('/','-')}.pdf`, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).save();
     setTimeout(() => {
-        if(confirm("✅ PDF Guardado. ¿WhatsApp?")){
-            window.open(`https://wa.me/?text=*PRESUPUESTO ${numFactura}*%0A*Total:* ${fNum(total)}€`, '_blank');
-        }
-        db.ajustes.nPresu++; // Subimos el número para el siguiente
-        clienteActual.presupuestos.push({...obraEnCurso, total, numero: numFactura}); 
+        db.ajustes.nPresu++; 
         asegurarGuardado(); irAPantalla('expediente');
+        alert("Presupuesto guardado y número actualizado.");
     }, 1500);
 };
 
@@ -238,7 +220,7 @@ window.importarDatos = () => {
     const f = document.createElement('input'); f.type = 'file';
     f.onchange = e => {
         const reader = new FileReader(); reader.readAsText(e.target.files[0],'UTF-8');
-        reader.onload = r => { if(confirm("¿Restaurar copia?")){ db = JSON.parse(r.target.result); asegurarGuardado(); location.reload(); } }
+        reader.onload = r => { try { db = JSON.parse(r.target.result); asegurarGuardado(); location.reload(); } catch(e){ alert("Error"); } }
     }; f.click();
 };
 
