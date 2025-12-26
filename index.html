@@ -27,18 +27,36 @@
     <div id="pantalla-ajustes" class="hidden p-6 max-w-lg mx-auto">
         <button onclick="irAPantalla('clientes')" class="text-blue-600 font-bold mb-4 uppercase text-xs">← Volver</button>
         <h2 class="text-xl font-black italic text-blue-800 uppercase mb-6 text-center">Configuración Fiscal</h2>
+        
         <form onsubmit="event.preventDefault(); guardarAjustes();" class="space-y-3 bg-white p-6 rounded-[35px] shadow-sm border">
-            <input type="text" id="config-nombre" placeholder="Nombre Empresa" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
-            <input type="text" id="config-cif" placeholder="CIF / DNI" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
-            <input type="tel" id="config-tel" placeholder="Tu Teléfono" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
-            <input type="text" id="config-dir" placeholder="Dirección" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
+            
+            <label class="block text-[9px] font-black opacity-40 uppercase ml-2">Nombre Comercial / Autónomo</label>
+            <input type="text" id="config-nombre" name="organization" autocomplete="organization" placeholder="Tu Nombre o Empresa" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
+            
+            <label class="block text-[9px] font-black opacity-40 uppercase ml-2">NIF / CIF</label>
+            <input type="text" id="config-cif" name="tax-id" placeholder="CIF / DNI" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
+            
+            <label class="block text-[9px] font-black opacity-40 uppercase ml-2">Teléfono de Contacto</label>
+            <input type="tel" id="config-tel" name="tel" autocomplete="tel" placeholder="Tu Teléfono" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
+            
+            <label class="block text-[9px] font-black opacity-40 uppercase ml-2">Dirección Fiscal</label>
+            <input type="text" id="config-dir" name="address" autocomplete="street-address" placeholder="Calle, número, piso..." class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
+            
             <div class="grid grid-cols-2 gap-2">
-                <input type="text" id="config-cp" placeholder="C.P." class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
-                <input type="text" id="config-ciudad" placeholder="Ciudad" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
+                <div>
+                    <label class="block text-[9px] font-black opacity-40 uppercase ml-2">C.Postal</label>
+                    <input type="text" id="config-cp" name="postal-code" autocomplete="postal-code" placeholder="C.P." class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-black opacity-40 uppercase ml-2">Ciudad</label>
+                    <input type="text" id="config-ciudad" name="city" autocomplete="address-level2" placeholder="Ciudad" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
+                </div>
             </div>
+            
             <label class="block text-[9px] font-black opacity-40 uppercase ml-2 pt-2">Próximo Nº Presupuesto</label>
-            <input type="number" id="config-nPresu" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
-            <button type="submit" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase shadow-lg active-scale mt-4 italic tracking-widest text-sm">Guardar Datos ➔</button>
+            <input type="number" id="config-nPresu" name="number" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
+            
+            <button type="submit" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase shadow-lg active-scale mt-4 italic tracking-widest text-sm">Guardar Mis Datos ➔</button>
         </form>
     </div>
 
