@@ -4,136 +4,75 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PresupuestosPro</title>
-    <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="manifest" href="manifest.json">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-        .hidden { display: none; }
-        #calendario-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; background: #fff; padding: 10px; border-radius: 15px; }
-        .dia-cal { padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 11px; font-weight: bold; border-radius: 4px; }
-        .dia-hoy { background: #1e40af; color: white; border-color: #1e40af; }
+        .dia-cal { width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 10px; font-weight: bold; }
+        .dia-hoy { background: #2563eb; color: white; }
+        .touch-none { touch-action: none; }
     </style>
 </head>
-<body class="pb-20">
+<body class="bg-slate-100 font-sans text-slate-900 select-none">
+
     <div id="pantalla-clientes" class="p-4">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-xl font-black uppercase italic text-slate-800">PresupuestosPro</h1>
-            <button onclick="nuevoCliente()" class="bg-blue-600 text-white w-12 h-12 rounded-2xl text-3xl font-bold shadow-lg">+</button>
-        </div>
-        <div id="lista-clientes"></div>
+        <header class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-black italic text-blue-800 uppercase">Mis Clientes</h1>
+            <button onclick="nuevoCliente()" class="bg-blue-600 text-white w-12 h-12 rounded-full text-2xl font-bold shadow-lg">+</button>
+        </header>
+        <div id="lista-clientes" class="space-y-3"></div>
     </div>
 
-    <div id="pantalla-expediente" class="p-4 hidden">
-        <button onclick="irAPantalla('clientes')" class="mb-4 text-blue-600 font-black uppercase text-xs italic">⬅ Volver</button>
-        <div id="titulo-cliente" class="mb-4"></div>
-        <div class="mb-6">
-            <h3 class="font-black uppercase text-xs mb-2 text-slate-500 italic text-center">Calendario de Obra</h3>
-            <div id="calendario-grid"></div>
+    <div id="pantalla-expediente" class="hidden p-4">
+        <button onclick="irAPantalla('clientes')" class="text-blue-600 font-bold mb-4 flex items-center">← VOLVER</button>
+        <div id="ficha-cliente-detalle"></div>
+        <div class="flex gap-2 mb-6">
+            <button onclick="iniciarNuevaMedicion()" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black italic shadow-md uppercase text-sm">Nueva Obra / Presupuesto</button>
         </div>
-        <div class="grid grid-cols-2 gap-3 mb-6">
-            <button onclick="iniciarNuevaMedicion()" class="bg-blue-600 text-white p-4 rounded-2xl font-black uppercase text-[10px]">Nueva Obra</button>
-            <button onclick="alert('Función Agenda: Próximamente')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-[10px]">Añadir Nota</button>
-        </div>
+        <h3 class="font-black text-slate-400 text-[10px] uppercase mb-3 italic">Historial de Trabajos</h3>
         <div id="archivo-presupuestos"></div>
     </div>
 
-    <div id="pantalla-trabajo" class="hidden">
-        <div class="flex bg-white border-b sticky top-0 z-50">
-            <button onclick="cambiarVista('medidas')" id="tab-medidas" class="flex-1 py-4 font-black uppercase text-[10px] border-b-4 border-blue-600 text-blue-600">Mediciones</button>
-            <button onclick="cambiarVista('economico')" id="tab-economico" class="flex-1 py-4 font-black uppercase text-[10px] text-slate-400">Presupuesto</button>
-        </div>
-        <div id="vista-medidas" class="vista-trabajo p-4">
-            <div class="grid grid-cols-2 gap-3 mb-6">
-                <button onclick="prepararMedida('tabiques')" class="bg-white border p-4 rounded-2xl shadow-sm text-center"><span class="block text-xl">🧱</span><span class="text-[9px] font-black uppercase">Tabiques</span></button>
-                <button onclick="prepararMedida('techos')" class="bg-white border p-4 rounded-2xl shadow-sm text-center"><span class="block text-xl">🏠</span><span class="text-[9px] font-black uppercase">Techos</span></button>
-                <button onclick="prepararMedida('cajones')" class="bg-white border p-4 rounded-2xl shadow-sm text-center"><span class="block text-xl">📦</span><span class="text-[9px] font-black uppercase">Cajones</span></button>
-                <button onclick="prepararMedida('tabicas')" class="bg-white border p-4 rounded-2xl shadow-sm text-center"><span class="block text-xl">📐</span><span class="text-[9px] font-black uppercase">Tabicas</span></button>
-                <button onclick="prepararMedida('cantoneras')" class="bg-white border p-4 rounded-2xl shadow-sm text-center"><span class="block text-xl">📏</span><span class="text-[9px] font-black uppercase">Cantoneras</span></button>
-                <button onclick="prepararMedida('horas')" class="bg-white border p-4 rounded-2xl shadow-sm text-center"><span class="block text-xl">⏱️</span><span class="text-[9px] font-black uppercase">Horas</span></button>
+    <div id="pantalla-trabajo" class="hidden flex flex-col h-screen">
+        <nav class="flex bg-white border-b sticky top-0 z-50">
+            <button id="tab-medidas" onclick="cambiarVista('medidas')" class="flex-1 py-4 font-black uppercase text-[10px] border-b-4 border-blue-600 text-blue-600">Medidas</button>
+            <button id="tab-economico" onclick="cambiarVista('economico')" class="flex-1 py-4 font-black uppercase text-[10px] text-slate-400">Presupuesto</button>
+        </nav>
+
+        <div id="vista-medidas" class="vista-trabajo p-4 flex-1 overflow-y-auto pb-24">
+            <div class="grid grid-cols-3 gap-3 mb-6">
+                <button onclick="prepararMedida('tabiques')" class="bg-white p-4 rounded-2xl border shadow-sm flex flex-col items-center gap-1"><span class="text-2xl">🧱</span><span class="text-[9px] font-bold uppercase">Tabique</span></button>
+                <button onclick="prepararMedida('techos')" class="bg-white p-4 rounded-2xl border shadow-sm flex flex-col items-center gap-1"><span class="text-2xl">🏠</span><span class="text-[9px] font-bold uppercase">Techo</span></button>
+                <button onclick="prepararMedida('cajones')" class="bg-white p-4 rounded-2xl border shadow-sm flex flex-col items-center gap-1"><span class="text-2xl">📦</span><span class="text-[9px] font-bold uppercase">Cajón</span></button>
+                <button onclick="prepararMedida('tabicas')" class="bg-white p-4 rounded-2xl border shadow-sm flex flex-col items-center gap-1"><span class="text-2xl">📐</span><span class="text-[9px] font-bold uppercase">Tabica</span></button>
+                <button onclick="prepararMedida('cantoneras')" class="bg-white p-4 rounded-2xl border shadow-sm flex flex-col items-center gap-1"><span class="text-2xl">📏</span><span class="text-[9px] font-bold uppercase">Canto</span></button>
+                <button onclick="prepararMedida('horas')" class="bg-white p-4 rounded-2xl border shadow-sm flex flex-col items-center gap-1"><span class="text-2xl">⏱️</span><span class="text-[9px] font-bold uppercase">Horas</span></button>
             </div>
             <div id="resumen-medidas-pantalla"></div>
         </div>
-        <div id="vista-economico" class="vista-trabajo p-4 hidden">
-            <div id="desglose-precios" class="bg-white p-6 rounded-3xl border mb-4"></div>
-            <div class="bg-blue-600 text-white p-6 rounded-3xl shadow-lg flex justify-between items-center italic">
-                <span class="font-black uppercase text-xs">Total con IVA</span>
-                <span id="total-final" class="text-xl font-black">0,00€</span>
+
+        <div id="vista-economico" class="vista-trabajo hidden p-4 flex-1 overflow-y-auto pb-24">
+            <div id="desglose-precios" class="bg-white p-6 rounded-3xl shadow-sm border mb-4"></div>
+            <div class="bg-blue-600 text-white p-6 rounded-3xl flex justify-between items-center shadow-lg">
+                <span class="font-black italic uppercase">Total (IVA Incl.)</span>
+                <span id="total-final" class="text-2xl font-black">0.00€</span>
             </div>
-            <button onclick="guardarTodo()" class="w-full mt-4 bg-slate-900 text-white py-4 rounded-2xl font-black uppercase italic shadow-lg">Guardar Todo</button>
         </div>
+
+        <footer class="fixed bottom-0 left-0 right-0 p-4 bg-slate-100 border-t flex gap-2">
+            <button onclick="irAPantalla('expediente')" class="flex-1 bg-slate-200 py-4 rounded-2xl font-bold text-xs uppercase">Cancelar</button>
+            <button onclick="guardarTodo()" class="flex-[2] bg-green-600 text-white py-4 rounded-2xl font-black italic uppercase shadow-lg">Finalizar y Guardar</button>
+        </footer>
     </div>
 
-   <div id="modal-calc" class="fixed inset-0 bg-slate-900/95 z-[200] hidden flex flex-col p-4">
-    <div class="flex justify-between items-center mb-2">
-        <div id="calc-titulo" class="text-blue-400 font-black uppercase text-xs"></div>
-        <button onclick="cerrarCalc()" class="text-white bg-red-600 px-4 py-1 rounded-full font-bold text-xs">X SALIR</button>
-    </div>
-    
-    <div id="calc-display" class="bg-white text-slate-800 text-3xl font-black p-6 rounded-2xl text-right mb-4 min-h-[80px] flex items-center justify-end">0</div>
-    
-    <div class="grid grid-cols-3 gap-2 flex-1">
-        <button onclick="teclear('7')" class="bg-white/10 text-white text-xl font-bold rounded-xl">7</button>
-        <button onclick="teclear('8')" class="bg-white/10 text-white text-xl font-bold rounded-xl">8</button>
-        <button onclick="teclear('9')" class="bg-white/10 text-white text-xl font-bold rounded-xl">9</button>
-        <button onclick="teclear('4')" class="bg-white/10 text-white text-xl font-bold rounded-xl">4</button>
-        <button onclick="teclear('5')" class="bg-white/10 text-white text-xl font-bold rounded-xl">5</button>
-        <button onclick="teclear('6')" class="bg-white/10 text-white text-xl font-bold rounded-xl">6</button>
-        <button onclick="teclear('1')" class="bg-white/10 text-white text-xl font-bold rounded-xl">1</button>
-        <button onclick="teclear('2')" class="bg-white/10 text-white text-xl font-bold rounded-xl">2</button>
-        <button onclick="teclear('3')" class="bg-white/10 text-white text-xl font-bold rounded-xl">3</button>
-        <button onclick="teclear('0')" class="bg-white/10 text-white text-xl font-bold rounded-xl">0</button>
-        <button onclick="teclear('.')" class="bg-white/10 text-white text-xl font-bold rounded-xl">,</button>
-        <button onclick="teclear('+')" class="bg-orange-500 text-white text-xl font-black rounded-xl">+</button>
-        
-        <button onclick="teclear('DEL')" class="bg-red-500/20 text-red-500 text-xs font-black rounded-xl uppercase italic">Borrar</button>
-        <button onclick="teclear('OK')" class="col-span-2 bg-blue-600 text-white text-lg font-black rounded-xl uppercase italic">Confirmar OK</button>
-    </div>
-</div>
-
-    <script src="app.js"></script>
-
-    <script>
-        // REGISTRO DEL SERVICE WORKER (PARA TRABAJAR SIN INTERNET)
-        if ("serviceWorker" in navigator) {
-            navigator.serviceWorker.register("service-worker.js")
-            .then(() => console.log("App lista para usar sin internet"))
-            .catch(err => console.log("Fallo al registrar service worker", err));
-        }
-
-        /* ===== MEJORA DEL CALENDARIO VISUAL (7 COLUMNAS) ===== */
-        function crearCalendario() {
-            const cont = document.getElementById('calendario-grid');
-            if (!cont) return;
-            cont.innerHTML = '';
-            
-            const diasSemana = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-            diasSemana.forEach(dia => {
-                const divDia = document.createElement('div');
-                divDia.textContent = dia;
-                divDia.className = 'text-[9px] font-black text-slate-400 text-center mb-1';
-                cont.appendChild(divDia);
-            });
-
-            const hoy = new Date().getDate();
-            const ultimoDiaMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-
-            for (let d = 1; d <= ultimoDiaMes; d++) {
-                const div = document.createElement('div');
-                div.textContent = d;
-                div.className = d === hoy ? 'dia-cal dia-hoy' : 'dia-cal';
-                cont.appendChild(div);
-            }
-        }
-
-        // Re-enganchamos la función para que el calendario cargue siempre
-        const originalAbrirExpedienteV3 = window.abrirExpediente;
-        window.abrirExpediente = function(id) {
-            originalAbrirExpedienteV3(id);
-            setTimeout(crearCalendario, 150);
-        };
-    </script>
-</body>
-
-</html>
+    <div id="modal-calc" class="fixed inset-0 bg-slate-900/95 z-[200] hidden flex flex-col p-4">
+        <div class="flex justify-between items-center mb-2">
+            <div id="calc-titulo" class="text-blue-400 font-black uppercase text-xs"></div>
+            <button onclick="cerrarCalc()" class="text-white bg-red-600 px-4 py-1 rounded-full font-bold text-xs">X SALIR</button>
+        </div>
+        <div id="calc-display" class="bg-white text-slate-800 text-3xl font-black p-6 rounded-2xl text-right mb-4 min-h-[80px] flex items-center justify-end">0</div>
+        <div class="grid grid-cols-3 gap-2 flex-1">
+            <button onclick="teclear('7')" class="bg-white/10 text-white text-xl font-bold rounded-xl">7</button>
+            <button onclick="teclear('8')" class="bg-white/10 text-white text-xl font-bold rounded-xl">8</button>
+            <button onclick="teclear('9')" class="bg-white/10 text-white text-xl font-bold rounded-xl">9</button>
+            <button onclick="teclear('4')" class="bg-white/
