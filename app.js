@@ -1,3 +1,4 @@
+// 1. CONFIGURACIÓN
 const CONFIG = {
     'tabiques': { n: 'Tabiques', i: '🧱', uni: 'm²' },
     'techos': { n: 'Techos', i: '🏠', uni: 'm²' },
@@ -12,6 +13,7 @@ let clienteActual = null;
 let trabajoActual = { lineas: [], total: 0, lugar: "", firma: null };
 let calcEstado = { tipo: '', campo: '', valor: '', precio: 0, datos: {}, concepto: '' };
 
+// 2. NAVEGACIÓN
 window.irAPantalla = id => {
     document.querySelectorAll('body > div').forEach(d => d.classList.add('hidden'));
     document.getElementById(`pantalla-${id}`).classList.remove('hidden');
@@ -26,18 +28,29 @@ window.cambiarVista = v => {
     if(v === 'economico') renderPresupuesto();
 };
 
-window.renderListaClientes = () => {
-    document.getElementById('lista-clientes').innerHTML = db.clientes.map((c, i) => `
-        <div class="flex items-center gap-2 mb-3">
-            <div onclick="abrirExpediente(${c.id})" class="flex-1 bg-white p-5 rounded-3xl border font-black uppercase flex justify-between shadow-sm italic overflow-hidden">
-                <span class="truncate">${c.nombre}</span><span class="text-blue-500 ml-2">➔</span>
-            </div>
-            <button onclick="borrarCliente(${i})" class="bg-red-50 text-red-500 border border-red-200 h-[64px] w-[60px] rounded-3xl flex items-center justify-center text-xl">🗑️</button>
-        </div>`).join('');
+// 3. CALCULADORA INTELIGENTE (SUMAS)
+window.teclear = n => {
+    const disp = document.getElementById('calc-display');
+    if (n === 'DEL') {
+        calcEstado.valor = calcEstado.valor.toString().slice(0, -1);
+    } else if (n === 'OK') {
+        try {
+            const resultado = eval(calcEstado.valor.replace(/,/g, '.'));
+            calcEstado.datos[calcEstado.campo] = resultado;
+            cerrarCalc(); 
+            siguientePaso(); 
+            return;
+        } catch (e) {
+            alert("Operación no válida");
+            calcEstado.valor = "";
+        }
+    } else {
+        calcEstado.valor += n;
+    }
+    disp.innerText = calcEstado.valor || '0';
 };
 
-window.abrirExpediente = id => { clienteActual = db.clientes.find(c => c.id === id); irAPantalla('expediente'); renderHistorial(); };
-
+// 4. LÓGICA DE MEDICIÓN
 window.prepararMedida = tipo => {
     const p = prompt(`Precio para ${CONFIG[tipo].n}:`, "0");
     if(!p) return;
@@ -55,35 +68,10 @@ function siguientePaso() {
     } else { calcEstado.campo = 'total'; abrirCalc('TOTAL (+)'); }
 }
 
-window.teclear = n => {
-    const disp = document.getElementById('calc-display');
-    if (n === 'DEL') {
-        calcEstado.valor = calcEstado.valor.toString().slice(0, -1);
-    } else if (n === 'OK') {
-        try {
-            // Esta es la mejora: Calcula la suma de lo que hayas escrito (1+5+8...)
-            const resultado = eval(calcEstado.valor.replace(/,/g, '.'));
-            calcEstado.datos[calcEstado.campo] = resultado;
-            cerrarCalc(); 
-            siguientePaso(); 
-            return;
-        } catch (e) {
-            alert("Operación no válida");
-            calcEstado.valor = "";
-        }
-    } else {
-        // Permite ir acumulando números y el signo +
-        calcEstado.valor += n;
-    }
-    disp.innerText = calcEstado.valor || '0';
-};
 function finalizarMedicion() {
     const d = calcEstado.datos;
-    // Calcula la cantidad final (Largo x Ancho o Total directo)
     let cant = (d.largo !== undefined && d.segundo_dato !== undefined) ? d.largo * d.segundo_dato : (d.total || 0);
-    
     if (cant > 0) {
-        // Añadimos la línea al trabajo actual
         trabajoActual.lineas.push({ 
             tipo: calcEstado.tipo, 
             cantidad: cant, 
@@ -91,22 +79,17 @@ function finalizarMedicion() {
             icono: CONFIG[calcEstado.tipo].i, 
             nombre: `${CONFIG[calcEstado.tipo].n} (${calcEstado.concepto})` 
         });
-        
-        // ¡ESTO ES LO IMPORTANTE!: Ordenamos que se pinte el icono y el resultado en la pantalla
         renderListaMedidas();
-        
-        // Limpiamos los datos para la siguiente medida
         calcEstado.datos = {};
     }
 }
 
+// 5. RENDERIZADO (MOSTRAR ICONOS Y RESULTADOS)
 window.renderListaMedidas = () => {
     const contenedor = document.getElementById('resumen-medidas-pantalla');
     if (!contenedor) return;
-    
-    // Dibujamos cada línea con su icono (🧱, 🏠, etc.) y el dinero que suma
     contenedor.innerHTML = trabajoActual.lineas.map((l, i) => `
-        <div class="flex justify-between items-center bg-white p-4 rounded-2xl border mb-2 shadow-sm animate-in fade-in">
+        <div class="flex justify-between items-center bg-white p-4 rounded-2xl border mb-2 shadow-sm">
             <div class="flex items-center gap-3">
                 <span class="text-2xl">${l.icono}</span>
                 <div class="flex flex-col">
@@ -120,7 +103,6 @@ window.renderListaMedidas = () => {
             </div>
         </div>`).join('');
 };
-}
 
 window.renderPresupuesto = () => {
     let sub = trabajoActual.lineas.reduce((acc, l) => acc + (l.cantidad * l.precio), 0);
@@ -134,19 +116,40 @@ window.renderPresupuesto = () => {
     trabajoActual.total = total;
 };
 
-window.abrirCalc = t => { document.getElementById('calc-titulo').innerText = t; document.getElementById('calc-display').innerText = '0'; calcEstado.valor = ''; document.getElementById('modal-calc').classList.remove('hidden'); };
-window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
-window.renderListaMedidas = () => document.getElementById('resumen-medidas-pantalla').innerHTML = trabajoActual.lineas.map((l, i) => `<div class="flex justify-between bg-white p-4 rounded-2xl border mb-2 text-xs font-bold shadow-sm"><span>${l.icono} ${l.nombre}</span><span>${(l.cantidad*l.precio).toFixed(2)}€</span><button onclick="trabajoActual.lineas.splice(${i},1);renderListaMedidas()" class="text-red-500 ml-2">✕</button></div>`).join('');
+// 6. GESTIÓN DE DATOS Y CLIENTES
 window.save = () => localStorage.setItem('presupro_v3', JSON.stringify(db));
+
+window.renderListaClientes = () => {
+    document.getElementById('lista-clientes').innerHTML = db.clientes.map((c, i) => `
+        <div class="flex items-center gap-2 mb-3">
+            <div onclick="abrirExpediente(${c.id})" class="flex-1 bg-white p-5 rounded-3xl border font-black uppercase flex justify-between shadow-sm italic overflow-hidden">
+                <span class="truncate">${c.nombre}</span><span class="text-blue-500 ml-2">➔</span>
+            </div>
+            <button onclick="borrarCliente(${i})" class="bg-red-50 text-red-500 border border-red-200 h-[64px] w-[60px] rounded-3xl flex items-center justify-center text-xl">🗑️</button>
+        </div>`).join('');
+};
+
+window.abrirExpediente = id => { clienteActual = db.clientes.find(c => c.id === id); irAPantalla('expediente'); renderHistorial(); };
 window.nuevoCliente = () => { const n = prompt("Nombre Cliente:"); if(n) { db.clientes.push({ id: Date.now(), nombre: n, presupuestos: [] }); save(); renderListaClientes(); } };
 window.iniciarNuevaMedicion = () => { const l = prompt("Nombre de la Obra:"); if(l) { trabajoActual = { lugar: l, lineas: [], total: 0, firma: null }; irAPantalla('trabajo'); renderListaMedidas(); } };
 window.guardarTodo = () => { clienteActual.presupuestos.push(JSON.parse(JSON.stringify(trabajoActual))); save(); irAPantalla('expediente'); renderHistorial(); };
+
 window.renderHistorial = () => { 
     document.getElementById('titulo-cliente').innerHTML = `<div class="font-black text-blue-600 uppercase text-lg italic">${clienteActual.nombre}</div>`;
-    document.getElementById('archivo-presupuestos').innerHTML = (clienteActual.presupuestos || []).map((p, i) => `<div class="bg-white p-4 rounded-2xl border mb-2 flex justify-between items-center shadow-sm"><span class="text-xs font-bold uppercase italic">${p.lugar}</span><div class="flex gap-2"><button onclick="generarPDF(${i})" class="bg-red-500 text-white px-3 py-1 rounded-lg text-[10px] font-bold">PDF</button><button onclick="borrarPresu(${i})" class="text-slate-300 text-xs">✕</button></div></div>`).reverse().join('');
+    document.getElementById('archivo-presupuestos').innerHTML = (clienteActual.presupuestos || []).map((p, i) => `
+        <div class="bg-white p-4 rounded-2xl border mb-2 flex justify-between items-center shadow-sm">
+            <span class="text-xs font-bold uppercase italic">${p.lugar}</span>
+            <div class="flex gap-2">
+                <button onclick="generarPDF(${i})" class="bg-red-500 text-white px-3 py-1 rounded-lg text-[10px] font-bold">PDF</button>
+                <button onclick="borrarPresu(${i})" class="text-slate-300 text-xs">✕</button>
+            </div>
+        </div>`).reverse().join('');
 };
+
 window.borrarPresu = i => { if(confirm('¿Borrar?')) { clienteActual.presupuestos.splice(i,1); save(); renderHistorial(); } };
-window.borrarCliente = i => { if(confirm('¿Borrar cliente y todo su historial?')) { db.clientes.splice(i,1); save(); renderListaClientes(); } };
+window.borrarCliente = i => { if(confirm('¿Borrar cliente?')) { db.clientes.splice(i,1); save(); renderListaClientes(); } };
+
+// 7. PDF Y FIRMA
 window.generarPDF = i => {
     const p = clienteActual.presupuestos[i];
     const el = document.createElement('div');
@@ -156,6 +159,10 @@ window.generarPDF = i => {
         `<hr><h2>TOTAL CON IVA: ${p.total.toFixed(2)}€</h2>` + (p.firma ? `<p>Firma:</p><img src="${p.firma}" style="width:200px">` : '');
     html2pdf().from(el).save(`${p.lugar}.pdf`);
 };
+
+// 8. FUNCIONES AUXILIARES
+window.abrirCalc = t => { document.getElementById('calc-titulo').innerText = t; document.getElementById('calc-display').innerText = '0'; calcEstado.valor = ''; document.getElementById('modal-calc').classList.remove('hidden'); };
+window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
 
 let canvas, ctx, dibujando = false;
 window.abrirFirma = () => {
@@ -169,4 +176,3 @@ window.abrirFirma = () => {
 window.gf = () => { trabajoActual.firma = canvas.toDataURL(); document.getElementById('mf').remove(); renderPresupuesto(); };
 
 window.onload = () => renderListaClientes();
-
