@@ -1,5 +1,5 @@
 // ==========================================
-// 1. MEMORIA Y CONFIGURACIÓN
+// 1. MEMORIA Y VARIABLES GLOBALES
 // ==========================================
 let db = JSON.parse(localStorage.getItem('presupro_v3')) || { clientes: [] };
 let clienteActual = null;
@@ -22,10 +22,7 @@ const asegurarGuardado = () => localStorage.setItem('presupro_v3', JSON.stringif
 // ==========================================
 window.irAPantalla = (id) => {
     const pantallas = ['pantalla-clientes', 'pantalla-expediente', 'pantalla-trabajo', 'pantalla-nombre-obra'];
-    pantallas.forEach(p => {
-        const el = document.getElementById(p);
-        if(el) el.classList.add('hidden');
-    });
+    pantallas.forEach(p => document.getElementById(p).classList.add('hidden'));
     document.getElementById(`pantalla-${id}`).classList.remove('hidden');
     if(id === 'clientes') renderListaClientes();
 };
@@ -54,7 +51,7 @@ window.renderListaClientes = () => {
     const cont = document.getElementById('lista-clientes');
     cont.innerHTML = db.clientes.length === 0 ? '<p class="text-center opacity-30 mt-10 font-bold uppercase italic text-[10px]">Sin clientes</p>' : 
     db.clientes.map(c => `
-        <div onclick="abrirExpediente(${c.id})" class="bg-white p-5 rounded-3xl border shadow-sm flex justify-between items-center mb-3 active:scale-95 transition-transform">
+        <div onclick="abrirExpediente(${c.id})" class="bg-white p-5 rounded-3xl border shadow-sm flex justify-between items-center mb-3 active-scale">
             <p class="font-black text-slate-800 uppercase italic leading-none">${c.nombre}</p>
             <span class="text-blue-600 font-bold">➔</span>
         </div>`).reverse().join('');
@@ -67,17 +64,17 @@ window.abrirExpediente = (id) => {
         <div class="bg-blue-600 text-white p-6 rounded-[35px] shadow-lg italic text-left">
             <h2 class="text-2xl font-black uppercase leading-none">${clienteActual.nombre}</h2>
             <p class="text-[11px] font-bold opacity-80 mb-3 tracking-widest">CIF: ${clienteActual.cif}</p>
-            <p class="text-xs">📍 ${clienteActual.direccion}, ${clienteActual.ciudad}</p>
+            <p class="text-xs font-bold italic">📍 ${clienteActual.direccion}, ${clienteActual.ciudad}</p>
         </div>`;
     irAPantalla('expediente');
 };
 
 // ==========================================
-// 4. LÓGICA DE MEDICIÓN Y CALCULADORA
+// 4. CALCULADORA CON CALENDARIO
 // ==========================================
 window.confirmarNombreObra = () => {
     const input = document.getElementById('input-nombre-obra');
-    if (!input.value) return alert("Pon un nombre a la obra");
+    if (!input.value) return alert("Indica el nombre del trabajo");
     obraEnCurso = { nombre: input.value.toUpperCase(), lineas: [] };
     document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre;
     document.getElementById('lista-medidas-obra').innerHTML = "";
@@ -85,9 +82,20 @@ window.confirmarNombreObra = () => {
 };
 
 window.prepararMedida = (t) => {
-    const zona = prompt("¿Zona? (Ej: Salón, Cocina):", "General");
+    const zona = prompt("¿Zona o Concepto?", (t === 'horas') ? "ADMINISTRACIÓN" : "GENERAL");
     if(!zona) return;
+    
     calcEstado = { tipo: t, paso: 1, valor1: 0, memoria: '', concepto: zona.toUpperCase() };
+    
+    // Si son horas, mostramos el calendario
+    const divFecha = document.getElementById('contenedor-fecha-horas');
+    if (t === 'horas') {
+        divFecha.classList.remove('hidden');
+        document.getElementById('fecha-trabajo').valueAsDate = new Date();
+    } else {
+        divFecha.classList.add('hidden');
+    }
+    
     abrirCalculadora();
 };
 
@@ -106,8 +114,10 @@ function abrirCalculadora() {
 window.teclear = (n) => {
     const disp = document.getElementById('calc-display');
     if (n === 'OK') {
+        if (!calcEstado.memoria) return;
         let cifra = 0;
-        try { cifra = eval(calcEstado.memoria.replace(/,/g, '.')) || 0; } catch(e) { return alert("Error en suma"); }
+        try { cifra = eval(calcEstado.memoria.replace(/,/g, '.')) || 0; } catch(e) { return alert("Revisa la suma"); }
+        
         const conf = CONFIG_MEDIDAS[calcEstado.tipo];
         if (conf.pasos === 1) {
             finalizarLinea(cifra);
@@ -120,21 +130,25 @@ window.teclear = (n) => {
         }
     } 
     else if (n === 'DEL') { calcEstado.memoria = ''; disp.innerText = '0'; }
-    else if (n === '+') { calcEstado.memoria += '+'; disp.innerText = calcEstado.memoria; }
+    else if (n === '+') { if(calcEstado.memoria) { calcEstado.memoria += '+'; disp.innerText = calcEstado.memoria; } }
     else { calcEstado.memoria += n; disp.innerText = calcEstado.memoria; }
 };
 
 function finalizarLinea(cantidadFinal) {
     const conf = CONFIG_MEDIDAS[calcEstado.tipo];
-    const precioS = prompt(`Precio para ${conf.n} por ${conf.uni} (€):`, "0");
-    const p = parseFloat(precioS.replace(',','.')) || 0;
+    const pStr = prompt(`Precio para ${conf.n} por ${conf.uni} (€):`, "0");
+    const p = parseFloat(pStr.replace(',','.')) || 0;
+
+    let txtFecha = "";
+    if (calcEstado.tipo === 'horas') {
+        const fechaVal = document.getElementById('fecha-trabajo').value;
+        const f = new Date(fechaVal);
+        txtFecha = ` [${f.toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit'})}]`;
+    }
 
     obraEnCurso.lineas.push({
-        nombre: `${conf.i} ${conf.n} (${calcEstado.concepto})`,
-        cantidad: cantidadFinal,
-        precio: p,
-        subtotal: cantidadFinal * p,
-        unidad: conf.uni
+        nombre: `${conf.i} ${conf.n}${txtFecha} (${calcEstado.concepto})`,
+        cantidad: cantidadFinal, precio: p, subtotal: cantidadFinal * p, unidad: conf.uni
     });
 
     document.getElementById('modal-calc').classList.add('hidden');
@@ -149,17 +163,22 @@ function renderMedidas() {
                 <p class="font-black text-slate-800 uppercase leading-none mb-1">${l.nombre}</p>
                 <p class="font-bold text-slate-400">${l.cantidad.toFixed(2)}${l.unidad} x ${l.precio.toFixed(2)}€</p>
             </div>
-            <div class="font-black text-blue-700">${l.subtotal.toFixed(2)}€</div>
+            <div class="flex items-center gap-3">
+                <span class="font-black text-blue-700">${l.subtotal.toFixed(2)}€</span>
+                <button onclick="if(confirm('¿Borrar línea?')){obraEnCurso.lineas.splice(${i}, 1); renderMedidas();}" class="text-red-300">✕</button>
+            </div>
         </div>`).reverse().join('');
 }
 
 window.guardarObraCompleta = () => {
-    if(obraEnCurso.lineas.length === 0) return alert("No hay medidas");
+    if(obraEnCurso.lineas.length === 0) return alert("No hay medidas anotadas");
     const total = obraEnCurso.lineas.reduce((acc, l) => acc + l.subtotal, 0);
+    if(!clienteActual.presupuestos) clienteActual.presupuestos = [];
     clienteActual.presupuestos.push({ ...obraEnCurso, total, fecha: new Date().toLocaleDateString() });
     asegurarGuardado();
-    alert("Obra guardada con éxito");
+    alert("✔ Obra guardada correctamente");
     irAPantalla('expediente');
 };
 
+window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
 window.onload = () => renderListaClientes();
