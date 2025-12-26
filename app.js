@@ -1,3 +1,6 @@
+// ==========================================
+// 1. MEMORIA Y VARIABLES
+// ==========================================
 let db = JSON.parse(localStorage.getItem('presupro_v3')) || { clientes: [] };
 let clienteActual = null;
 let obraEnCurso = { nombre: '', lineas: [] };
@@ -14,6 +17,9 @@ const CONFIG_MEDIDAS = {
 
 const asegurarGuardado = () => localStorage.setItem('presupro_v3', JSON.stringify(db));
 
+// ==========================================
+// 2. NAVEGACIÓN
+// ==========================================
 window.irAPantalla = (id) => {
     const pantallas = ['pantalla-clientes', 'pantalla-expediente', 'pantalla-trabajo', 'pantalla-nombre-obra'];
     pantallas.forEach(p => document.getElementById(p).classList.add('hidden'));
@@ -21,32 +27,25 @@ window.irAPantalla = (id) => {
     if(id === 'clientes') renderListaClientes();
 };
 
+// ==========================================
+// 3. GESTIÓN DE CLIENTES
+// ==========================================
 window.nuevoCliente = () => {
     const n = prompt("Nombre del Nuevo Cliente:");
     if (!n) return;
     
-    // Creamos el objeto del cliente
-    const nuevo = { 
-        id: Date.now(), 
-        nombre: n.toUpperCase(), 
-        cif: "S/N", 
-        presupuestos: [] 
-    };
-    
-    // Lo metemos en nuestra lista
+    const nuevo = { id: Date.now(), nombre: n.toUpperCase(), cif: "S/N", presupuestos: [] };
     db.clientes.push(nuevo);
-    
-    // Guardamos y actualizamos la vista
     asegurarGuardado();
     renderListaClientes();
 };
 
 window.renderListaClientes = () => {
     const cont = document.getElementById('lista-clientes');
-    if (!cont) return; // Seguridad para que no falle
+    if (!cont) return;
 
     if (db.clientes.length === 0) {
-        cont.innerHTML = '<p class="text-center opacity-30 mt-10 font-bold uppercase italic text-[10px]">Pulsa + para añadir tu primer cliente</p>';
+        cont.innerHTML = '<p class="text-center opacity-30 mt-10 font-bold uppercase italic text-[10px]">Pulsa + para añadir un cliente</p>';
         return;
     }
 
@@ -61,16 +60,20 @@ window.abrirExpediente = (id) => {
     clienteActual = db.clientes.find(cli => cli.id === id);
     document.getElementById('ficha-cliente-detalle').innerHTML = `
         <div class="bg-blue-600 text-white p-6 rounded-[35px] shadow-lg italic">
-            <h2 class="text-2xl font-black uppercase">${clienteActual.nombre}</h2>
+            <h2 class="text-2xl font-black uppercase leading-none">${clienteActual.nombre}</h2>
         </div>`;
     irAPantalla('expediente');
 };
 
+// ==========================================
+// 4. LÓGICA DE OBRA Y CALCULADORA
+// ==========================================
 window.confirmarNombreObra = () => {
     const input = document.getElementById('input-nombre-obra');
     if (!input.value) return alert("Pon un nombre");
     obraEnCurso = { nombre: input.value.toUpperCase(), lineas: [] };
     document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre;
+    document.getElementById('lista-medidas-obra').innerHTML = "";
     irAPantalla('trabajo');
 };
 
@@ -90,61 +93,111 @@ window.prepararMedida = (t) => {
 
 function abrirCalculadora() {
     const conf = CONFIG_MEDIDAS[calcEstado.tipo];
-    document.getElementById('calc-titulo').innerText = (conf.pasos === 2) ? 
-        `${(calcEstado.paso === 1 ? conf.m1 : conf.m2).toUpperCase()} - ${calcEstado.concepto}` : 
-        `${conf.m1.toUpperCase()} - ${calcEstado.concepto}`;
+    const titulo = document.getElementById('calc-titulo');
+    
+    if (conf.pasos === 2) {
+        titulo.innerText = (calcEstado.paso === 1 ? conf.m1 : conf.m2).toUpperCase() + " - " + calcEstado.concepto;
+    } else {
+        titulo.innerText = conf.m1.toUpperCase() + " - " + calcEstado.concepto;
+    }
 
-    document.getElementById('calc-display').innerText = '0';
+    document.getElementById('calc-display').innerText = calcEstado.memoria || '0';
     document.getElementById('modal-calc').classList.remove('hidden');
-    document.body.classList.add('no-scroll'); // Bloqueamos el fondo
+    document.body.classList.add('no-scroll');
 }
 
 window.teclear = (n) => {
     const disp = document.getElementById('calc-display');
+    
     if (n === 'OK') {
         if (!calcEstado.memoria) return;
-        let cifra = eval(calcEstado.memoria.replace(/,/g, '.'));
+        let cifra = 0;
+        try {
+            cifra = eval(calcEstado.memoria.replace(/,/g, '.')) || 0;
+        } catch(e) { alert("Error en el cálculo"); return; }
+
         if (CONFIG_MEDIDAS[calcEstado.tipo].pasos === 1) {
             finalizarLinea(cifra);
         } else {
             if (calcEstado.paso === 1) {
-                calcEstado.valor1 = cifra; calcEstado.paso = 2; calcEstado.memoria = ''; abrirCalculadora();
+                calcEstado.valor1 = cifra;
+                calcEstado.paso = 2;
+                calcEstado.memoria = '';
+                abrirCalculadora();
             } else {
                 finalizarLinea(calcEstado.valor1 * cifra);
             }
         }
     } 
-    else if (n === 'DEL') { calcEstado.memoria = ''; disp.innerText = '0'; }
-    else { calcEstado.memoria += n; disp.innerText = calcEstado.memoria; }
+    else if (n === 'DEL') { 
+        calcEstado.memoria = ''; 
+        disp.innerText = '0'; 
+    }
+    else if (n === '+') {
+        if(calcEstado.memoria !== '') {
+            calcEstado.memoria += '+';
+            disp.innerText = calcEstado.memoria;
+        }
+    }
+    else { 
+        calcEstado.memoria += n; 
+        disp.innerText = calcEstado.memoria; 
+    }
 };
 
 function finalizarLinea(cant) {
-    const p = parseFloat(prompt("Precio (€):", "0").replace(',','.')) || 0;
+    const pStr = prompt("Precio por unidad (€):", "0");
+    const p = parseFloat(pStr.replace(',','.')) || 0;
+    
     let fecha = "";
     if (calcEstado.tipo === 'horas') {
-        const f = new Date(document.getElementById('fecha-trabajo').value);
+        const inputF = document.getElementById('fecha-trabajo').value;
+        const f = new Date(inputF);
         fecha = ` [${f.toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit'})}]`;
     }
+    
     obraEnCurso.lineas.push({
         nombre: `${CONFIG_MEDIDAS[calcEstado.tipo].i} ${CONFIG_MEDIDAS[calcEstado.tipo].n}${fecha} (${calcEstado.concepto})`,
-        cantidad: cant, precio: p, subtotal: cant * p, unidad: CONFIG_MEDIDAS[calcEstado.tipo].uni
+        cantidad: cant,
+        precio: p,
+        subtotal: cant * p,
+        unidad: CONFIG_MEDIDAS[calcEstado.tipo].uni
     });
+    
     cerrarCalc();
     renderMedidas();
 }
 
 function renderMedidas() {
-    document.getElementById('lista-medidas-obra').innerHTML = obraEnCurso.lineas.map((l, i) => `
-        <div class="bg-white p-4 rounded-2xl border flex justify-between items-center mb-2 text-[11px] font-bold italic">
+    const lista = document.getElementById('lista-medidas-obra');
+    lista.innerHTML = obraEnCurso.lineas.map((l, i) => `
+        <div class="bg-white p-4 rounded-2xl border flex justify-between items-center mb-2 text-[11px] font-bold italic shadow-sm">
             <span>${l.nombre}</span>
-            <span class="text-blue-700">${l.subtotal.toFixed(2)}€</span>
+            <div class="flex items-center gap-3">
+                <span class="text-blue-700">${l.subtotal.toFixed(2)}€</span>
+                <button onclick="borrarLinea(${i})" class="text-red-400 ml-2">✕</button>
+            </div>
         </div>`).reverse().join('');
 }
 
+window.borrarLinea = (i) => {
+    obraEnCurso.lineas.splice(i, 1);
+    renderMedidas();
+};
+
+window.guardarObraCompleta = () => {
+    if(obraEnCurso.lineas.length === 0) return alert("No hay medidas");
+    const total = obraEnCurso.lineas.reduce((acc, l) => acc + l.subtotal, 0);
+    clienteActual.presupuestos.push({ ...obraEnCurso, total, fecha: new Date().toLocaleDateString() });
+    asegurarGuardado();
+    alert("✔ Obra guardada en el historial");
+    irAPantalla('expediente');
+};
+
 window.cerrarCalc = () => {
+    calcEstado.memoria = ''; 
     document.getElementById('modal-calc').classList.add('hidden');
     document.body.classList.remove('no-scroll');
 };
 
 window.onload = () => renderListaClientes();
-
