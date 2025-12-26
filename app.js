@@ -1,38 +1,23 @@
-// ==========================================
-// MEMORIA Y DATOS (ESTRUCTURA ORIGINAL)
-// ==========================================
 let db = JSON.parse(localStorage.getItem('presupro_v3')) || { 
-    clientes: [], 
-    ajustes: { nombre: '', tel: '', cif: '', dir: '', cp: '', ciudad: '', nPresu: 1 } 
+    clientes: [], ajustes: { nombre: '', tel: '', cif: '', dir: '', cp: '', ciudad: '', nPresu: 1 } 
 };
 
 let clienteActual = null;
 let obraEnCurso = { nombre: '', lineas: [] };
-let calcEstado = { 
-    tipo: '', paso: 1, v1: 0, v2: 0, memoria: '', 
-    zona: '', tarea: '', modo: 'medida', editandoId: null 
-}; 
+let calcEstado = { tipo: '', paso: 1, v1: 0, v2: 0, memoria: '', zona: '', tarea: '', modo: 'medida', editandoId: null }; 
 
 const CONFIG_MEDIDAS = {
     'techos': { n: 'Techo', i: '🏠', pasos: 2, m1: 'Ancho', m2: 'Largo' },
     'tabiques': { n: 'Tabique', i: '🧱', pasos: 2, m1: 'Suma de tramos', m2: 'Altura' },
     'cajones': { n: 'Cajón', i: '📦', pasos: 2, m1: 'Suma de tramos', m2: 'Altura/Fondo' },
     'tabicas': { n: 'Tabica', i: '📐', pasos: 2, m1: 'Ancho', m2: 'Largo' },
-    'cantoneras': { n: 'Cantonera', i: '📏', pasos: 1, m1: 'Metros Totales' }
+    'cantoneras': { n: 'Cantonera', i: '📏', pasos: 1, m1: 'Metros Totales' },
+    'horas': { n: 'Horas Admin', i: '🕒', pasos: 1, m1: 'Número de Horas' }
 };
 
-// Guardado seguro
+const fNum = (n) => n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const asegurarGuardado = () => localStorage.setItem('presupro_v3', JSON.stringify(db));
 
-// Formato de números con comas y dos decimales
-const fNum = (n) => {
-    if (isNaN(n)) return "0,00";
-    return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
-
-// ==========================================
-// NAVEGACIÓN Y AJUSTES
-// ==========================================
 window.irAPantalla = (id) => {
     document.querySelectorAll('[id^="pantalla-"]').forEach(p => p.classList.add('hidden'));
     document.getElementById(`pantalla-${id}`).classList.remove('hidden');
@@ -55,13 +40,10 @@ window.guardarAjustes = () => {
         nPresu: parseInt(document.getElementById('config-nPresu').value) || 1
     };
     asegurarGuardado();
-    alert("✅ Datos de empresa guardados");
+    alert("✅ Datos guardados");
     irAPantalla('clientes');
 };
 
-// ==========================================
-// GESTIÓN DE CLIENTES
-// ==========================================
 window.nuevoCliente = () => {
     ['cli-nombre', 'cli-cif', 'cli-tel', 'cli-dir'].forEach(i => document.getElementById(i).value = "");
     irAPantalla('nuevo-cliente');
@@ -71,8 +53,7 @@ window.guardarDatosCliente = () => {
     const nom = document.getElementById('cli-nombre').value.trim();
     if (!nom) return alert("El nombre es obligatorio");
     db.clientes.push({ 
-        id: Date.now(), 
-        nombre: nom.toUpperCase(), 
+        id: Date.now(), nombre: nom.toUpperCase(), 
         cif: document.getElementById('cli-cif').value.toUpperCase() || "S/N",
         tel: document.getElementById('cli-tel').value || "S/T",
         dir: document.getElementById('cli-dir').value.toUpperCase() || "S/D"
@@ -101,9 +82,6 @@ window.abrirExpediente = (id) => {
     irAPantalla('expediente');
 };
 
-// ==========================================
-// CALCULADORA Y MEDICIÓN
-// ==========================================
 window.confirmarNombreObra = () => {
     const v = document.getElementById('input-nombre-obra').value;
     if (!v) return alert("Indica el nombre del presupuesto");
@@ -121,8 +99,9 @@ function renderBotones() {
 }
 
 window.prepararMedida = (t) => {
-    const zona = prompt("¿HABITACIÓN/ESTANCIA?", "GENERAL"); if (!zona) return;
-    const tarea = prompt("¿QUÉ TRABAJO?", "MONTAJE"); if (!tarea) return;
+    const zona = prompt("¿HABITACIÓN / ZONA?", "GENERAL"); if (!zona) return;
+    const tarea = (t === 'horas') ? prompt("CONCEPTO DE LAS HORAS?", "ADMINISTRACIÓN") : prompt("¿QUÉ TRABAJO?", "MONTAJE"); 
+    if (!tarea) return;
     calcEstado = { tipo: t, paso: 1, v1: 0, v2: 0, memoria: '', zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), modo: 'medida', editandoId: null };
     abrirCalculadora();
 };
@@ -133,20 +112,12 @@ function abrirCalculadora() {
     document.getElementById('calc-titulo').innerText = txt;
     const disp = document.getElementById('calc-display');
     disp.innerText = calcEstado.memoria.replace(/\./g, ',') || '0';
-    
-    if (calcEstado.memoria.length > 12) disp.style.fontSize = "1.5rem";
-    else if (calcEstado.memoria.length > 8) disp.style.fontSize = "2rem";
-    else disp.style.fontSize = "2.5rem";
-    
     document.getElementById('modal-calc').classList.remove('hidden');
 }
 
 window.teclear = (n) => {
-    const disp = document.getElementById('calc-display');
     if (n === 'OK') {
-        let cifra = 0;
-        try { cifra = eval(calcEstado.memoria) || 0; } catch(e) { alert("Operación no válida"); return; }
-        
+        let cifra = 0; try { cifra = eval(calcEstado.memoria) || 0; } catch(e) { alert("Error"); return; }
         const conf = CONFIG_MEDIDAS[calcEstado.tipo];
         if (calcEstado.modo === 'medida') {
             if (calcEstado.paso < conf.pasos) {
@@ -175,9 +146,6 @@ window.teclear = (n) => {
     else { calcEstado.memoria += n; abrirCalculadora(); }
 };
 
-// ==========================================
-// EDITOR Y RENDERIZADO DE LÍNEAS
-// ==========================================
 window.editarLinea = (id) => {
     const l = obraEnCurso.lineas.find(x => x.id === id);
     calcEstado = { 
@@ -196,7 +164,7 @@ function renderMedidas() {
         <div class="bg-white p-4 rounded-2xl border flex justify-between items-center mb-2 shadow-sm font-bold text-[10px] uppercase italic">
             <div>
                 <p class="text-blue-800">${l.nombre}</p>
-                <p class="opacity-40">${fNum(l.cantidad)} x ${fNum(l.precio)}€</p>
+                <p class="opacity-40">${fNum(l.cantidad)} ${l.tipo==='horas'?'hrs':'unid.'} x ${fNum(l.precio)}€</p>
             </div>
             <div class="flex items-center gap-1">
                 <span class="font-black text-xs mr-2">${fNum(l.subtotal)}€</span>
@@ -210,11 +178,8 @@ function renderMedidas() {
 window.borrarLinea = (id) => { if(confirm("¿Borrar?")) { obraEnCurso.lineas = obraEnCurso.lineas.filter(x => x.id !== id); renderMedidas(); } };
 window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
 
-// ==========================================
-// GENERACIÓN DE PDF Y COPIAS
-// ==========================================
 window.guardarObraCompleta = async () => {
-    if (obraEnCurso.lineas.length === 0) return alert("No hay datos para generar el PDF");
+    if (obraEnCurso.lineas.length === 0) return alert("Sin datos");
     const total = obraEnCurso.lineas.reduce((a,b) => a+b.subtotal, 0);
     const numFactura = `${new Date().getFullYear()}/${String(db.ajustes.nPresu).padStart(3, '0')}`;
     const el = document.createElement('div');
@@ -236,7 +201,6 @@ window.guardarObraCompleta = async () => {
                 <p style="margin:0; color:#64748b; font-weight:bold; font-size:9px; text-transform:uppercase;">Datos del Cliente</p>
                 <p style="margin:0; font-weight:bold; font-size:13px;">${clienteActual.nombre}</p>
                 <p style="margin:0;">DIRECCIÓN: ${clienteActual.dir}</p>
-                <p style="margin:0;">CIF: ${clienteActual.cif}</p>
             </div>
             <table style="width:100%; border-collapse:collapse;">
                 <thead>
@@ -246,26 +210,17 @@ window.guardarObraCompleta = async () => {
                     </tr>
                 </thead>
                 <tbody>
-                    ${obraEnCurso.lineas.map(l => `<tr><td style="padding:10px; border-bottom:1px solid #e2e8f0; font-size:11px;"><b>${l.nombre}</b><br><span style="color:#666;">${fNum(l.cantidad)} unid. x ${fNum(l.precio)}€</span></td><td style="padding:10px; border-bottom:1px solid #e2e8f0; text-align:right; font-weight:bold; font-size:11px;">${fNum(l.subtotal)}€</td></tr>`).join('')}
+                    ${obraEnCurso.lineas.map(l => `<tr><td style="padding:10px; border-bottom:1px solid #e2e8f0; font-size:11px;"><b>${l.nombre}</b><br><span style="color:#666;">${fNum(l.cantidad)} ${l.tipo==='horas'?'hrs':'unid.'} x ${fNum(l.precio)}€</span></td><td style="padding:10px; border-bottom:1px solid #e2e8f0; text-align:right; font-weight:bold; font-size:11px;">${fNum(l.subtotal)}€</td></tr>`).join('')}
                 </tbody>
             </table>
             <div style="margin-top:30px; text-align:right;">
                 <h2 style="margin:0; color:#16a34a; font-size:28px;">TOTAL: ${fNum(total)}€</h2>
             </div>
         </div>`;
-    
-    const opt = { margin: 0.5, filename: `Presu_${numFactura.replace('/','-')}.pdf`, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } };
-    html2pdf().from(el).set(opt).save();
-
-    setTimeout(() => {
-        db.ajustes.nPresu++; 
-        asegurarGuardado(); 
-        irAPantalla('expediente');
-        alert("✅ Presupuesto generado con éxito.");
-    }, 1500);
+    html2pdf().from(el).set({ margin: 0.5, filename: `Presu_${numFactura.replace('/','-')}.pdf`, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).save();
+    setTimeout(() => { db.ajustes.nPresu++; asegurarGuardado(); irAPantalla('expediente'); alert("PDF Guardado."); }, 1500);
 };
 
-// COPIA DE SEGURIDAD
 window.exportarDatos = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
     const a = document.createElement('a'); a.setAttribute("href", dataStr); a.setAttribute("download", "copia_presupro.json");
