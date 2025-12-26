@@ -22,18 +22,37 @@ window.irAPantalla = (id) => {
 };
 
 window.nuevoCliente = () => {
-    const n = prompt("Nombre del Cliente:");
+    const n = prompt("Nombre del Nuevo Cliente:");
     if (!n) return;
-    db.clientes.push({ id: Date.now(), nombre: n.toUpperCase(), cif: "S/N", budgets: [] });
+    
+    // Creamos el objeto del cliente
+    const nuevo = { 
+        id: Date.now(), 
+        nombre: n.toUpperCase(), 
+        cif: "S/N", 
+        presupuestos: [] 
+    };
+    
+    // Lo metemos en nuestra lista
+    db.clientes.push(nuevo);
+    
+    // Guardamos y actualizamos la vista
     asegurarGuardado();
     renderListaClientes();
 };
 
 window.renderListaClientes = () => {
     const cont = document.getElementById('lista-clientes');
+    if (!cont) return; // Seguridad para que no falle
+
+    if (db.clientes.length === 0) {
+        cont.innerHTML = '<p class="text-center opacity-30 mt-10 font-bold uppercase italic text-[10px]">Pulsa + para añadir tu primer cliente</p>';
+        return;
+    }
+
     cont.innerHTML = db.clientes.map(c => `
-        <div onclick="abrirExpediente(${c.id})" class="bg-white p-5 rounded-3xl border shadow-sm flex justify-between items-center mb-3">
-            <p class="font-black text-slate-800 uppercase italic">${c.nombre}</p>
+        <div onclick="abrirExpediente(${c.id})" class="bg-white p-5 rounded-3xl border shadow-sm flex justify-between items-center mb-3 active-scale">
+            <p class="font-black text-slate-800 uppercase italic leading-none">${c.nombre}</p>
             <span class="text-blue-600 font-bold">➔</span>
         </div>`).reverse().join('');
 };
@@ -128,3 +147,4 @@ window.cerrarCalc = () => {
 };
 
 window.onload = () => renderListaClientes();
+
