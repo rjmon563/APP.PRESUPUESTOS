@@ -6,7 +6,7 @@
     <title>PresuPro v3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .active-scale:active { transform: scale(0.9); transition: 0.1s; }
+        .active-scale:active { transform: scale(0.95); transition: 0.1s; }
         .no-scroll { overflow: hidden; position: fixed; width: 100%; }
     </style>
 </head>
@@ -14,10 +14,22 @@
 
     <div id="pantalla-clientes" class="p-4 max-w-lg mx-auto">
         <header class="flex justify-between items-center mt-4 mb-6">
-            <h1 class="text-2xl font-black italic text-blue-800 uppercase">Clientes</h1>
+            <h1 class="text-2xl font-black italic text-blue-800 uppercase">Mis Clientes</h1>
             <button onclick="nuevoCliente()" class="bg-blue-600 text-white w-14 h-14 rounded-2xl text-4xl font-bold shadow-xl active-scale">+</button>
         </header>
         <div id="lista-clientes" class="space-y-4"></div>
+    </div>
+
+    <div id="pantalla-nuevo-cliente" class="hidden p-6 max-w-lg mx-auto">
+        <button onclick="irAPantalla('clientes')" class="text-blue-600 font-bold mb-4 uppercase text-xs">← Cancelar</button>
+        <h2 class="text-xl font-black italic text-blue-800 uppercase mb-6 text-center">Ficha del Cliente</h2>
+        <div class="space-y-4">
+            <input type="text" id="cli-nombre" placeholder="Nombre / Empresa" class="w-full p-4 rounded-2xl border-2 border-white font-bold outline-none focus:border-blue-500 shadow-sm">
+            <input type="text" id="cli-cif" placeholder="CIF / DNI" class="w-full p-4 rounded-2xl border-2 border-white font-bold outline-none focus:border-blue-500 shadow-sm">
+            <input type="tel" id="cli-tel" placeholder="Teléfono" class="w-full p-4 rounded-2xl border-2 border-white font-bold outline-none focus:border-blue-500 shadow-sm">
+            <input type="text" id="cli-dir" placeholder="Dirección de obra" class="w-full p-4 rounded-2xl border-2 border-white font-bold outline-none focus:border-blue-500 shadow-sm">
+            <button onclick="guardarDatosCliente()" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase shadow-lg active-scale mt-4">Guardar Cliente ➔</button>
+        </div>
     </div>
 
     <div id="pantalla-expediente" class="hidden p-4 max-w-lg mx-auto">
@@ -27,18 +39,18 @@
     </div>
 
     <div id="pantalla-nombre-obra" class="hidden p-6 max-w-lg mx-auto">
-        <input type="text" id="input-nombre-obra" placeholder="Nombre del trabajo..." class="w-full p-5 rounded-2xl border-2 mb-6 font-bold">
-        <button onclick="confirmarNombreObra()" class="w-full bg-green-600 text-white py-5 rounded-3xl font-black uppercase active-scale">Empezar</button>
+        <h2 class="text-blue-800 font-black uppercase mb-4 italic">Nombre del trabajo</h2>
+        <input type="text" id="input-nombre-obra" placeholder="Ej: Piso Calle Mayor" class="w-full p-5 rounded-2xl border-2 mb-6 font-bold text-lg">
+        <button onclick="confirmarNombreObra()" class="w-full bg-green-600 text-white py-5 rounded-3xl font-black uppercase active-scale shadow-lg">Empezar ➔</button>
     </div>
 
     <div id="pantalla-trabajo" class="hidden p-4 max-w-lg mx-auto">
         <div class="flex justify-between items-center mb-6">
             <button onclick="irAPantalla('expediente')" class="text-red-500 font-bold uppercase text-xs">Cerrar</button>
             <h2 id="titulo-obra-actual" class="font-black italic text-blue-800 uppercase text-xs"></h2>
-            <button onclick="guardarObraCompleta()" class="bg-green-600 text-white px-4 py-2 rounded-xl font-bold text-xs uppercase active-scale">Guardar</button>
+            <button onclick="guardarObraCompleta()" class="bg-green-600 text-white px-4 py-2 rounded-xl font-bold text-xs uppercase active-scale shadow-md">Finalizar</button>
         </div>
-        <div class="grid grid-cols-2 gap-4" id="botones-trabajo">
-            </div>
+        <div class="grid grid-cols-2 gap-4" id="botones-trabajo"></div>
         <div id="lista-medidas-obra" class="mt-8 space-y-2"></div>
     </div>
 
@@ -51,7 +63,7 @@
             <input type="date" id="fecha-trabajo" class="w-full p-4 rounded-xl text-slate-900 font-bold">
         </div>
         <div id="calc-display" class="bg-white text-slate-800 text-4xl font-black p-6 rounded-2xl text-right mb-4">0</div>
-        <div class="grid grid-cols-3 gap-3 flex-1 font-black text-2xl">
+        <div class="grid grid-cols-3 gap-3 flex-1 font-black text-2xl pb-4">
             <button onclick="teclear('7')" class="bg-white/10 rounded-2xl p-4 active-scale">7</button>
             <button onclick="teclear('8')" class="bg-white/10 rounded-2xl p-4 active-scale">8</button>
             <button onclick="teclear('9')" class="bg-white/10 rounded-2xl p-4 active-scale">9</button>
@@ -65,7 +77,7 @@
             <button onclick="teclear('.')" class="bg-white/10 rounded-2xl p-4 active-scale">,</button>
             <button onclick="teclear('+')" class="bg-orange-500 rounded-2xl p-4 active-scale">+</button>
             <button onclick="teclear('DEL')" class="bg-red-500/20 text-red-500 text-sm rounded-2xl p-4 active-scale">BORRAR</button>
-            <button onclick="teclear('OK')" class="col-span-2 bg-blue-600 rounded-2xl active-scale font-black">ACEPTAR</button>
+            <button onclick="teclear('OK')" class="col-span-2 bg-blue-600 rounded-2xl active-scale">ACEPTAR</button>
         </div>
     </div>
 
