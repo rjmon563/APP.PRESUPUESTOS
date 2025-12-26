@@ -1,10 +1,14 @@
 // ==========================================
-// 1. MEMORIA Y CONFIGURACIÓN
+// 1. MEMORIA Y SEGURIDAD
 // ==========================================
 let db = JSON.parse(localStorage.getItem('presupro_v3')) || { clientes: [] };
 let clienteActual = null;
 let obraEnCurso = { nombre: '', lineas: [] };
 let calcEstado = { tipo: '', paso: 1, valor1: 0, memoria: '', concepto: '' };
+
+const asegurarGuardado = () => {
+    localStorage.setItem('presupro_v3', JSON.stringify(db));
+};
 
 const CONFIG_MEDIDAS = {
     'techos': { n: 'Techo', i: '🏠', uni: 'm²' },
@@ -15,48 +19,48 @@ const CONFIG_MEDIDAS = {
     'horas': { n: 'Horas', i: '⏱️', uni: 'hrs' }
 };
 
-const asegurarGuardado = () => {
-    localStorage.setItem('presupro_v3', JSON.stringify(db));
-};
-
 // ==========================================
-// 2. NAVEGACIÓN (FORZADA)
+// 2. NAVEGACIÓN BLINDADA (Fuerza el cambio)
 // ==========================================
 window.irAPantalla = (id) => {
-    // Ocultamos todas las pantallas con seguridad
-    const pantallas = ['pantalla-clientes', 'pantalla-expediente', 'pantalla-trabajo'];
-    pantallas.forEach(p => {
-        const el = document.getElementById(p);
-        if(el) el.classList.add('hidden');
+    // 1. Buscamos todas las pantallas posibles
+    const todas = document.querySelectorAll('[id^="pantalla-"]');
+    
+    // 2. Las ocultamos todas a la fuerza
+    todas.forEach(p => {
+        p.classList.add('hidden');
+        p.style.display = 'none'; 
     });
     
-    // Mostramos la elegida
+    // 3. Mostramos la elegida
     const destino = document.getElementById(`pantalla-${id}`);
-    if(destino) {
+    if (destino) {
         destino.classList.remove('hidden');
-    } else {
-        console.error("No existe la pantalla: " + id);
+        destino.style.display = (id === 'trabajo') ? 'flex' : 'block'; 
+        window.scrollTo(0,0); // Sube arriba para que no parezca vacía
     }
 
-    if(id === 'clientes') renderListaClientes();
+    if (id === 'clientes') renderListaClientes();
+    if (id === 'expediente' && clienteActual) renderHistorial();
 };
 
 // ==========================================
 // 3. GESTIÓN DE CLIENTES
 // ==========================================
 window.nuevoCliente = () => {
-    const n = prompt("Nombre del Cliente / Empresa:");
+    const n = prompt("Nombre del Cliente:");
     if (!n) return;
-    db.clientes.push({
+    const nuevo = {
         id: Date.now(),
         nombre: n.toUpperCase(),
-        cif: prompt("CIF o DNI:") || "S/N",
+        cif: prompt("CIF/DNI:") || "S/N",
         telefono: prompt("Teléfono:") || "",
         direccion: prompt("Dirección:") || "S/D",
-        cp: prompt("Código Postal:") || "",
+        cp: prompt("CP:") || "",
         ciudad: prompt("Ciudad:") || "",
         presupuestos: []
-    });
+    };
+    db.clientes.push(nuevo);
     asegurarGuardado();
     renderListaClientes();
 };
@@ -64,24 +68,18 @@ window.nuevoCliente = () => {
 window.renderListaClientes = () => {
     const cont = document.getElementById('lista-clientes');
     if (!cont) return;
-    if (db.clientes.length === 0) {
-        cont.innerHTML = '<p class="text-center opacity-30 mt-10 font-bold uppercase italic text-xs">No hay clientes. Pulsa (+)</p>';
-        return;
-    }
-    cont.innerHTML = db.clientes.map(c => `
-        <div onclick="abrirExpediente(${c.id})" class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex justify-between items-center text-left mb-3 active:scale-95 transition-transform">
-            <div>
-                <p class="font-black text-slate-800 uppercase italic leading-none">${c.nombre}</p>
-                <p class="text-[9px] text-slate-400 font-bold mt-1 tracking-tight italic">📍 ${c.direccion}, ${c.ciudad}</p>
-            </div>
-            <span class="text-blue-600 font-bold text-xl">➔</span>
+    cont.innerHTML = db.clientes.length === 0 ? '<p class="text-center opacity-30 mt-10 font-bold uppercase italic text-xs">Agenda vacía. Pulsa (+)</p>' : 
+    db.clientes.map(c => `
+        <div onclick="abrirExpediente(${c.id})" class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex justify-between items-center text-left mb-3 active:bg-slate-50">
+            <div><p class="font-black text-slate-800 uppercase italic leading-none">${c.nombre}</p>
+            <p class="text-[9px] text-slate-400 font-bold mt-1">📍 ${c.direccion}</p></div>
+            <span class="text-blue-600 font-bold">➔</span>
         </div>`).reverse().join('');
 };
 
 window.abrirExpediente = (id) => {
     clienteActual = db.clientes.find(cli => cli.id === id);
     if(!clienteActual) return;
-
     document.getElementById('ficha-cliente-detalle').innerHTML = `
         <div class="bg-blue-600 text-white p-6 rounded-[35px] shadow-lg italic text-left">
             <div class="flex justify-between items-start mb-2">
@@ -91,121 +89,97 @@ window.abrirExpediente = (id) => {
                     <button onclick="borrarCliente(${clienteActual.id})" class="bg-red-500/40 p-2 rounded-xl text-xs">🗑️</button>
                 </div>
             </div>
-            <p class="text-[11px] font-bold opacity-90 mb-3 tracking-widest leading-none">CIF: ${clienteActual.cif}</p>
-            <div class="border-t border-white/20 pt-3">
-                <p class="text-xs font-bold leading-tight">📍 ${clienteActual.direccion}</p>
-                <p class="text-xs font-bold uppercase italic leading-tight">${clienteActual.cp} ${clienteActual.ciudad}</p>
-                <p class="text-xs font-bold mt-2 leading-none">📞 ${clienteActual.telefono}</p>
+            <p class="text-[11px] font-bold opacity-90 mb-3 leading-none">CIF: ${clienteActual.cif}</p>
+            <div class="border-t border-white/20 pt-3 text-xs font-bold">
+                <p>📍 ${clienteActual.direccion}</p>
+                <p class="uppercase">${clienteActual.cp} ${clienteActual.ciudad}</p>
+                <p class="mt-2">📞 ${clienteActual.telefono}</p>
             </div>
         </div>`;
     irAPantalla('expediente');
 };
 
 // ==========================================
-// 4. MÓDULO DE MEDICIÓN (PASO A TRABAJO)
+// 4. EL SALTO A LA OBRA (CORREGIDO)
 // ==========================================
 window.iniciarNuevaObra = () => {
-    const n = prompt("Nombre de la obra (ej: Techos Salón):");
+    const n = prompt("Nombre de la obra:");
     if(!n) return;
     
-    // Configuramos la obra
+    // Reiniciamos la obra en memoria
     obraEnCurso = { 
         nombre: n.toUpperCase(), 
         lineas: [],
         fecha: new Date().toLocaleDateString()
     };
     
-    // Actualizamos el título en la pantalla de trabajo
-    const tituloEl = document.getElementById('titulo-obra-actual');
-    if(tituloEl) tituloEl.innerText = obraEnCurso.nombre;
+    // Escribimos el título antes de saltar
+    document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre;
+    document.getElementById('lista-medidas-obra').innerHTML = "";
     
-    // Limpiamos la lista de medidas anterior
-    const listaEl = document.getElementById('lista-medidas-obra');
-    if(listaEl) listaEl.innerHTML = "";
-    
-    // ¡SALTO CRÍTICO!
-    irAPantalla('trabajo');
+    // Forzamos el salto
+    setTimeout(() => {
+        irAPantalla('trabajo');
+    }, 100); 
 };
 
-// --- EL RESTO DE FUNCIONES (CALCULADORA) ---
+// --- CALCULADORA Y MEDIDAS ---
 window.prepararMedida = (tipo) => {
-    const zona = prompt("¿En qué zona estás? (ej: Comedor, Pasillo...):", "General");
+    const zona = prompt("¿Zona?", "General");
     if(!zona) return;
-    calcEstado = { tipo: tipo, paso: 1, valor1: 0, memoria: '', concepto: zona.toUpperCase() };
+    calcEstado = { tipo, paso: 1, valor1: 0, memoria: '', concepto: zona.toUpperCase() };
     abrirCalculadora();
 };
 
 function abrirCalculadora() {
-    const titulo = document.getElementById('calc-titulo');
-    const display = document.getElementById('calc-display');
     const conf = CONFIG_MEDIDAS[calcEstado.tipo];
-    
-    if (calcEstado.tipo === 'horas' || calcEstado.tipo === 'cantoneras') {
-        titulo.innerText = `TOTAL ${conf.n} - ${calcEstado.concepto}`;
-    } else {
-        titulo.innerText = (calcEstado.paso === 1) ? `MEDIDA 1 - ${calcEstado.concepto}` : `MEDIDA 2 - ${calcEstado.concepto}`;
-    }
-    display.innerText = '0';
+    document.getElementById('calc-titulo').innerText = (calcEstado.tipo === 'horas' || calcEstado.tipo === 'cantoneras') ? 
+        `TOTAL ${conf.n} - ${calcEstado.concepto}` : `DATO ${calcEstado.paso} - ${calcEstado.concepto}`;
+    document.getElementById('calc-display').innerText = '0';
     document.getElementById('modal-calc').classList.remove('hidden');
 }
 
 window.teclear = (n) => {
-    const display = document.getElementById('calc-display');
+    const disp = document.getElementById('calc-display');
     if (n === 'DEL') calcEstado.memoria = calcEstado.memoria.slice(0, -1);
     else if (n === '+') { if(calcEstado.memoria !== '') calcEstado.memoria += '+'; }
     else if (n === 'OK') { procesarDatoCalculadora(); return; }
     else calcEstado.memoria += n;
-    display.innerText = calcEstado.memoria || '0';
+    disp.innerText = calcEstado.memoria || '0';
 };
 
 function procesarDatoCalculadora() {
-    let resultado = 0;
-    try { resultado = eval(calcEstado.memoria.replace(/,/g, '.')) || 0; } 
-    catch(e) { alert("Cálculo incorrecto"); return; }
-
+    let res = 0;
+    try { res = eval(calcEstado.memoria.replace(/,/g, '.')) || 0; } catch(e) { return; }
     if (calcEstado.tipo === 'horas' || calcEstado.tipo === 'cantoneras') {
-        finalizarLinea(resultado);
+        finalizarLinea(res);
     } else {
         if (calcEstado.paso === 1) {
-            calcEstado.valor1 = resultado;
-            calcEstado.paso = 2;
-            calcEstado.memoria = '';
-            abrirCalculadora();
+            calcEstado.valor1 = res; calcEstado.paso = 2; calcEstado.memoria = ''; abrirCalculadora();
         } else {
-            finalizarLinea(calcEstado.valor1 * resultado);
+            finalizarLinea(calcEstado.valor1 * res);
         }
     }
 }
 
-function finalizarLinea(cantidadFinal) {
-    const pStr = prompt(`Precio para ${CONFIG_MEDIDAS[calcEstado.tipo].n} (€):`, "0");
-    const p = parseFloat(pStr.replace(',','.')) || 0;
+function finalizarLinea(cant) {
+    const p = parseFloat((prompt("Precio (€):", "0")).replace(',','.')) || 0;
     obraEnCurso.lineas.push({
         nombre: `${CONFIG_MEDIDAS[calcEstado.tipo].i} ${CONFIG_MEDIDAS[calcEstado.tipo].n} (${calcEstado.concepto})`,
-        cantidad: cantidadFinal,
-        precio: p,
-        subtotal: cantidadFinal * p,
-        unidad: CONFIG_MEDIDAS[calcEstado.tipo].uni
+        cantidad: cant, precio: p, subtotal: cant * p, unidad: CONFIG_MEDIDAS[calcEstado.tipo].uni
     });
     document.getElementById('modal-calc').classList.add('hidden');
     renderListaMedidas();
 }
 
 window.renderListaMedidas = () => {
-    const cont = document.getElementById('lista-medidas-obra');
-    cont.innerHTML = obraEnCurso.lineas.map((l, i) => `
-        <div class="bg-white p-3 rounded-xl border flex justify-between items-center mb-2 italic shadow-sm text-left">
-            <div>
-                <p class="font-black text-slate-800 text-[11px] uppercase">${l.nombre}</p>
-                <p class="text-[9px] font-bold text-slate-400">${l.cantidad.toFixed(2)}${l.unidad} x ${l.precio}€</p>
-            </div>
-            <div class="flex items-center gap-3 font-black text-blue-600">
-                ${l.subtotal.toFixed(2)}€
-                <button onclick="obraEnCurso.lineas.splice(${i}, 1); renderListaMedidas();" class="text-red-400 ml-2">✕</button>
-            </div>
+    document.getElementById('lista-medidas-obra').innerHTML = obraEnCurso.lineas.map((l, i) => `
+        <div class="bg-white p-3 rounded-xl border flex justify-between items-center mb-2 shadow-sm italic text-[11px]">
+            <div><p class="font-black uppercase">${l.nombre}</p>
+            <p class="font-bold text-slate-400">${l.cantidad.toFixed(2)}${l.unidad} x ${l.precio}€</p></div>
+            <div class="font-black text-blue-600">${l.subtotal.toFixed(2)}€</div>
         </div>`).reverse().join('');
 };
 
 window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
-
 window.onload = () => renderListaClientes();
