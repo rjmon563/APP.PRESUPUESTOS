@@ -22,65 +22,35 @@ const asegurarGuardado = () => localStorage.setItem('presupro_v3', JSON.stringif
 // 2. NAVEGACIÓN
 // ==========================================
 window.irAPantalla = (id) => {
-    const pantallas = ['pantalla-clientes', 'pantalla-nuevo-cliente', 'pantalla-expediente', 'pantalla-nombre-obra', 'pantalla-trabajo'];
-    pantallas.forEach(p => {
-        const el = document.getElementById(p);
-        if (el) el.classList.add('hidden');
-    });
-    const destino = document.getElementById(`pantalla-${id}`);
-    if (destino) destino.classList.remove('hidden');
+    document.querySelectorAll('[id^="pantalla-"]').forEach(p => p.classList.add('hidden'));
+    const d = document.getElementById(`pantalla-${id}`);
+    if (d) d.classList.remove('hidden');
     if (id === 'clientes') renderListaClientes();
 };
 
 // ==========================================
-// 3. GESTIÓN DE CLIENTES (PAPELERA Y LÁPIZ)
+// 3. GESTIÓN DE CLIENTES
 // ==========================================
 window.nuevoCliente = () => {
     editandoId = null;
-    document.getElementById('cli-nombre').value = "";
-    document.getElementById('cli-cif').value = "";
-    document.getElementById('cli-tel').value = "";
-    document.getElementById('cli-dir').value = "";
+    ['cli-nombre', 'cli-cif', 'cli-tel', 'cli-dir'].forEach(i => document.getElementById(i).value = "");
     irAPantalla('nuevo-cliente');
-};
-
-window.editarCliente = () => {
-    editandoId = clienteActual.id;
-    document.getElementById('cli-nombre').value = clienteActual.nombre;
-    document.getElementById('cli-cif').value = clienteActual.cif;
-    document.getElementById('cli-tel').value = clienteActual.tel;
-    document.getElementById('cli-dir').value = clienteActual.dir;
-    irAPantalla('nuevo-cliente');
-};
-
-window.borrarCliente = (id, e) => {
-    e.stopPropagation();
-    if(confirm("¿Seguro que quieres borrar este cliente y todos sus datos?")) {
-        db.clientes = db.clientes.filter(c => c.id !== id);
-        asegurarGuardado();
-        renderListaClientes();
-    }
 };
 
 window.guardarDatosCliente = () => {
-    const nom = document.getElementById('cli-nombre').value;
-    if (!nom || nom.trim() === "") return alert("El nombre es obligatorio");
-
+    const nom = document.getElementById('cli-nombre').value.trim();
+    if (!nom) return alert("Nombre obligatorio");
+    const d = { 
+        nombre: nom.toUpperCase(), 
+        cif: document.getElementById('cli-cif').value.toUpperCase() || "S/N",
+        tel: document.getElementById('cli-tel').value || "S/T",
+        dir: document.getElementById('cli-dir').value || "S/D"
+    };
     if (editandoId) {
-        const cli = db.clientes.find(c => c.id === editandoId);
-        cli.nombre = nom.toUpperCase().trim();
-        cli.cif = document.getElementById('cli-cif').value.toUpperCase().trim() || "S/N";
-        cli.tel = document.getElementById('cli-tel').value || "S/T";
-        cli.dir = document.getElementById('cli-dir').value || "S/D";
+        const c = db.clientes.find(x => x.id === editandoId);
+        if (c) Object.assign(c, d);
     } else {
-        db.clientes.push({
-            id: Date.now(),
-            nombre: nom.toUpperCase().trim(),
-            cif: document.getElementById('cli-cif').value.toUpperCase().trim() || "S/N",
-            tel: document.getElementById('cli-tel').value || "S/T",
-            dir: document.getElementById('cli-dir').value || "S/D",
-            presupuestos: []
-        });
+        db.clientes.push({ id: Date.now(), ...d, presupuestos: [] });
     }
     asegurarGuardado();
     irAPantalla('clientes');
@@ -88,97 +58,82 @@ window.guardarDatosCliente = () => {
 
 window.renderListaClientes = () => {
     const cont = document.getElementById('lista-clientes');
-    if (!cont) return;
-    cont.innerHTML = db.clientes.length === 0 ? '<p class="text-center opacity-40 py-10 font-bold uppercase text-[10px]">Sin clientes</p>' : 
+    cont.innerHTML = db.clientes.length === 0 ? '<p class="text-center opacity-40 py-10">Sin clientes</p>' :
     db.clientes.map(c => `
         <div onclick="abrirExpediente(${c.id})" class="bg-white p-4 rounded-3xl border shadow-sm flex justify-between items-center mb-2 active-scale">
-            <p class="font-black text-slate-800 uppercase italic leading-none text-sm">${c.nombre}</p>
-            <button onclick="borrarCliente(${c.id}, event)" class="bg-red-50 text-red-500 p-3 rounded-xl ml-2">🗑️</button>
+            <p class="font-black text-slate-800 uppercase italic text-sm">${c.nombre}</p>
+            <button onclick="borrarCliente(${c.id}, event)" class="bg-red-50 text-red-500 p-2 rounded-xl">🗑️</button>
         </div>`).reverse().join('');
 };
 
+window.borrarCliente = (id, e) => {
+    e.stopPropagation();
+    if(confirm("¿Borrar cliente?")) { db.clientes = db.clientes.filter(x => x.id !== id); asegurarGuardado(); renderListaClientes(); }
+};
+
 window.abrirExpediente = (id) => {
-    clienteActual = db.clientes.find(cli => cli.id === id);
+    clienteActual = db.clientes.find(x => x.id === id);
     document.getElementById('ficha-cliente-detalle').innerHTML = `
         <div class="bg-blue-600 text-white p-6 rounded-[35px] shadow-lg italic relative">
-            <button onclick="editarCliente()" class="absolute top-4 right-4 bg-white/20 px-3 py-1 rounded-lg text-[10px] font-bold">✏️ EDITAR</button>
-            <h2 class="text-2xl font-black uppercase leading-none mb-3 pr-16">${clienteActual.nombre}</h2>
-            <div class="text-[10px] space-y-1 opacity-80 font-bold uppercase">
-                <p>📄 CIF: ${clienteActual.cif}</p>
-                <p>📞 TEL: ${clienteActual.tel}</p>
-                <p>📍 DIR: ${clienteActual.dir}</p>
-            </div>
+            <button onclick="editandoId=${clienteActual.id}; irAPantalla('nuevo-cliente')" class="absolute top-4 right-4 bg-white/20 px-3 py-1 rounded-lg text-[10px]">✏️</button>
+            <h2 class="text-xl font-black uppercase mb-2">${clienteActual.nombre}</h2>
+            <p class="text-[9px] opacity-80 uppercase font-bold tracking-widest">${clienteActual.cif} | ${clienteActual.tel}</p>
+            <p class="text-[9px] opacity-80 uppercase font-bold">${clienteActual.dir}</p>
         </div>`;
     irAPantalla('expediente');
 };
 
 // ==========================================
-// 4. LÓGICA DE TRABAJO Y CALCULADORA
+// 4. TRABAJO Y EDICIÓN DE MEDIDAS
 // ==========================================
 window.confirmarNombreObra = () => {
-    const val = document.getElementById('input-nombre-obra').value;
-    if (!val) return alert("Escribe un nombre");
-    obraEnCurso = { nombre: val.toUpperCase(), lineas: [] };
+    const v = document.getElementById('input-nombre-obra').value;
+    if (!v) return alert("Nombre de obra");
+    obraEnCurso = { nombre: v.toUpperCase(), lineas: [] };
     document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre;
     irAPantalla('trabajo');
     renderBotones();
+    renderMedidas();
 };
 
 function renderBotones() {
-    document.getElementById('botones-trabajo').innerHTML = Object.keys(CONFIG_MEDIDAS).map(key => {
-        const c = CONFIG_MEDIDAS[key];
-        return `<button onclick="prepararMedida('${key}')" class="bg-white p-6 rounded-3xl shadow-sm flex flex-col items-center gap-2 border active-scale text-slate-500">
-            <span class="text-3xl">${c.i}</span><span class="font-black text-[10px] uppercase italic">${c.n}</span>
-        </button>`;
-    }).join('');
+    document.getElementById('botones-trabajo').innerHTML = Object.keys(CONFIG_MEDIDAS).map(k => `
+        <button onclick="prepararMedida('${k}')" class="bg-white p-4 rounded-3xl shadow-sm border flex flex-col items-center active-scale">
+            <span class="text-2xl">${CONFIG_MEDIDAS[k].i}</span>
+            <span class="text-[8px] font-black uppercase opacity-40">${CONFIG_MEDIDAS[k].n}</span>
+        </button>`).join('');
 }
 
 window.prepararMedida = (t) => {
-    const zona = prompt("¿Zona?", (t === 'horas' ? "ADMIN" : "GENERAL"));
-    if (!zona) return;
-    calcEstado = { tipo: t, paso: 1, valor1: 0, memoria: '', concepto: zona.toUpperCase() };
-    if (t === 'horas') {
-        document.getElementById('contenedor-fecha-horas').classList.remove('hidden');
-        document.getElementById('fecha-trabajo').valueAsDate = new Date();
-    } else {
-        document.getElementById('contenedor-fecha-horas').classList.add('hidden');
-    }
+    const z = prompt("Zona?", "GENERAL");
+    if (!z) return;
+    calcEstado = { tipo: t, paso: 1, valor1: 0, memoria: '', concepto: z.toUpperCase() };
     abrirCalculadora();
 };
 
 function abrirCalculadora() {
-    const conf = CONFIG_MEDIDAS[calcEstado.tipo];
-    document.getElementById('calc-titulo').innerText = (conf.pasos === 2) ? 
-        `${(calcEstado.paso === 1 ? conf.m1 : conf.m2).toUpperCase()} - ${calcEstado.concepto}` : 
-        `${conf.m1.toUpperCase()} - ${calcEstado.concepto}`;
     document.getElementById('calc-display').innerText = '0';
     document.getElementById('modal-calc').classList.remove('hidden');
-    document.body.classList.add('no-scroll');
 }
 
 window.teclear = (n) => {
     const disp = document.getElementById('calc-display');
     if (n === 'OK') {
-        if (!calcEstado.memoria) return;
-        let cifra = eval(calcEstado.memoria.replace(/,/g, '.'));
-        if (CONFIG_MEDIDAS[calcEstado.tipo].pasos === 1) {
-            finalizarLinea(cifra);
-        } else {
-            if (calcEstado.paso === 1) {
-                calcEstado.valor1 = cifra; calcEstado.paso = 2; calcEstado.memoria = ''; abrirCalculadora();
-            } else {
-                finalizarLinea(calcEstado.valor1 * cifra);
-            }
+        let cifra = eval(calcEstado.memoria.replace(/,/g, '.')) || 0;
+        if (CONFIG_MEDIDAS[calcEstado.tipo].pasos === 1) { finalizarLinea(cifra); }
+        else {
+            if (calcEstado.paso === 1) { calcEstado.valor1 = cifra; calcEstado.paso = 2; calcEstado.memoria = ''; abrirCalculadora(); }
+            else { finalizarLinea(calcEstado.valor1 * cifra); }
         }
-    } 
-    else if (n === 'DEL') { calcEstado.memoria = ''; disp.innerText = '0'; }
-    else if (n === '+') { calcEstado.memoria += '+'; disp.innerText = calcEstado.memoria; }
+    } else if (n === 'DEL') { calcEstado.memoria = ''; disp.innerText = '0'; }
     else { calcEstado.memoria += n; disp.innerText = calcEstado.memoria; }
 };
 
 function finalizarLinea(cant) {
-    const p = parseFloat(prompt("Precio (€):", "20").replace(',','.')) || 0;
+    const p = parseFloat(prompt("Precio (€):", "20")) || 0;
     obraEnCurso.lineas.push({
+        id: Date.now(),
+        tipo: calcEstado.tipo,
         nombre: `${CONFIG_MEDIDAS[calcEstado.tipo].i} ${CONFIG_MEDIDAS[calcEstado.tipo].n} (${calcEstado.concepto})`,
         cantidad: cant, precio: p, subtotal: cant * p
     });
@@ -186,24 +141,79 @@ function finalizarLinea(cant) {
     renderMedidas();
 }
 
+// EDITAR MEDIDA YA EXISTENTE
+window.editarLinea = (id) => {
+    const linea = obraEnCurso.lineas.find(l => l.id === id);
+    const nCant = parseFloat(prompt("Nueva cantidad:", linea.cantidad)) || 0;
+    const nPrec = parseFloat(prompt("Nuevo precio (€):", linea.precio)) || 0;
+    linea.cantidad = nCant;
+    linea.precio = nPrec;
+    linea.subtotal = nCant * nPrec;
+    renderMedidas();
+};
+
+window.borrarLinea = (id) => {
+    if(confirm("¿Quitar esta medida?")) {
+        obraEnCurso.lineas = obraEnCurso.lineas.filter(l => l.id !== id);
+        renderMedidas();
+    }
+};
+
 function renderMedidas() {
-    document.getElementById('lista-medidas-obra').innerHTML = obraEnCurso.lineas.map((l, i) => `
-        <div class="bg-white p-4 rounded-2xl border flex justify-between items-center mb-2 text-[10px] font-bold italic shadow-sm">
-            <span>${l.nombre}</span><span class="text-blue-700">${l.subtotal.toFixed(2)}€</span>
+    const cont = document.getElementById('lista-medidas-obra');
+    
+    // 1. Lista de líneas
+    const htmlLineas = obraEnCurso.lineas.map(l => `
+        <div class="bg-white p-3 rounded-2xl border flex justify-between items-center mb-2 shadow-sm animate-in">
+            <div class="text-[10px] font-bold uppercase italic">
+                <p class="text-blue-800">${l.nombre}</p>
+                <p class="opacity-40">${l.cantidad.toFixed(2)} x ${l.precio.toFixed(2)}€</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="font-black text-xs">${l.subtotal.toFixed(2)}€</span>
+                <button onclick="editarLinea(${l.id})" class="bg-slate-100 p-2 rounded-lg text-[10px]">✏️</button>
+                <button onclick="borrarLinea(${l.id})" class="bg-red-50 text-red-400 p-2 rounded-lg text-[10px]">✕</button>
+            </div>
         </div>`).reverse().join('');
+
+    // 2. Cálculo de Resumen por Capítulos
+    const resumen = {};
+    obraEnCurso.lineas.forEach(l => {
+        const nombreTipo = CONFIG_MEDIDAS[l.tipo].n;
+        if (!resumen[nombreTipo]) resumen[nombreTipo] = { cant: 0, total: 0, uni: CONFIG_MEDIDAS[l.tipo].uni };
+        resumen[nombreTipo].cant += l.cantidad;
+        resumen[nombreTipo].total += l.subtotal;
+    });
+
+    const htmlResumen = Object.keys(resumen).map(k => `
+        <div class="flex justify-between border-b border-dashed py-1 opacity-70">
+            <span>${k}:</span>
+            <span>${resumen[k].cant.toFixed(2)}${resumen[k].uni} | <b>${resumen[k].total.toFixed(2)}€</b></span>
+        </div>`).join('');
+
+    const totalObra = obraEnCurso.lineas.reduce((a, b) => a + b.subtotal, 0);
+
+    cont.innerHTML = `
+        <div class="mb-4">${htmlLineas}</div>
+        ${obraEnCurso.lineas.length > 0 ? `
+        <div class="bg-slate-800 text-white p-5 rounded-[30px] shadow-xl italic font-bold text-[10px] uppercase">
+            <p class="text-blue-400 mb-2 border-b border-white/10 pb-1">Resumen de Totales</p>
+            ${htmlResumen}
+            <div class="flex justify-between text-lg mt-3 text-green-400">
+                <span>TOTAL:</span>
+                <span>${totalObra.toFixed(2)}€</span>
+            </div>
+        </div>` : ''}`;
 }
 
-window.cerrarCalc = () => {
-    document.getElementById('modal-calc').classList.add('hidden');
-    document.body.classList.remove('no-scroll');
-};
+window.cerrarCalc = () => { document.getElementById('modal-calc').classList.add('hidden'); document.body.classList.remove('no-scroll'); };
 
 window.guardarObraCompleta = () => {
     if (obraEnCurso.lineas.length === 0) return alert("Sin datos");
     if (!clienteActual.presupuestos) clienteActual.presupuestos = [];
     clienteActual.presupuestos.push({...obraEnCurso, total: obraEnCurso.lineas.reduce((a,b)=>a+b.subtotal,0), fecha: new Date().toLocaleDateString()});
     asegurarGuardado();
-    alert("¡Obra guardada!");
+    alert("Guardado");
     irAPantalla('expediente');
 };
 
