@@ -26,40 +26,20 @@
 
     <div id="pantalla-ajustes" class="hidden p-6 max-w-lg mx-auto">
         <button onclick="irAPantalla('clientes')" class="text-blue-600 font-bold mb-4 uppercase text-xs">← Volver</button>
-        <h2 class="text-xl font-black italic text-blue-800 uppercase mb-6 text-center">Mis Datos Fiscales</h2>
+        <h2 class="text-xl font-black italic text-blue-800 uppercase mb-6 text-center">Configuración Fiscal</h2>
         <div class="space-y-3 bg-white p-6 rounded-[35px] shadow-sm border">
-            <div>
-                <label class="block text-[9px] font-black opacity-40 uppercase ml-2">Nombre / Empresa</label>
-                <input type="text" id="config-nombre" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
-            </div>
-            <div>
-                <label class="block text-[9px] font-black opacity-40 uppercase ml-2">CIF / DNI</label>
-                <input type="text" id="config-cif" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
-            </div>
-            <div>
-                <label class="block text-[9px] font-black opacity-40 uppercase ml-2">Teléfono</label>
-                <input type="tel" id="config-tel" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
-            </div>
-            <div>
-                <label class="block text-[9px] font-black opacity-40 uppercase ml-2">Dirección</label>
-                <input type="text" id="config-dir" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
-            </div>
+            <input type="text" id="config-nombre" placeholder="Nombre Comercial / Autónomo" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
+            <input type="text" id="config-cif" placeholder="CIF / DNI" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
+            <input type="tel" id="config-tel" placeholder="Tu Teléfono" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
+            <input type="text" id="config-dir" placeholder="Tu Dirección" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
             <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="block text-[9px] font-black opacity-40 uppercase ml-2">C.P.</label>
-                    <input type="text" id="config-cp" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
-                </div>
-                <div>
-                    <label class="block text-[9px] font-black opacity-40 uppercase ml-2">Ciudad</label>
-                    <input type="text" id="config-ciudad" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
-                </div>
+                <input type="text" id="config-cp" placeholder="C.P." class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
+                <input type="text" id="config-ciudad" placeholder="Ciudad" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
             </div>
-            <div>
-                <label class="block text-[9px] font-black opacity-40 uppercase ml-2">Próximo Nº Presupuesto</label>
-                <input type="number" id="config-nPresu" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
-            </div>
+            <label class="block text-[9px] font-black opacity-40 uppercase ml-2 pt-2">Próximo Nº Presupuesto</label>
+            <input type="number" id="config-nPresu" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
 
-            <button onclick="guardarAjustes()" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase shadow-lg active-scale mt-4 tracking-widest text-sm italic">Guardar Mis Datos ➔</button>
+            <button onclick="guardarAjustes()" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase shadow-lg active-scale mt-4 italic tracking-widest text-sm">Guardar Mis Datos ➔</button>
 
             <div class="grid grid-cols-2 gap-2 mt-4 pt-4 border-t">
                 <button onclick="exportarDatos()" class="bg-slate-800 text-white p-3 rounded-xl text-[9px] font-bold uppercase active-scale">📥 Exportar Copia</button>
@@ -75,8 +55,8 @@
             <input type="text" id="cli-nombre" placeholder="Nombre Cliente" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none uppercase">
             <input type="text" id="cli-cif" placeholder="CIF Cliente" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none uppercase">
             <input type="tel" id="cli-tel" placeholder="Teléfono" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none">
-            <input type="text" id="cli-dir" placeholder="Dirección Obra" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none uppercase">
-            <button onclick="guardarDatosCliente()" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase shadow-lg active-scale mt-4 italic">Crear Cliente ➔</button>
+            <input type="text" id="cli-dir" placeholder="Dirección" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none uppercase">
+            <button onclick="guardarDatosCliente()" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase shadow-lg active-scale mt-4 italic">Crear Ficha ➔</button>
         </div>
     </div>
 
@@ -88,8 +68,8 @@
 
     <div id="pantalla-nombre-obra" class="hidden p-6 max-w-lg mx-auto text-center">
         <button onclick="irAPantalla('expediente')" class="text-blue-600 font-bold mb-4 uppercase text-xs block text-left">← Volver</button>
-        <input type="text" id="input-nombre-obra" placeholder="EJ: SALÓN" class="w-full p-6 rounded-3xl border-2 mb-6 font-black text-xl text-center shadow-inner outline-none uppercase">
-        <button onclick="confirmarNombreObra()" class="w-full bg-green-600 text-white py-6 rounded-[35px] font-black uppercase shadow-lg active-scale text-lg italic">Medir Ahora ➔</button>
+        <input type="text" id="input-nombre-obra" placeholder="ZONA: EJ. SALÓN" class="w-full p-6 rounded-3xl border-2 mb-6 font-black text-xl text-center shadow-inner outline-none uppercase">
+        <button onclick="confirmarNombreObra()" class="w-full bg-green-600 text-white py-6 rounded-[35px] font-black uppercase shadow-lg active-scale text-lg italic tracking-widest">Medir Ahora ➔</button>
     </div>
 
     <div id="pantalla-trabajo" class="hidden p-4 max-w-lg mx-auto">
