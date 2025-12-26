@@ -41,7 +41,7 @@ window.guardarAjustes = () => {
         nPresu: parseInt(document.getElementById('config-nPresu').value) || 1
     };
     asegurarGuardado();
-    alert("✅ Datos guardados correctamente");
+    alert("✅ Datos guardados");
     irAPantalla('clientes');
 };
 
@@ -87,9 +87,9 @@ window.abrirExpediente = (id) => {
 
 window.confirmarNombreObra = () => {
     const v = document.getElementById('input-nombre-obra').value;
-    if (!v) return alert("Indica la zona");
+    if (!v) return alert("Indica el nombre del presupuesto");
     obraEnCurso = { nombre: v.toUpperCase(), lineas: [] };
-    document.getElementById('titulo-obra-actual').innerText = "ZONA: " + obraEnCurso.nombre;
+    document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre;
     irAPantalla('trabajo'); renderBotones(); renderMedidas();
 };
 
@@ -102,8 +102,8 @@ function renderBotones() {
 }
 
 window.prepararMedida = (t) => {
-    const zona = prompt("¿ZONA/ESTANCIA?", "GENERAL"); if (!zona) return;
-    const tarea = prompt("¿TAREA?", "MONTAJE"); if (!tarea) return;
+    const zona = prompt("¿HABITACIÓN/ESTANCIA?", "GENERAL"); if (!zona) return;
+    const tarea = prompt("¿QUÉ TRABAJO?", "MONTAJE"); if (!tarea) return;
     calcEstado = { tipo: t, paso: 1, v1: 0, v2: 0, memoria: '', zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), modo: 'medida' };
     abrirCalculadora();
 };
@@ -185,7 +185,6 @@ window.guardarObraCompleta = async () => {
                 <p style="margin:0; color:#64748b; font-weight:bold; font-size:9px; text-transform:uppercase;">Datos del Cliente</p>
                 <p style="margin:0; font-weight:bold; font-size:13px;">${clienteActual.nombre}</p>
                 <p style="margin:0;">DIRECCIÓN: ${clienteActual.dir}</p>
-                <p style="margin:0;">CIF: ${clienteActual.cif}</p>
             </div>
             <table style="width:100%; border-collapse:collapse;">
                 <thead>
@@ -206,7 +205,7 @@ window.guardarObraCompleta = async () => {
     setTimeout(() => {
         db.ajustes.nPresu++; 
         asegurarGuardado(); irAPantalla('expediente');
-        alert("Presupuesto guardado y número actualizado.");
+        alert("Presupuesto guardado.");
     }, 1500);
 };
 
