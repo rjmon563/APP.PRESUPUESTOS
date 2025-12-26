@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PresuPro V3.5 - Profesional</title>
+    <title>PresuPro V3.5</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="app.js" defer></script>
@@ -11,7 +11,6 @@
         .active-scale:active { transform: scale(0.96); transition: 0.1s; }
         body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         input { font-size: 16px !important; } 
-        #calc-display { display: flex; align-items: center; justify-content: flex-end; overflow-x: auto; white-space: nowrap; }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 select-none">
@@ -29,21 +28,17 @@
         <button onclick="irAPantalla('clientes')" class="text-blue-600 font-bold mb-4 uppercase text-xs">← Volver</button>
         <h2 class="text-xl font-black italic text-blue-800 uppercase mb-6 text-center">Configuración Fiscal</h2>
         <form onsubmit="event.preventDefault(); guardarAjustes();" class="space-y-3 bg-white p-6 rounded-[35px] shadow-sm border">
-            <input type="text" id="config-nombre" name="organization" autocomplete="organization" placeholder="Nombre Empresa" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
-            <input type="text" id="config-cif" name="tax-id" placeholder="CIF / DNI" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
-            <input type="tel" id="config-tel" name="tel" autocomplete="tel" placeholder="Tu Teléfono" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
-            <input type="text" id="config-dir" name="address" autocomplete="street-address" placeholder="Dirección" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
+            <input type="text" id="config-nombre" placeholder="Nombre Empresa" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
+            <input type="text" id="config-cif" placeholder="CIF / DNI" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
+            <input type="tel" id="config-tel" placeholder="Tu Teléfono" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
+            <input type="text" id="config-dir" placeholder="Dirección" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
             <div class="grid grid-cols-2 gap-2">
-                <input type="text" id="config-cp" name="postal-code" autocomplete="postal-code" placeholder="C.P." class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
-                <input type="text" id="config-ciudad" name="city" autocomplete="address-level2" placeholder="Ciudad" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
+                <input type="text" id="config-cp" placeholder="C.P." class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
+                <input type="text" id="config-ciudad" placeholder="Ciudad" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
             </div>
             <label class="block text-[9px] font-black opacity-40 uppercase ml-2 pt-2">Próximo Nº Presupuesto</label>
             <input type="number" id="config-nPresu" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
-            <button type="submit" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase shadow-lg active-scale mt-4 italic tracking-widest text-sm">Guardar Mis Datos ➔</button>
-            <div class="grid grid-cols-2 gap-2 mt-4 pt-4 border-t">
-                <button type="button" onclick="exportarDatos()" class="bg-slate-800 text-white p-3 rounded-xl text-[9px] font-bold uppercase active-scale">📥 Exportar Copia</button>
-                <button type="button" onclick="importarDatos()" class="bg-slate-400 text-white p-3 rounded-xl text-[9px] font-bold uppercase active-scale">📤 Importar Copia</button>
-            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase shadow-lg active-scale mt-4 italic tracking-widest text-sm">Guardar Datos ➔</button>
         </form>
     </div>
 
@@ -51,10 +46,10 @@
         <button onclick="irAPantalla('clientes')" class="text-blue-600 font-bold mb-4 uppercase text-xs">← Cancelar</button>
         <h2 class="text-xl font-black italic text-blue-800 uppercase mb-6 text-center">Ficha del Cliente</h2>
         <form onsubmit="event.preventDefault(); guardarDatosCliente();" class="space-y-4">
-            <input type="text" id="cli-nombre" name="name" autocomplete="name" placeholder="Nombre Cliente" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none uppercase">
+            <input type="text" id="cli-nombre" placeholder="Nombre Cliente" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none uppercase">
             <input type="text" id="cli-cif" placeholder="CIF Cliente" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none uppercase">
-            <input type="tel" id="cli-tel" name="tel" autocomplete="tel" placeholder="Teléfono" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none">
-            <input type="text" id="cli-dir" name="address" autocomplete="street-address" placeholder="Dirección" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none uppercase">
+            <input type="tel" id="cli-tel" placeholder="Teléfono" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none">
+            <input type="text" id="cli-dir" placeholder="Dirección" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none uppercase">
             <button type="submit" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase shadow-lg active-scale mt-4 italic">Crear Ficha ➔</button>
         </form>
     </div>
@@ -86,11 +81,9 @@
                 <button onclick="cambiarIVA(10)" id="btn-iva-10" class="iva-btn bg-slate-100 p-2 rounded-xl text-[10px] font-bold uppercase">10%</button>
                 <button onclick="cambiarIVA(21)" id="btn-iva-21" class="iva-btn bg-blue-600 text-white p-2 rounded-xl text-[10px] font-bold uppercase">21%</button>
             </div>
-            <button onclick="document.getElementById('input-foto').click()" class="w-full bg-slate-800 text-white p-3 rounded-2xl text-[10px] font-black uppercase active-scale flex items-center justify-center gap-2">
-                📸 Añadir Foto de Obra
-            </button>
+            <button onclick="document.getElementById('input-foto').click()" class="w-full bg-slate-800 text-white p-3 rounded-2xl text-[10px] font-black uppercase active-scale flex items-center justify-center gap-2">📸 Añadir Foto</button>
             <input type="file" id="input-foto" accept="image/*" capture="environment" class="hidden" onchange="subirFoto(event)">
-            <div id="galeria-fotos" class="flex gap-2 mt-3 overflow-x-auto pb-2"></div>
+            <div id="galeria-fotos" class="flex gap-2 mt-3 overflow-x-auto"></div>
         </div>
 
         <div id="lista-medidas-obra" class="space-y-3 pb-20"></div>
@@ -98,10 +91,10 @@
 
     <div id="modal-calc" class="hidden fixed inset-0 bg-slate-900 z-[999] flex flex-col p-4 text-white">
         <div class="flex justify-between items-center mb-4">
-            <div id="calc-titulo" class="font-black uppercase text-blue-400 text-[10px] tracking-widest italic"></div>
-            <button onclick="cerrarCalc()" class="bg-red-500/20 text-red-500 px-5 py-2 rounded-xl font-bold text-xs uppercase">✕</button>
+            <div id="calc-titulo" class="font-black uppercase text-blue-400 text-[10px]"></div>
+            <button onclick="cerrarCalc()" class="bg-red-500/20 text-red-500 px-5 py-2 rounded-xl font-bold text-xs">✕</button>
         </div>
-        <div id="calc-display" class="bg-white text-slate-800 text-4xl font-black p-8 rounded-[35px] text-right mb-6 shadow-2xl italic min-h-[100px]">0</div>
+        <div id="calc-display" class="bg-white text-slate-800 text-4xl font-black p-8 rounded-[35px] text-right mb-6 min-h-[100px]">0</div>
         <div class="grid grid-cols-3 gap-3 flex-1 font-black text-3xl pb-4">
             <button onclick="teclear('7')" class="bg-white/10 rounded-2xl active:bg-white/40">7</button>
             <button onclick="teclear('8')" class="bg-white/10 rounded-2xl active:bg-white/40">8</button>
@@ -114,9 +107,9 @@
             <button onclick="teclear('3')" class="bg-white/10 rounded-2xl active:bg-white/40">3</button>
             <button onclick="teclear('0')" class="bg-white/10 rounded-2xl active:bg-white/40">0</button>
             <button onclick="teclear('.')" class="bg-white/10 rounded-2xl active:bg-white/40">,</button>
-            <button onclick="teclear('+')" class="bg-orange-500 text-white rounded-2xl active:bg-orange-400 shadow-lg text-4xl">+</button>
+            <button onclick="teclear('+')" class="bg-orange-500 text-white rounded-2xl active:bg-orange-400 text-4xl">+</button>
             <button onclick="teclear('DEL')" class="bg-red-500/30 text-red-300 text-sm rounded-2xl uppercase">Borrar</button>
-            <button onclick="teclear('OK')" class="col-span-2 bg-blue-600 text-white rounded-[30px] py-8 mt-2 shadow-2xl active:bg-blue-500 text-3xl font-black italic">ACEPTAR</button>
+            <button onclick="teclear('OK')" class="col-span-2 bg-blue-600 text-white rounded-[30px] py-8 mt-2 text-3xl font-black italic">ACEPTAR</button>
         </div>
     </div>
 </body>
