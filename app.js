@@ -20,13 +20,24 @@ const asegurarGuardado = () => {
 };
 
 // ==========================================
-// 2. NAVEGACIÓN
+// 2. NAVEGACIÓN (FORZADA)
 // ==========================================
 window.irAPantalla = (id) => {
-    document.getElementById('pantalla-clientes').classList.add('hidden');
-    document.getElementById('pantalla-expediente').classList.add('hidden');
-    document.getElementById('pantalla-trabajo').classList.add('hidden');
-    document.getElementById(`pantalla-${id}`).classList.remove('hidden');
+    // Ocultamos todas las pantallas con seguridad
+    const pantallas = ['pantalla-clientes', 'pantalla-expediente', 'pantalla-trabajo'];
+    pantallas.forEach(p => {
+        const el = document.getElementById(p);
+        if(el) el.classList.add('hidden');
+    });
+    
+    // Mostramos la elegida
+    const destino = document.getElementById(`pantalla-${id}`);
+    if(destino) {
+        destino.classList.remove('hidden');
+    } else {
+        console.error("No existe la pantalla: " + id);
+    }
+
     if(id === 'clientes') renderListaClientes();
 };
 
@@ -50,27 +61,6 @@ window.nuevoCliente = () => {
     renderListaClientes();
 };
 
-window.editarCliente = (id) => {
-    const c = db.clientes.find(cli => cli.id === id);
-    if (!c) return;
-    c.nombre = (prompt("Editar Nombre:", c.nombre) || c.nombre).toUpperCase();
-    c.cif = prompt("Editar CIF/DNI:", c.cif);
-    c.telefono = prompt("Editar Teléfono:", c.telefono);
-    c.direccion = prompt("Editar Dirección:", c.direccion);
-    c.cp = prompt("Editar CP:", c.cp);
-    c.ciudad = prompt("Editar Ciudad:", c.ciudad);
-    asegurarGuardado();
-    abrirExpediente(c.id);
-};
-
-window.borrarCliente = (id) => {
-    if (confirm("¿Seguro que quieres borrar este cliente y sus presupuestos?")) {
-        db.clientes = db.clientes.filter(cli => cli.id !== id);
-        asegurarGuardado();
-        irAPantalla('clientes');
-    }
-};
-
 window.renderListaClientes = () => {
     const cont = document.getElementById('lista-clientes');
     if (!cont) return;
@@ -79,17 +69,19 @@ window.renderListaClientes = () => {
         return;
     }
     cont.innerHTML = db.clientes.map(c => `
-        <div onclick="abrirExpediente(${c.id})" class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex justify-between items-center text-left mb-3">
+        <div onclick="abrirExpediente(${c.id})" class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex justify-between items-center text-left mb-3 active:scale-95 transition-transform">
             <div>
                 <p class="font-black text-slate-800 uppercase italic leading-none">${c.nombre}</p>
-                <p class="text-[9px] text-slate-400 font-bold mt-1 tracking-tight">📍 ${c.direccion}, ${c.ciudad}</p>
+                <p class="text-[9px] text-slate-400 font-bold mt-1 tracking-tight italic">📍 ${c.direccion}, ${c.ciudad}</p>
             </div>
             <span class="text-blue-600 font-bold text-xl">➔</span>
         </div>`).reverse().join('');
 };
 
 window.abrirExpediente = (id) => {
-    clienteActual = db.clientes.find(c => c.id === id);
+    clienteActual = db.clientes.find(cli => cli.id === id);
+    if(!clienteActual) return;
+
     document.getElementById('ficha-cliente-detalle').innerHTML = `
         <div class="bg-blue-600 text-white p-6 rounded-[35px] shadow-lg italic text-left">
             <div class="flex justify-between items-start mb-2">
@@ -99,30 +91,45 @@ window.abrirExpediente = (id) => {
                     <button onclick="borrarCliente(${clienteActual.id})" class="bg-red-500/40 p-2 rounded-xl text-xs">🗑️</button>
                 </div>
             </div>
-            <p class="text-[11px] font-bold opacity-90 mb-3">CIF: ${clienteActual.cif}</p>
+            <p class="text-[11px] font-bold opacity-90 mb-3 tracking-widest leading-none">CIF: ${clienteActual.cif}</p>
             <div class="border-t border-white/20 pt-3">
-                <p class="text-xs font-bold">📍 ${clienteActual.direccion}</p>
-                <p class="text-xs font-bold uppercase italic">${clienteActual.cp} ${clienteActual.ciudad}</p>
-                <p class="text-xs font-bold mt-2">📞 ${clienteActual.telefono}</p>
+                <p class="text-xs font-bold leading-tight">📍 ${clienteActual.direccion}</p>
+                <p class="text-xs font-bold uppercase italic leading-tight">${clienteActual.cp} ${clienteActual.ciudad}</p>
+                <p class="text-xs font-bold mt-2 leading-none">📞 ${clienteActual.telefono}</p>
             </div>
         </div>`;
     irAPantalla('expediente');
 };
 
 // ==========================================
-// 4. MÓDULO DE MEDICIÓN Y CALCULADORA
+// 4. MÓDULO DE MEDICIÓN (PASO A TRABAJO)
 // ==========================================
 window.iniciarNuevaObra = () => {
-    const n = prompt("Nombre de la obra (ej: Techos y Tabiques):");
+    const n = prompt("Nombre de la obra (ej: Techos Salón):");
     if(!n) return;
-    obraEnCurso = { nombre: n.toUpperCase(), lineas: [] };
-    document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre;
-    document.getElementById('lista-medidas-obra').innerHTML = "";
+    
+    // Configuramos la obra
+    obraEnCurso = { 
+        nombre: n.toUpperCase(), 
+        lineas: [],
+        fecha: new Date().toLocaleDateString()
+    };
+    
+    // Actualizamos el título en la pantalla de trabajo
+    const tituloEl = document.getElementById('titulo-obra-actual');
+    if(tituloEl) tituloEl.innerText = obraEnCurso.nombre;
+    
+    // Limpiamos la lista de medidas anterior
+    const listaEl = document.getElementById('lista-medidas-obra');
+    if(listaEl) listaEl.innerHTML = "";
+    
+    // ¡SALTO CRÍTICO!
     irAPantalla('trabajo');
 };
 
+// --- EL RESTO DE FUNCIONES (CALCULADORA) ---
 window.prepararMedida = (tipo) => {
-    const zona = prompt("¿Zona de la obra? (ej: Comedor, Pasillo...):", "General");
+    const zona = prompt("¿En qué zona estás? (ej: Comedor, Pasillo...):", "General");
     if(!zona) return;
     calcEstado = { tipo: tipo, paso: 1, valor1: 0, memoria: '', concepto: zona.toUpperCase() };
     abrirCalculadora();
