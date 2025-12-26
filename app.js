@@ -1,4 +1,4 @@
-// 1. CONFIGURACIÓN Y BASE DE DATOS
+// 1. CONFIGURACIÓN
 const CONFIG = {
     'tabiques': { n: 'Tabiques', i: '🧱', uni: 'm²' },
     'techos': { n: 'Techos', i: '🏠', uni: 'm²' },
@@ -13,13 +13,12 @@ let clienteActual = null;
 let trabajoActual = { lineas: [], total: 0, lugar: "", firma: null };
 let calcEstado = { tipo: '', campo: '', valor: '', precio: 0, datos: {}, concepto: '' };
 
-// 2. GESTIÓN DE CLIENTES (FICHA COMPLETA)
+// 2. GESTIÓN DE CLIENTES
 window.nuevoCliente = () => {
     const n = prompt("Nombre del Cliente:");
     if(!n) return;
     const tlf = prompt("Teléfono:");
     const obra = prompt("Dirección de la Obra:");
-    
     db.clientes.push({ 
         id: Date.now(), 
         nombre: n, 
@@ -34,8 +33,8 @@ window.nuevoCliente = () => {
 window.renderListaClientes = () => {
     document.getElementById('lista-clientes').innerHTML = db.clientes.map((c, i) => `
         <div class="flex items-center gap-2 mb-3">
-            <div onclick="abrirExpediente(${c.id})" class="flex-1 bg-white p-5 rounded-3xl border font-black uppercase flex justify-between items-center shadow-sm italic overflow-hidden">
-                <div class="flex flex-col">
+            <div onclick="abrirExpediente(${c.id})" class="flex-1 bg-white p-5 rounded-3xl border font-black uppercase flex justify-between items-center shadow-sm italic">
+                <div class="flex flex-col text-left">
                     <span class="truncate text-blue-800">${c.nombre}</span>
                     <span class="text-[9px] text-slate-400 font-bold lowercase">${c.direccion}</span>
                 </div>
@@ -51,7 +50,7 @@ window.abrirExpediente = id => {
     renderHistorial(); 
 };
 
-// 3. CALCULADORA INTELIGENTE (SUMAS 1+5+8)
+// 3. CALCULADORA (SUMAS)
 window.teclear = n => {
     const disp = document.getElementById('calc-display');
     if (n === 'DEL') {
@@ -66,7 +65,7 @@ window.teclear = n => {
             siguientePaso(); 
             return;
         } catch (e) {
-            alert("Operación no válida. Revisa los signos.");
+            alert("Error en la suma.");
             calcEstado.valor = "";
         }
     } else {
@@ -75,27 +74,43 @@ window.teclear = n => {
     disp.innerText = calcEstado.valor || '0';
 };
 
-// 4. LÓGICA DE MEDICIÓN
+// 4. LÓGICA DE MEDICIÓN (CORREGIDA PARA HORAS)
 window.prepararMedida = tipo => {
     const p = prompt(`Precio para ${CONFIG[tipo].n}:`, "0");
     if(!p) return;
-    let conc = (tipo === 'horas') ? prompt(`Días/Trabajo:`, "Administración") : prompt(`¿En qué parte?`, "Montaje");
+    let conc = prompt(`¿Qué trabajo se ha hecho?`, "Montaje/Varios");
     calcEstado = { tipo: tipo, precio: parseFloat(p.replace(',','.')), valor: '', datos: {}, concepto: conc || "" };
     siguientePaso();
 };
 
 function siguientePaso() {
     const t = calcEstado.tipo, d = calcEstado.datos;
-    if (['tabiques','techos','tabicas','cajones'].includes(t)) {
-        if (d.largo === undefined) { calcEstado.campo = 'largo'; abrirCalc(`LARGO (+)`); }
-        else if (d.segundo_dato === undefined) { calcEstado.campo = 'segundo_dato'; abrirCalc(`ANCHO/ALTO (+)`); }
+    
+    if (['tabiques','techos','tabicas','cajones','cantoneras'].includes(t)) {
+        if (d.largo === undefined) { 
+            calcEstado.campo = 'largo'; 
+            abrirCalc(`MEDIDA TRAMOS (+)`); 
+        }
+        else if (d.segundo_dato === undefined) { 
+            calcEstado.campo = 'segundo_dato'; 
+            abrirCalc(`ALTURA / MULTIPLICADOR`); 
+        }
         else { finalizarMedicion(); }
-    } else { calcEstado.campo = 'total'; abrirCalc('TOTAL (+)'); }
+    } else if (t === 'horas') {
+        // CORRECCIÓN: Ahora las horas también pasan por la calculadora para sumar
+        if (d.total === undefined) {
+            calcEstado.campo = 'total';
+            abrirCalc(`SUMAR HORAS (+)`); // Aquí pones 8+8+4...
+        } else {
+            finalizarMedicion();
+        }
+    }
 }
 
 function finalizarMedicion() {
     const d = calcEstado.datos;
     let cant = (d.largo !== undefined && d.segundo_dato !== undefined) ? d.largo * d.segundo_dato : (d.total || 0);
+    
     if (cant > 0) {
         trabajoActual.lineas.push({ 
             tipo: calcEstado.tipo, 
@@ -109,7 +124,7 @@ function finalizarMedicion() {
     }
 }
 
-// 5. PANTALLAS Y VISTAS
+// 5. RENDERIZADO Y PANTALLAS
 window.renderListaMedidas = () => {
     const contenedor = document.getElementById('resumen-medidas-pantalla');
     if (!contenedor) return;
@@ -117,7 +132,7 @@ window.renderListaMedidas = () => {
         <div class="flex justify-between items-center bg-white p-4 rounded-2xl border mb-2 shadow-sm">
             <div class="flex items-center gap-3">
                 <span class="text-2xl">${l.icono}</span>
-                <div class="flex flex-col">
+                <div class="flex flex-col text-left">
                     <span class="text-[10px] font-black uppercase text-blue-600">${l.nombre}</span>
                     <span class="text-[9px] text-slate-400 font-bold">${l.cantidad.toFixed(2)} ${CONFIG[l.tipo].uni} x ${l.precio}€</span>
                 </div>
@@ -132,15 +147,15 @@ window.renderListaMedidas = () => {
 window.renderHistorial = () => { 
     document.getElementById('ficha-cliente-detalle').innerHTML = `
         <div class="bg-blue-50 p-5 rounded-3xl mb-6 border border-blue-100 shadow-inner">
-            <div class="font-black text-blue-700 uppercase text-xl italic">${clienteActual.nombre}</div>
-            <div class="flex gap-4 mt-2">
+            <div class="font-black text-blue-700 uppercase text-xl italic text-left">${clienteActual.nombre}</div>
+            <div class="flex flex-wrap gap-4 mt-2">
                 <div class="text-[10px] text-slate-500 font-bold uppercase">📞 ${clienteActual.telefono}</div>
                 <div class="text-[10px] text-slate-500 font-bold uppercase">📍 ${clienteActual.direccion}</div>
             </div>
         </div>
     `;
     document.getElementById('archivo-presupuestos').innerHTML = (clienteActual.presupuestos || []).map((p, i) => `
-        <div class="bg-white p-4 rounded-2xl border mb-2 flex justify-between items-center shadow-sm">
+        <div class="bg-white p-4 rounded-2xl border mb-2 flex justify-between items-center shadow-sm text-left">
             <span class="text-[11px] font-black uppercase italic text-slate-600">${p.lugar}</span>
             <div class="flex gap-2">
                 <button onclick="generarPDF(${i})" class="bg-red-500 text-white px-3 py-1 rounded-lg text-[10px] font-black">PDF</button>
@@ -149,7 +164,6 @@ window.renderHistorial = () => {
         </div>`).reverse().join('');
 };
 
-// 6. FUNCIONES DE SISTEMA (PDF, GUARDAR, FIRMA)
 window.save = () => localStorage.setItem('presupro_v3', JSON.stringify(db));
 window.irAPantalla = id => {
     document.querySelectorAll('body > div').forEach(d => d.classList.add('hidden'));
@@ -159,21 +173,30 @@ window.irAPantalla = id => {
 window.cambiarVista = v => {
     document.querySelectorAll('.vista-trabajo').forEach(div => div.classList.add('hidden'));
     document.getElementById(`vista-${v}`).classList.remove('hidden');
-    document.getElementById('tab-medidas').className = v === 'medidas' ? 'flex-1 py-4 font-black uppercase text-[10px] border-b-4 border-blue-600 text-blue-600' : 'flex-1 py-4 font-black uppercase text-[10px] text-slate-400';
-    document.getElementById('tab-economico').className = v === 'economico' ? 'flex-1 py-4 font-black uppercase text-[10px] border-b-4 border-blue-600 text-blue-600' : 'flex-1 py-4 font-black uppercase text-[10px] text-slate-400';
     if(v === 'economico') renderPresupuesto();
 };
 
-window.abrirCalc = t => { document.getElementById('calc-titulo').innerText = t; document.getElementById('calc-display').innerText = '0'; calcEstado.valor = ''; document.getElementById('modal-calc').classList.remove('hidden'); };
+window.abrirCalc = t => { 
+    document.getElementById('calc-titulo').innerText = t; 
+    document.getElementById('calc-display').innerText = '0'; 
+    calcEstado.valor = ''; 
+    document.getElementById('modal-calc').classList.remove('hidden'); 
+};
 window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
-window.iniciarNuevaMedicion = () => { const l = prompt("Nombre de la Obra:"); if(l) { trabajoActual = { lugar: l, lineas: [], total: 0, firma: null }; irAPantalla('trabajo'); renderListaMedidas(); } };
-window.guardarTodo = () => { clienteActual.presupuestos.push(JSON.parse(JSON.stringify(trabajoActual))); save(); irAPantalla('expediente'); renderHistorial(); };
+window.iniciarNuevaMedicion = () => { 
+    const l = prompt("Nombre de la Obra:"); 
+    if(l) { trabajoActual = { lugar: l, lineas: [], total: 0, firma: null }; irAPantalla('trabajo'); renderListaMedidas(); } 
+};
+window.guardarTodo = () => { 
+    clienteActual.presupuestos.push(JSON.parse(JSON.stringify(trabajoActual))); 
+    save(); irAPantalla('expediente'); renderHistorial(); 
+};
 
 window.renderPresupuesto = () => {
     let sub = trabajoActual.lineas.reduce((acc, l) => acc + (l.cantidad * l.precio), 0);
     let total = sub * 1.21;
     document.getElementById('desglose-precios').innerHTML = `
-        <div class="text-[10px] font-black text-blue-500 mb-2 uppercase italic">${trabajoActual.lugar}</div>
+        <div class="text-[10px] font-black text-blue-500 mb-2 uppercase italic text-left">${trabajoActual.lugar}</div>
         ${trabajoActual.lineas.map(l => `<div class="border-b py-2 text-[11px] font-bold flex justify-between"><span>${l.icono} ${l.nombre}</span><span>${(l.cantidad*l.precio).toFixed(2)}€</span></div>`).join('')}
         <button onclick="abrirFirma()" class="w-full mt-4 border-2 border-dashed border-blue-200 py-3 rounded-xl text-blue-500 font-bold text-[10px] italic">AÑADIR FIRMA CLIENTE</button>
         ${trabajoActual.firma ? `<img src="${trabajoActual.firma}" class="h-16 mx-auto mt-2">` : ''}`;
@@ -184,7 +207,7 @@ window.renderPresupuesto = () => {
 window.generarPDF = i => {
     const p = clienteActual.presupuestos[i];
     const el = document.createElement('div');
-    el.style.padding = '40px'; el.style.fontFamily = 'sans-serif';
+    el.style.padding = '40px';
     el.innerHTML = `<h1 style="color:#1e40af">PRESUPUESTO: ${p.lugar}</h1><p><b>Cliente:</b> ${clienteActual.nombre}</p><p><b>Obra:</b> ${clienteActual.direccion}</p><hr>` + 
         p.lineas.map(l => `<p>${l.nombre}: ${l.cantidad.toFixed(2)} x ${l.precio}€ = <b>${(l.cantidad*l.precio).toFixed(2)}€</b></p>`).join('') +
         `<hr><h2 style="text-align:right">TOTAL CON IVA: ${p.total.toFixed(2)}€</h2>` + (p.firma ? `<p>Firma Cliente:</p><img src="${p.firma}" style="width:200px">` : '');
