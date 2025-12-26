@@ -11,14 +11,7 @@
         .active-scale:active { transform: scale(0.96); transition: 0.1s; }
         body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         input { font-size: 16px !important; } 
-        /* Visor que ajusta el tamaño del texto automáticamente */
-        #calc-display { 
-            display: flex; 
-            align-items: center; 
-            justify-content: flex-end; 
-            overflow-x: auto; 
-            white-space: nowrap; 
-        }
+        #calc-display { display: flex; align-items: center; justify-content: flex-end; overflow-x: auto; white-space: nowrap; }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 select-none">
@@ -36,10 +29,7 @@
         <button onclick="irAPantalla('clientes')" class="text-blue-600 font-bold mb-4 uppercase text-xs">← Volver</button>
         <h2 class="text-xl font-black italic text-blue-800 uppercase mb-6 text-center">Configuración Fiscal</h2>
         <div class="space-y-3 bg-white p-6 rounded-[35px] shadow-sm border">
-            <div>
-                <label class="block text-[9px] font-black opacity-40 uppercase ml-2">Nombre / Empresa</label>
-                <input type="text" id="config-nombre" autocomplete="name" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
-            </div>
+            <input type="text" id="config-nombre" autocomplete="name" placeholder="Tu Nombre/Empresa" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
             <input type="text" id="config-cif" placeholder="CIF / DNI" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
             <input type="tel" id="config-tel" placeholder="Tu Teléfono" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
             <input type="text" id="config-dir" placeholder="Tu Dirección" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
@@ -49,13 +39,7 @@
             </div>
             <label class="block text-[9px] font-black opacity-40 uppercase ml-2 pt-2">Próximo Nº Presupuesto</label>
             <input type="number" id="config-nPresu" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
-
             <button onclick="guardarAjustes()" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase shadow-lg active-scale mt-4 italic tracking-widest text-sm">Guardar Mis Datos ➔</button>
-
-            <div class="grid grid-cols-2 gap-2 mt-4 pt-4 border-t">
-                <button onclick="exportarDatos()" class="bg-slate-800 text-white p-3 rounded-xl text-[9px] font-bold uppercase active-scale">📥 Exportar Copia</button>
-                <button onclick="importarDatos()" class="bg-slate-400 text-white p-3 rounded-xl text-[9px] font-bold uppercase active-scale">📤 Importar Copia</button>
-            </div>
         </div>
     </div>
 
@@ -79,16 +63,15 @@
 
     <div id="pantalla-nombre-obra" class="hidden p-6 max-w-lg mx-auto text-center">
         <button onclick="irAPantalla('expediente')" class="text-blue-600 font-bold mb-4 uppercase text-xs block text-left">← Volver</button>
-        <h2 class="text-sm font-black opacity-40 uppercase mb-4 italic">¿Qué obra o reforma es?</h2>
         <input type="text" id="input-nombre-obra" placeholder="EJ: REFORMA COCINA" class="w-full p-6 rounded-3xl border-2 mb-6 font-black text-xl text-center shadow-inner outline-none uppercase">
-        <button onclick="confirmarNombreObra()" class="w-full bg-green-600 text-white py-6 rounded-[35px] font-black uppercase shadow-lg active-scale text-lg italic tracking-widest">Empezar a Medir ➔</button>
+        <button onclick="confirmarNombreObra()" class="w-full bg-green-600 text-white py-6 rounded-[35px] font-black uppercase shadow-lg active-scale text-lg italic tracking-widest">Empezar ➔</button>
     </div>
 
     <div id="pantalla-trabajo" class="hidden p-4 max-w-lg mx-auto">
         <div class="flex justify-between items-center mb-6">
             <button onclick="irAPantalla('expediente')" class="text-red-500 font-bold uppercase text-[10px] bg-red-50 px-4 py-2 rounded-full active-scale">Cerrar</button>
             <h2 id="titulo-obra-actual" class="font-black italic text-blue-800 uppercase text-[10px] flex-1 text-center"></h2>
-            <button onclick="guardarObraCompleta()" class="bg-green-600 text-white px-5 py-2 rounded-2xl font-bold text-[10px] uppercase shadow-md active-scale">Finalizar PDF</button>
+            <button onclick="guardarObraCompleta()" class="bg-green-600 text-white px-5 py-2 rounded-2xl font-bold text-[10px] uppercase shadow-md active-scale">PDF</button>
         </div>
         <div class="grid grid-cols-2 gap-3" id="botones-trabajo"></div>
         <div id="lista-medidas-obra" class="mt-8 space-y-3 pb-20"></div>
@@ -100,7 +83,6 @@
             <button onclick="cerrarCalc()" class="bg-red-500/20 text-red-500 px-5 py-2 rounded-xl font-bold text-xs uppercase">✕</button>
         </div>
         <div id="calc-display" class="bg-white text-slate-800 text-4xl font-black p-8 rounded-[35px] text-right mb-6 shadow-2xl italic min-h-[100px]">0</div>
-        
         <div class="grid grid-cols-3 gap-3 flex-1 font-black text-3xl pb-4">
             <button onclick="teclear('7')" class="bg-white/10 rounded-2xl active:bg-white/40">7</button>
             <button onclick="teclear('8')" class="bg-white/10 rounded-2xl active:bg-white/40">8</button>
@@ -114,11 +96,9 @@
             <button onclick="teclear('0')" class="bg-white/10 rounded-2xl active:bg-white/40">0</button>
             <button onclick="teclear('.')" class="bg-white/10 rounded-2xl active:bg-white/40">,</button>
             <button onclick="teclear('+')" class="bg-orange-500 text-white rounded-2xl active:bg-orange-400 shadow-lg text-4xl">+</button>
-            
             <button onclick="teclear('DEL')" class="bg-red-500/30 text-red-300 text-sm rounded-2xl uppercase">Borrar</button>
             <button onclick="teclear('OK')" class="col-span-2 bg-blue-600 text-white rounded-[30px] py-8 mt-2 shadow-2xl active:bg-blue-500 text-3xl font-black italic">ACEPTAR</button>
         </div>
     </div>
-
 </body>
 </html>
