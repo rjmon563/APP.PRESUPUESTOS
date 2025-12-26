@@ -6,70 +6,33 @@
     <title>PresuPro v3</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-100 font-sans text-slate-900 select-none">
+<body class="bg-slate-100 font-sans text-slate-900">
 
     <div id="pantalla-clientes" class="p-4 max-w-lg mx-auto">
         <header class="flex justify-between items-center mt-4 mb-6">
-            <div>
-                <h1 class="text-3xl font-black italic text-blue-800 uppercase leading-none text-left">Mis Clientes</h1>
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-left">Control de Obras</p>
-            </div>
-            <button onclick="nuevoCliente()" class="bg-blue-600 text-white w-14 h-14 rounded-2xl text-4xl font-bold shadow-xl">+</button>
+            <h1 class="text-2xl font-black italic text-blue-800 uppercase">Mis Clientes</h1>
+            <button onclick="nuevoCliente()" class="bg-blue-600 text-white w-14 h-14 rounded-2xl text-4xl font-bold shadow-xl active:scale-90">+</button>
         </header>
-        <div class="mb-6 text-left">
-            <input type="text" id="buscar-cliente" oninput="renderListaClientes()" placeholder="🔍 Buscar cliente..." class="w-full p-4 rounded-2xl border-none shadow-md bg-white text-sm font-bold italic outline-none">
-        </div>
-        <div id="lista-clientes" class="space-y-4 pb-20 text-left"></div>
+        <div id="lista-clientes" class="space-y-4"></div>
     </div>
 
     <div id="pantalla-expediente" class="hidden p-4 max-w-lg mx-auto">
-        <button onclick="irAPantalla('clientes')" class="text-blue-600 font-bold mb-4 flex items-center">← VOLVER</button>
-        <div id="ficha-cliente-detalle" class="mb-6 text-left"></div>
-        <button onclick="iniciarNuevaObra()" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black italic shadow-lg uppercase text-sm mb-6">Nueva Obra / Presupuesto</button>
-        <h3 class="font-black text-slate-400 text-[10px] uppercase mb-3 italic tracking-widest text-left">Presupuestos Anteriores</h3>
-        <div id="archivo-presupuestos" class="space-y-3"></div>
+        <button onclick="irAPantalla('clientes')" class="text-blue-600 font-bold mb-4 uppercase text-xs">← Volver</button>
+        <div id="ficha-cliente-detalle"></div>
+        <button onclick="iniciarNuevaObra()" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase mt-6 shadow-lg">Nueva Obra</button>
     </div>
 
-    <div id="pantalla-trabajo" class="hidden flex flex-col h-screen overflow-hidden">
-        <nav class="bg-white border-b p-4 flex justify-between items-center shrink-0">
-            <button onclick="irAPantalla('expediente')" class="text-red-500 font-bold text-xs uppercase">Cancelar</button>
-            <div id="titulo-obra-actual" class="font-black italic text-blue-800 uppercase text-sm"></div>
-            <button onclick="guardarObraCompleta()" class="bg-green-600 text-white px-4 py-2 rounded-xl font-bold text-xs uppercase shadow-md">Finalizar</button>
-        </nav>
-
-        <div class="p-4 overflow-y-auto flex-1 bg-slate-50 pb-24">
-            <p class="text-[10px] font-black text-slate-400 uppercase mb-4 text-left italic">¿Qué vas a medir ahora?</p>
-            <div class="grid grid-cols-3 gap-3 mb-6">
-                <button onclick="prepararMedida('tabiques')" class="bg-white p-4 rounded-2xl border shadow-sm flex flex-col items-center gap-2">
-                    <span class="text-2xl">🧱</span><span class="text-[9px] font-bold uppercase">Tabique</span>
-                </button>
-                <button onclick="prepararMedida('techos')" class="bg-white p-4 rounded-2xl border-2 border-blue-100 shadow-sm flex flex-col items-center gap-2">
-                    <span class="text-2xl">🏠</span><span class="text-[9px] font-bold uppercase">Techo</span>
-                </button>
-                <button onclick="prepararMedida('cajones')" class="bg-white p-4 rounded-2xl border shadow-sm flex flex-col items-center gap-2">
-                    <span class="text-2xl">📦</span><span class="text-[9px] font-bold uppercase">Cajón</span>
-                </button>
-                <button onclick="prepararMedida('tabicas')" class="bg-white p-4 rounded-2xl border shadow-sm flex flex-col items-center gap-2">
-                    <span class="text-2xl">📐</span><span class="text-[9px] font-bold uppercase">Tabica</span>
-                </button>
-                <button onclick="prepararMedida('cantoneras')" class="bg-white p-4 rounded-2xl border shadow-sm flex flex-col items-center gap-2">
-                    <span class="text-2xl">📏</span><span class="text-[9px] font-bold uppercase">Canto</span>
-                </button>
-                <button onclick="prepararMedida('horas')" class="bg-white p-4 rounded-2xl border shadow-sm flex flex-col items-center gap-2">
-                    <span class="text-2xl">⏱️</span><span class="text-[9px] font-bold uppercase">Horas</span>
-                </button>
-            </div>
-            <div id="lista-medidas-obra" class="space-y-2"></div>
+    <div id="pantalla-trabajo" class="hidden p-4">
+        <div class="flex justify-between mb-4">
+            <button onclick="irAPantalla('expediente')" class="text-red-500 font-bold uppercase text-xs">Cancelar</button>
+            <h2 id="titulo-obra-actual" class="font-black italic text-blue-800 uppercase"></h2>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <button onclick="alert('Techo')" class="bg-white p-6 rounded-2xl shadow-sm font-bold uppercase text-xs italic">🏠 Techo</button>
+            <button onclick="alert('Tabique')" class="bg-white p-6 rounded-2xl shadow-sm font-bold uppercase text-xs italic">🧱 Tabique</button>
         </div>
     </div>
 
-    <div id="modal-calc" class="hidden fixed inset-0 bg-slate-900/95 z-[100] flex flex-col p-4">
-        <div class="flex justify-between items-center mb-2">
-            <div id="calc-titulo" class="text-blue-400 font-black uppercase text-xs italic"></div>
-            <button onclick="cerrarCalc()" class="text-white bg-red-600 px-4 py-1 rounded-full font-bold text-[10px]">SALIR X</button>
-        </div>
-        
-        <div id="calc-display" class="bg-white text-slate-800 text-4xl font-black p-6 rounded-2xl text-right mb-4 min-h-[100px] flex items-center justify-end shadow-inner">0</div>
-        
-        <div class="grid grid-cols-3 gap-3 flex-1 text-white font-black text-2xl pb-4">
-            <button onclick="teclear('7')" class="bg-white/
+    <script src="app.js"></script>
+</body>
+</html>
