@@ -65,26 +65,32 @@
         </div>
     </div>
 
-    <div id="modal-calc" class="fixed inset-0 bg-slate-900/90 z-[100] hidden flex flex-col p-4">
-        <div id="calc-titulo" class="text-blue-400 font-black uppercase text-center mb-2 text-xs"></div>
-        <div id="calc-display" class="bg-white text-slate-800 text-3xl font-black p-6 rounded-2xl text-right mb-4 min-h-[80px] flex items-center justify-end">0</div>
-        <div class="grid grid-cols-3 gap-2 flex-1">
-            <button onclick="teclear('7')" class="bg-white/10 text-white text-xl font-bold rounded-xl">7</button>
-            <button onclick="teclear('8')" class="bg-white/10 text-white text-xl font-bold rounded-xl">8</button>
-            <button onclick="teclear('9')" class="bg-white/10 text-white text-xl font-bold rounded-xl">9</button>
-            <button onclick="teclear('4')" class="bg-white/10 text-white text-xl font-bold rounded-xl">4</button>
-            <button onclick="teclear('5')" class="bg-white/10 text-white text-xl font-bold rounded-xl">5</button>
-            <button onclick="teclear('6')" class="bg-white/10 text-white text-xl font-bold rounded-xl">6</button>
-            <button onclick="teclear('1')" class="bg-white/10 text-white text-xl font-bold rounded-xl">1</button>
-            <button onclick="teclear('2')" class="bg-white/10 text-white text-xl font-bold rounded-xl">2</button>
-            <button onclick="teclear('3')" class="bg-white/10 text-white text-xl font-bold rounded-xl">3</button>
-            <button onclick="teclear('0')" class="bg-white/10 text-white text-xl font-bold rounded-xl">0</button>
-            <button onclick="teclear('.')" class="bg-white/10 text-white text-xl font-bold rounded-xl">,</button>
-            <button onclick="teclear('+')" class="bg-orange-500 text-white text-xl font-black rounded-xl">+</button>
-            <button onclick="teclear('DEL')" class="bg-red-500/20 text-red-500 text-xs font-black rounded-xl uppercase">Del</button>
-            <button onclick="teclear('OK')" class="col-span-2 bg-blue-600 text-white text-lg font-black rounded-xl uppercase italic">OK</button>
-        </div>
+   <div id="modal-calc" class="fixed inset-0 bg-slate-900/95 z-[200] hidden flex flex-col p-4">
+    <div class="flex justify-between items-center mb-2">
+        <div id="calc-titulo" class="text-blue-400 font-black uppercase text-xs"></div>
+        <button onclick="cerrarCalc()" class="text-white bg-red-600 px-4 py-1 rounded-full font-bold text-xs">X SALIR</button>
     </div>
+    
+    <div id="calc-display" class="bg-white text-slate-800 text-3xl font-black p-6 rounded-2xl text-right mb-4 min-h-[80px] flex items-center justify-end">0</div>
+    
+    <div class="grid grid-cols-3 gap-2 flex-1">
+        <button onclick="teclear('7')" class="bg-white/10 text-white text-xl font-bold rounded-xl">7</button>
+        <button onclick="teclear('8')" class="bg-white/10 text-white text-xl font-bold rounded-xl">8</button>
+        <button onclick="teclear('9')" class="bg-white/10 text-white text-xl font-bold rounded-xl">9</button>
+        <button onclick="teclear('4')" class="bg-white/10 text-white text-xl font-bold rounded-xl">4</button>
+        <button onclick="teclear('5')" class="bg-white/10 text-white text-xl font-bold rounded-xl">5</button>
+        <button onclick="teclear('6')" class="bg-white/10 text-white text-xl font-bold rounded-xl">6</button>
+        <button onclick="teclear('1')" class="bg-white/10 text-white text-xl font-bold rounded-xl">1</button>
+        <button onclick="teclear('2')" class="bg-white/10 text-white text-xl font-bold rounded-xl">2</button>
+        <button onclick="teclear('3')" class="bg-white/10 text-white text-xl font-bold rounded-xl">3</button>
+        <button onclick="teclear('0')" class="bg-white/10 text-white text-xl font-bold rounded-xl">0</button>
+        <button onclick="teclear('.')" class="bg-white/10 text-white text-xl font-bold rounded-xl">,</button>
+        <button onclick="teclear('+')" class="bg-orange-500 text-white text-xl font-black rounded-xl">+</button>
+        
+        <button onclick="teclear('DEL')" class="bg-red-500/20 text-red-500 text-xs font-black rounded-xl uppercase italic">Borrar</button>
+        <button onclick="teclear('OK')" class="col-span-2 bg-blue-600 text-white text-lg font-black rounded-xl uppercase italic">Confirmar OK</button>
+    </div>
+</div>
 
     <script src="app.js"></script>
 
@@ -129,4 +135,5 @@
         };
     </script>
 </body>
+
 </html>
