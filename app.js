@@ -3,7 +3,7 @@ let db = JSON.parse(localStorage.getItem('presupro_v3')) || {
 };
 
 let clienteActual = null;
-let obraEnCurso = { nombre: '', lineas: [], iva: 21 }; 
+let obraEnCurso = { nombre: '', lineas: [], iva: 21, fotos: [] }; 
 let calcEstado = { tipo: '', paso: 1, v1: 0, v2: 0, memoria: '', zona: '', tarea: '', modo: 'medida', editandoId: null }; 
 
 const CONFIG_MEDIDAS = {
@@ -29,28 +29,39 @@ window.irAPantalla = (id) => {
     }
 };
 
+window.subirFoto = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        obraEnCurso.fotos.push(event.target.result);
+        renderGaleria();
+    };
+    reader.readAsDataURL(file);
+};
+
+function renderGaleria() {
+    const cont = document.getElementById('galeria-fotos');
+    cont.innerHTML = obraEnCurso.fotos.map((f, i) => `
+        <div class="relative min-w-[80px] h-20">
+            <img src="${f}" class="w-20 h-20 object-cover rounded-xl border">
+            <button onclick="obraEnCurso.fotos.splice(${i},1); renderGaleria();" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-[10px]">✕</button>
+        </div>`).join('');
+}
+
 window.cambiarIVA = (valor) => {
     obraEnCurso.iva = valor;
     document.querySelectorAll('.iva-btn').forEach(btn => {
         btn.classList.remove('bg-blue-600', 'text-white');
         btn.classList.add('bg-slate-100', 'text-slate-900');
     });
-    const btnActivo = document.getElementById(`btn-iva-${valor}`);
-    btnActivo.classList.remove('bg-slate-100');
-    btnActivo.classList.add('bg-blue-600', 'text-white');
+    document.getElementById(`btn-iva-${valor}`).classList.replace('bg-slate-100', 'bg-blue-600');
+    document.getElementById(`btn-iva-${valor}`).classList.replace('text-slate-900', 'text-white');
     renderMedidas();
 };
 
 window.guardarAjustes = () => {
-    db.ajustes = {
-        nombre: document.getElementById('config-nombre').value.toUpperCase(),
-        cif: document.getElementById('config-cif').value.toUpperCase(),
-        tel: document.getElementById('config-tel').value,
-        dir: document.getElementById('config-dir').value.toUpperCase(),
-        cp: document.getElementById('config-cp').value,
-        ciudad: document.getElementById('config-ciudad').value.toUpperCase(),
-        nPresu: parseInt(document.getElementById('config-nPresu').value) || 1
-    };
+    db.ajustes = { nombre: document.getElementById('config-nombre').value.toUpperCase(), cif: document.getElementById('config-cif').value.toUpperCase(), tel: document.getElementById('config-tel').value, dir: document.getElementById('config-dir').value.toUpperCase(), cp: document.getElementById('config-cp').value, ciudad: document.getElementById('config-ciudad').value.toUpperCase(), nPresu: parseInt(document.getElementById('config-nPresu').value) || 1 };
     asegurarGuardado(); alert("✅ Datos guardados"); irAPantalla('clientes');
 };
 
@@ -85,8 +96,9 @@ window.abrirExpediente = (id) => {
 window.confirmarNombreObra = () => {
     const v = document.getElementById('input-nombre-obra').value;
     if (!v) return alert("Indica el nombre del presupuesto");
-    obraEnCurso = { nombre: v.toUpperCase(), lineas: [], iva: 21 };
+    obraEnCurso = { nombre: v.toUpperCase(), lineas: [], iva: 21, fotos: [] };
     document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre;
+    document.getElementById('galeria-fotos').innerHTML = '';
     irAPantalla('trabajo'); renderBotones(); renderMedidas();
 };
 
@@ -119,67 +131,7 @@ window.teclear = (n) => {
         let cifra = 0; try { cifra = eval(calcEstado.memoria) || 0; } catch(e) { alert("Error"); return; }
         if (calcEstado.modo === 'medida') {
             const conf = CONFIG_MEDIDAS[calcEstado.tipo];
-            if (calcEstado.paso < conf.pasos) {
-                calcEstado.v1 = cifra; calcEstado.paso++; calcEstado.memoria = ''; abrirCalculadora();
-            } else {
-                calcEstado.totalMetros = (conf.pasos === 1) ? cifra : calcEstado.v1 * cifra;
-                calcEstado.modo = 'precio'; calcEstado.memoria = ''; abrirCalculadora();
-            }
+            if (calcEstado.paso < conf.pasos) { calcEstado.v1 = cifra; calcEstado.paso++; calcEstado.memoria = ''; abrirCalculadora(); }
+            else { calcEstado.totalMetros = (conf.pasos === 1) ? cifra : calcEstado.v1 * cifra; calcEstado.modo = 'precio'; calcEstado.memoria = ''; abrirCalculadora(); }
         } else {
-            const nuevaLinea = { id: calcEstado.editandoId || Date.now(), tipo: calcEstado.tipo, tarea: calcEstado.tarea, zona: calcEstado.zona, nombre: `${CONFIG_MEDIDAS[calcEstado.tipo].i} ${calcEstado.tarea} - ${calcEstado.zona}`, cantidad: calcEstado.totalMetros, precio: cifra, subtotal: calcEstado.totalMetros * cifra };
-            if (calcEstado.editandoId) { const idx = obraEnCurso.lineas.findIndex(l => l.id === calcEstado.editandoId); obraEnCurso.lineas[idx] = nuevaLinea; }
-            else { obraEnCurso.lineas.push(nuevaLinea); }
-            document.getElementById('modal-calc').classList.add('hidden'); renderMedidas();
-        }
-    } else if (n === 'DEL') { calcEstado.memoria = ''; abrirCalculadora(); }
-    else { calcEstado.memoria += n; abrirCalculadora(); }
-};
-
-window.editarLinea = (id) => {
-    const l = obraEnCurso.lineas.find(x => x.id === id);
-    calcEstado = { tipo: l.tipo, paso: 1, v1: l.cantidad, v2: 0, memoria: l.precio.toString(), zona: l.zona, tarea: l.tarea, modo: 'precio', totalMetros: l.cantidad, editandoId: id };
-    abrirCalculadora();
-};
-
-function renderMedidas() {
-    const cont = document.getElementById('lista-medidas-obra');
-    const subtotal = obraEnCurso.lineas.reduce((a, b) => a + b.subtotal, 0);
-    const cuotaIva = subtotal * (obraEnCurso.iva / 100);
-    const total = subtotal + cuotaIva;
-    cont.innerHTML = obraEnCurso.lineas.map(l => `
-        <div class="bg-white p-4 rounded-2xl border flex justify-between items-center mb-2 shadow-sm font-bold text-[10px] uppercase italic">
-            <div><p class="text-blue-800">${l.nombre}</p><p class="opacity-40">${fNum(l.cantidad)} ${l.tipo==='horas'?'hrs':'unid.'} x ${fNum(l.precio)}€</p></div>
-            <div class="flex items-center gap-1"><span class="font-black text-xs mr-2">${fNum(l.subtotal)}€</span><button onclick="editarLinea(${l.id})" class="text-blue-500 p-2 rounded-xl bg-blue-50">✏️</button><button onclick="borrarLinea(${l.id})" class="text-red-400 p-2 rounded-xl bg-red-50">✕</button></div>
-        </div>`).reverse().join('') + 
-        (subtotal > 0 ? `<div class="bg-slate-900 text-white p-6 rounded-[35px] mt-5 shadow-xl italic"><div class="flex justify-between text-[10px] opacity-60 uppercase font-black"><span>Base:</span><span>${fNum(subtotal)}€</span></div><div class="flex justify-between text-[10px] opacity-60 uppercase font-black mb-2"><span>IVA (${obraEnCurso.iva}%):</span><span>${fNum(cuotaIva)}€</span></div><div class="flex justify-between text-xl font-black text-green-400 border-t border-white/10 pt-2"><span>TOTAL:</span><span>${fNum(total)}€</span></div></div>` : '');
-}
-
-window.borrarLinea = (id) => { if(confirm("¿Borrar?")) { obraEnCurso.lineas = obraEnCurso.lineas.filter(x => x.id !== id); renderMedidas(); } };
-window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
-
-window.guardarObraCompleta = async () => {
-    if (obraEnCurso.lineas.length === 0) return alert("Sin datos");
-    const subtotal = obraEnCurso.lineas.reduce((a,b) => a+b.subtotal, 0);
-    const cuotaIva = subtotal * (obraEnCurso.iva / 100);
-    const total = subtotal + cuotaIva;
-    const numFactura = `${new Date().getFullYear()}/${String(db.ajustes.nPresu).padStart(3, '0')}`;
-    const el = document.createElement('div');
-    el.innerHTML = `<div style="padding:40px; font-family:sans-serif; color:#333;"><div style="display:flex; justify-content:space-between; border-bottom:4px solid #2563eb; padding-bottom:15px; margin-bottom:20px;"><div><h1 style="margin:0; color:#2563eb; font-size:24px; font-style:italic;">PRESUPUESTO</h1><p style="margin:5px 0 0 0; font-weight:bold;">${db.ajustes.nombre}</p><p style="margin:0; font-size:11px;">CIF: ${db.ajustes.cif} | TEL: ${db.ajustes.tel}</p><p style="margin:0; font-size:11px;">${db.ajustes.dir} - ${db.ajustes.cp} ${db.ajustes.ciudad}</p></div><div style="text-align:right;"><p style="margin:0; font-weight:bold; color:#2563eb;">Nº: ${numFactura}</p><p style="margin:0; font-size:11px;">Fecha: ${new Date().toLocaleDateString('es-ES')}</p></div></div><div style="background:#f8fafc; padding:15px; border-radius:10px; margin-bottom:20px; font-size:11px; border:1px solid #e2e8f0;"><p style="margin:0; color:#64748b; font-weight:bold; font-size:9px; text-transform:uppercase;">Cliente</p><p style="margin:0; font-weight:bold; font-size:13px;">${clienteActual.nombre}</p><p style="margin:0;">DIRECCIÓN: ${clienteActual.dir}</p></div><table style="width:100%; border-collapse:collapse;"><thead><tr style="background:#2563eb; color:white; font-size:10px;"><th style="padding:10px; text-align:left;">CONCEPTO</th><th style="padding:10px; text-align:right;">TOTAL</th></tr></thead><tbody>${obraEnCurso.lineas.map(l => `<tr><td style="padding:10px; border-bottom:1px solid #e2e8f0; font-size:11px;"><b>${l.nombre}</b><br><span style="color:#666;">${fNum(l.cantidad)} ${l.tipo==='horas'?'hrs':'unid.'} x ${fNum(l.precio)}€</span></td><td style="padding:10px; border-bottom:1px solid #e2e8f0; text-align:right; font-weight:bold; font-size:11px;">${fNum(l.subtotal)}€</td></tr>`).join('')}</tbody></table><div style="margin-top:30px; text-align:right;"><p style="margin:0; font-size:12px; color:#666;">BASE: ${fNum(subtotal)}€</p><p style="margin:0; font-size:12px; color:#666;">IVA (${obraEnCurso.iva}%): ${fNum(cuotaIva)}€</p><h2 style="margin:5px 0 0 0; color:#16a34a; font-size:28px;">TOTAL: ${fNum(total)}€</h2></div></div>`;
-    html2pdf().from(el).set({ margin: 0.5, filename: `Presu_${numFactura.replace('/','-')}.pdf`, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).save();
-    setTimeout(() => { db.ajustes.nPresu++; asegurarGuardado(); irAPantalla('expediente'); alert("PDF Guardado."); }, 1500);
-};
-
-window.exportarDatos = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
-    const a = document.createElement('a'); a.setAttribute("href", dataStr); a.setAttribute("download", "copia_presupro.json");
-    document.body.appendChild(a); a.click(); a.remove();
-};
-window.importarDatos = () => {
-    const f = document.createElement('input'); f.type = 'file';
-    f.onchange = e => {
-        const reader = new FileReader(); reader.readAsText(e.target.files[0],'UTF-8');
-        reader.onload = r => { try { db = JSON.parse(r.target.result); asegurarGuardado(); location.reload(); } catch(e){ alert("Error al importar"); } }
-    }; f.click();
-};
-
-window.onload = () => renderListaClientes();
+            const nuevaLinea = { id: calcEstado.editandoId || Date.now(), tipo: calcEstado.tipo, tarea: calcEstado.tarea, zona: calcEstado.zona, nombre: `${CONFIG_MEDIDAS[calcEstado.tipo].i
