@@ -6,12 +6,12 @@
     <title>PresuPro v3</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-100 font-sans text-slate-900">
+<body class="bg-slate-100 font-sans text-slate-900 overflow-x-hidden">
 
     <div id="pantalla-clientes" class="p-4 max-w-lg mx-auto">
         <header class="flex justify-between items-center mt-4 mb-6">
             <h1 class="text-2xl font-black italic text-blue-800 uppercase">Mis Clientes</h1>
-            <button onclick="nuevoCliente()" class="bg-blue-600 text-white w-14 h-14 rounded-2xl text-4xl font-bold shadow-xl active:scale-90">+</button>
+            <button onclick="nuevoCliente()" class="bg-blue-600 text-white w-14 h-14 rounded-2xl text-4xl font-bold shadow-xl">+</button>
         </header>
         <div id="lista-clientes" class="space-y-4"></div>
     </div>
@@ -19,17 +19,58 @@
     <div id="pantalla-expediente" class="hidden p-4 max-w-lg mx-auto">
         <button onclick="irAPantalla('clientes')" class="text-blue-600 font-bold mb-4 uppercase text-xs">← Volver</button>
         <div id="ficha-cliente-detalle"></div>
-        <button onclick="iniciarNuevaObra()" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase mt-6 shadow-lg">Nueva Obra</button>
+        <button onclick="irAPantalla('nombre-obra')" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase mt-6 shadow-lg">Nueva Obra</button>
+        <div id="archivo-presupuestos" class="mt-8 space-y-3"></div>
     </div>
 
-    <div id="pantalla-trabajo" class="hidden p-4">
-        <div class="flex justify-between mb-4">
-            <button onclick="irAPantalla('expediente')" class="text-red-500 font-bold uppercase text-xs">Cancelar</button>
-            <h2 id="titulo-obra-actual" class="font-black italic text-blue-800 uppercase"></h2>
+    <div id="pantalla-nombre-obra" class="hidden p-6 max-w-lg mx-auto text-center">
+        <h2 class="text-xl font-black italic text-blue-800 uppercase mb-6">¿Nombre de la Obra?</h2>
+        <input type="text" id="input-nombre-obra" placeholder="Ej: SALON Y PASILLO" class="w-full p-5 rounded-2xl border-2 border-blue-200 text-center font-bold text-lg mb-6 outline-none focus:border-blue-600">
+        <button onclick="confirmarNombreObra()" class="w-full bg-green-600 text-white py-5 rounded-3xl font-black uppercase shadow-lg">EMPEZAR A MEDIR ➔</button>
+        <button onclick="irAPantalla('expediente')" class="mt-6 text-slate-400 font-bold uppercase text-xs">Cancelar</button>
+    </div>
+
+    <div id="pantalla-trabajo" class="hidden flex flex-col h-screen p-4 bg-slate-50">
+        <div class="flex justify-between items-center mb-6">
+            <button onclick="irAPantalla('expediente')" class="text-red-500 font-bold uppercase text-xs">Salir</button>
+            <h2 id="titulo-obra-actual" class="font-black italic text-blue-800 uppercase text-sm"></h2>
+            <button onclick="guardarObraCompleta()" class="bg-green-600 text-white px-4 py-2 rounded-xl font-bold text-xs uppercase shadow-md">Finalizar</button>
         </div>
         <div class="grid grid-cols-2 gap-4">
-            <button onclick="alert('Techo')" class="bg-white p-6 rounded-2xl shadow-sm font-bold uppercase text-xs italic">🏠 Techo</button>
-            <button onclick="alert('Tabique')" class="bg-white p-6 rounded-2xl shadow-sm font-bold uppercase text-xs italic">🧱 Tabique</button>
+            <button onclick="prepararMedida('techos')" class="bg-white p-8 rounded-3xl shadow-sm flex flex-col items-center gap-3 border border-slate-200">
+                <span class="text-4xl">🏠</span><span class="font-black text-xs uppercase italic">Techo</span>
+            </button>
+            <button onclick="prepararMedida('tabiques')" class="bg-white p-8 rounded-3xl shadow-sm flex flex-col items-center gap-3 border border-slate-200">
+                <span class="text-4xl">🧱</span><span class="font-black text-xs uppercase italic">Tabique</span>
+            </button>
+            <button onclick="prepararMedida('cantoneras')" class="bg-white p-8 rounded-3xl shadow-sm flex flex-col items-center gap-3 border border-slate-200">
+                <span class="text-4xl">📏</span><span class="font-black text-xs uppercase italic">Cantoneras</span>
+            </button>
+            <button onclick="prepararMedida('horas')" class="bg-white p-8 rounded-3xl shadow-sm flex flex-col items-center gap-3 border border-slate-200">
+                <span class="text-4xl">⏱️</span><span class="font-black text-xs uppercase italic">Horas</span>
+            </button>
+        </div>
+        <div id="lista-medidas-obra" class="mt-8 space-y-2 overflow-y-auto"></div>
+    </div>
+
+    <div id="modal-calc" class="hidden fixed inset-0 bg-slate-900/95 z-[100] flex flex-col p-4">
+        <div id="calc-titulo" class="text-blue-400 font-black uppercase text-xs italic mb-2 text-center"></div>
+        <div id="calc-display" class="bg-white text-slate-800 text-4xl font-black p-6 rounded-2xl text-right mb-4 min-h-[100px] flex items-center justify-end">0</div>
+        <div class="grid grid-cols-3 gap-3 flex-1 text-white font-black text-2xl pb-4">
+            <button onclick="teclear('7')" class="bg-white/10 rounded-2xl">7</button>
+            <button onclick="teclear('8')" class="bg-white/10 rounded-2xl">8</button>
+            <button onclick="teclear('9')" class="bg-white/10 rounded-2xl">9</button>
+            <button onclick="teclear('4')" class="bg-white/10 rounded-2xl">4</button>
+            <button onclick="teclear('5')" class="bg-white/10 rounded-2xl">5</button>
+            <button onclick="teclear('6')" class="bg-white/10 rounded-2xl">6</button>
+            <button onclick="teclear('1')" class="bg-white/10 rounded-2xl">1</button>
+            <button onclick="teclear('2')" class="bg-white/10 rounded-2xl">2</button>
+            <button onclick="teclear('3')" class="bg-white/10 rounded-2xl">3</button>
+            <button onclick="teclear('0')" class="bg-white/10 rounded-2xl">0</button>
+            <button onclick="teclear('.')" class="bg-white/10 rounded-2xl">,</button>
+            <button onclick="teclear('+')" class="bg-orange-500 rounded-2xl text-4xl">+</button>
+            <button onclick="teclear('DEL')" class="bg-red-500/20 text-red-500 text-xs rounded-2xl uppercase">Borrar</button>
+            <button onclick="teclear('OK')" class="col-span-2 bg-blue-600 rounded-2xl uppercase italic text-xl font-black shadow-lg">Confirmar</button>
         </div>
     </div>
 
