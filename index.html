@@ -28,7 +28,10 @@
         <button onclick="irAPantalla('clientes')" class="text-blue-600 font-bold mb-4 uppercase text-xs">← Volver</button>
         <h2 class="text-xl font-black italic text-blue-800 uppercase mb-6 text-center">Configuración Fiscal</h2>
         <div class="space-y-3 bg-white p-6 rounded-[35px] shadow-sm border">
-            <input type="text" id="config-nombre" placeholder="Nombre Comercial / Autónomo" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
+            <div>
+                <label class="block text-[9px] font-black opacity-40 uppercase ml-2">Nombre / Empresa</label>
+                <input type="text" id="config-nombre" autocomplete="name" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
+            </div>
             <input type="text" id="config-cif" placeholder="CIF / DNI" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
             <input type="tel" id="config-tel" placeholder="Tu Teléfono" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
             <input type="text" id="config-dir" placeholder="Tu Dirección" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
@@ -52,7 +55,7 @@
         <button onclick="irAPantalla('clientes')" class="text-blue-600 font-bold mb-4 uppercase text-xs">← Cancelar</button>
         <h2 class="text-xl font-black italic text-blue-800 uppercase mb-6 text-center">Ficha del Cliente</h2>
         <div class="space-y-4">
-            <input type="text" id="cli-nombre" placeholder="Nombre Cliente" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none uppercase">
+            <input type="text" id="cli-nombre" placeholder="Nombre Cliente" autocomplete="name" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none">
             <input type="text" id="cli-cif" placeholder="CIF Cliente" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none uppercase">
             <input type="tel" id="cli-tel" placeholder="Teléfono" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none">
             <input type="text" id="cli-dir" placeholder="Dirección" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none uppercase">
