@@ -14,8 +14,7 @@
             <h1 class="text-2xl font-black italic text-blue-800 uppercase">Mis Clientes</h1>
             <button onclick="nuevoCliente()" class="bg-blue-600 text-white w-14 h-14 rounded-full text-3xl font-bold shadow-xl flex items-center justify-center">+</button>
         </header>
-        <div id="lista-clientes" class="space-y-3">
-            </div>
+        <div id="lista-clientes" class="space-y-3"></div>
     </div>
 
     <div id="pantalla-expediente" class="hidden p-4">
@@ -34,5 +33,55 @@
 
         <div id="vista-medidas" class="vista-trabajo p-4 flex-1 overflow-y-auto pb-24">
             <div class="grid grid-cols-3 gap-3 mb-6">
-                <button onclick="prepararMedida('tabiques')" class="bg-white p-4 rounded-2xl border shadow-sm flex flex-col items-center gap-1"><span class="text-2xl">🧱</span><span class="text-[9px] font-bold uppercase">Tabique</span></button>
-                <button onclick="prepararMedida('techos')" class="bg-white p
+                <button onclick="prepararMedida('tabiques')" class="bg-white p-4 rounded-2xl border flex flex-col items-center gap-1 shadow-sm"><span class="text-2xl">🧱</span><span class="text-[9px] font-bold">TABIQUE</span></button>
+                <button onclick="prepararMedida('techos')" class="bg-white p-4 rounded-2xl border flex flex-col items-center gap-1 shadow-sm"><span class="text-2xl">🏠</span><span class="text-[9px] font-bold">TECHO</span></button>
+                <button onclick="prepararMedida('cajones')" class="bg-white p-4 rounded-2xl border flex flex-col items-center gap-1 shadow-sm"><span class="text-2xl">📦</span><span class="text-[9px] font-bold">CAJÓN</span></button>
+                <button onclick="prepararMedida('tabicas')" class="bg-white p-4 rounded-2xl border flex flex-col items-center gap-1 shadow-sm"><span class="text-2xl">📐</span><span class="text-[9px] font-bold">TABICA</span></button>
+                <button onclick="prepararMedida('cantoneras')" class="bg-white p-4 rounded-2xl border flex flex-col items-center gap-1 shadow-sm"><span class="text-2xl">📏</span><span class="text-[9px] font-bold">CANTO</span></button>
+                <button onclick="prepararMedida('horas')" class="bg-white p-4 rounded-2xl border flex flex-col items-center gap-1 shadow-sm"><span class="text-2xl">⏱️</span><span class="text-[9px] font-bold">HORAS</span></button>
+            </div>
+            <div id="resumen-medidas-pantalla"></div>
+        </div>
+
+        <div id="vista-economico" class="vista-trabajo hidden p-4 flex-1 overflow-y-auto pb-24">
+            <div id="desglose-precios" class="bg-white p-4 rounded-3xl border mb-4"></div>
+            <div class="bg-blue-600 text-white p-6 rounded-3xl flex justify-between items-center shadow-lg">
+                <span class="font-black italic uppercase">Total con IVA</span>
+                <span id="total-final" class="text-2xl font-black">0.00€</span>
+            </div>
+        </div>
+
+        <footer class="fixed bottom-0 left-0 right-0 p-4 bg-slate-100 border-t flex gap-2">
+            <button onclick="irAPantalla('expediente')" class="flex-1 bg-slate-200 py-4 rounded-2xl font-bold uppercase text-xs">Volver</button>
+            <button onclick="guardarTodo()" class="flex-[2] bg-green-600 text-white py-4 rounded-2xl font-black uppercase italic shadow-lg">Guardar Obra</button>
+        </footer>
+    </div>
+
+    <div id="modal-calc" class="fixed inset-0 bg-slate-900/95 z-[200] hidden flex flex-col p-4">
+        <div class="flex justify-between items-center mb-2">
+            <div id="calc-titulo" class="text-blue-400 font-black uppercase text-xs italic"></div>
+            <button onclick="cerrarCalc()" class="text-white bg-red-600 px-4 py-1 rounded-full font-bold text-xs">SALIR X</button>
+        </div>
+        <div id="calc-display" class="bg-white text-slate-800 text-3xl font-black p-6 rounded-2xl text-right mb-4 min-h-[80px] flex items-center justify-end shadow-inner">0</div>
+        
+        <div class="grid grid-cols-3 gap-2 flex-1 text-white font-bold text-2xl">
+            <button onclick="teclear('7')" class="bg-white/10 rounded-2xl active:bg-white/20">7</button>
+            <button onclick="teclear('8')" class="bg-white/10 rounded-2xl active:bg-white/20">8</button>
+            <button onclick="teclear('9')" class="bg-white/10 rounded-2xl active:bg-white/20">9</button>
+            <button onclick="teclear('4')" class="bg-white/10 rounded-2xl active:bg-white/20">4</button>
+            <button onclick="teclear('5')" class="bg-white/10 rounded-2xl active:bg-white/20">5</button>
+            <button onclick="teclear('6')" class="bg-white/10 rounded-2xl active:bg-white/20">6</button>
+            <button onclick="teclear('1')" class="bg-white/10 rounded-2xl active:bg-white/20">1</button>
+            <button onclick="teclear('2')" class="bg-white/10 rounded-2xl active:bg-white/20">2</button>
+            <button onclick="teclear('3')" class="bg-white/10 rounded-2xl active:bg-white/20">3</button>
+            <button onclick="teclear('0')" class="bg-white/10 rounded-2xl active:bg-white/20">0</button>
+            <button onclick="teclear('.')" class="bg-white/10 rounded-2xl active:bg-white/20">,</button>
+            <button onclick="teclear('+')" class="bg-orange-500 rounded-2xl active:bg-orange-600 text-3xl">+</button>
+            <button onclick="teclear('DEL')" class="bg-red-500/20 text-red-500 text-xs rounded-2xl uppercase">Borrar</button>
+            <button onclick="teclear('OK')" class="col-span-2 bg-blue-600 rounded-2xl uppercase italic text-xl shadow-lg active:bg-blue-700">OK Confirmar</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
