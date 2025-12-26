@@ -18,19 +18,95 @@ const CONFIG_MEDIDAS = {
 const fNum = (n) => Number(n).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const asegurarGuardado = () => localStorage.setItem('presupro_v3', JSON.stringify(db));
 
+// NAVEGACIÓN
 window.irAPantalla = (id) => {
     document.querySelectorAll('[id^="pantalla-"]').forEach(p => p.classList.add('hidden'));
-    document.getElementById(`pantalla-${id}`).classList.remove('hidden');
+    const p = document.getElementById(`pantalla-${id}`);
+    if(p) p.classList.remove('hidden');
     if (id === 'clientes') renderListaClientes();
     if (id === 'ajustes') {
         ['nombre','cif','tel','dir','cp','ciudad','nPresu'].forEach(k => {
-            document.getElementById(`config-${k}`).value = db.ajustes[k] || (k === 'nPresu' ? 1 : '');
+            const input = document.getElementById(`config-${k}`);
+            if(input) input.value = db.ajustes[k] || (k === 'nPresu' ? 1 : '');
         });
     }
 };
 
+// CALCULADORA MEJORADA (SIN LÍMITE DE SUMAS)
+window.teclear = (n) => {
+    if (n === 'OK') {
+        let resultado = 0;
+        try {
+            // Limpiamos la cadena para asegurar que eval funcione con muchos números
+            let expresion = calcEstado.memoria.replace(/,/g, '.');
+            if (!expresion || expresion === '+') expresion = '0';
+            // Si termina en +, lo quitamos para que no de error
+            if (expresion.endsWith('+')) expresion = expresion.slice(0, -1);
+            
+            resultado = Function('"use strict";return (' + expresion + ')')();
+        } catch(e) { 
+            alert("Error en la suma. Revisa los números."); 
+            return; 
+        }
+
+        if (calcEstado.modo === 'medida') {
+            const conf = CONFIG_MEDIDAS[calcEstado.tipo];
+            if (calcEstado.paso < conf.pasos) { 
+                calcEstado.v1 = resultado; 
+                calcEstado.paso++; 
+                calcEstado.memoria = ''; 
+                abrirCalculadora(); 
+            } else { 
+                calcEstado.totalMetros = (conf.pasos === 1) ? resultado : calcEstado.v1 * resultado; 
+                calcEstado.modo = 'precio'; 
+                calcEstado.memoria = ''; 
+                abrirCalculadora(); 
+            }
+        } else {
+            const nuevaLinea = { 
+                id: calcEstado.editandoId || Date.now(), 
+                tipo: calcEstado.tipo, 
+                tarea: calcEstado.tarea, 
+                zona: calcEstado.zona, 
+                nombre: `${CONFIG_MEDIDAS[calcEstado.tipo].i} ${calcEstado.tarea} - ${calcEstado.zona}`, 
+                cantidad: calcEstado.totalMetros, 
+                precio: resultado, 
+                subtotal: calcEstado.totalMetros * resultado 
+            };
+            if (calcEstado.editandoId) { 
+                const idx = obraEnCurso.lineas.findIndex(l => l.id === calcEstado.editandoId); 
+                obraEnCurso.lineas[idx] = nuevaLinea; 
+            } else { 
+                obraEnCurso.lineas.push(nuevaLinea); 
+            }
+            document.getElementById('modal-calc').classList.add('hidden'); 
+            renderMedidas();
+        }
+    } else if (n === 'DEL') { 
+        calcEstado.memoria = ''; 
+        abrirCalculadora(); 
+    } else { 
+        // Evitamos que se pongan dos símbolos de más seguidos
+        if (n === '+' && calcEstado.memoria.endsWith('+')) return;
+        calcEstado.memoria += n; 
+        abrirCalculadora(); 
+    }
+};
+
+function abrirCalculadora() {
+    const conf = CONFIG_MEDIDAS[calcEstado.tipo];
+    let txt = calcEstado.modo === 'precio' ? `PRECIO PARA ${calcEstado.tarea}` : (calcEstado.paso === 1 ? conf.m1 : conf.m2);
+    document.getElementById('calc-titulo').innerText = txt;
+    // Mostramos la memoria actual (la suma que va haciendo el usuario)
+    document.getElementById('calc-display').innerText = calcEstado.memoria || '0';
+}
+
+// RESTO DE FUNCIONES (CLIENTES, IVA, FOTOS, PDF...)
 window.nuevoCliente = () => {
-    ['cli-nombre', 'cli-cif', 'cli-tel', 'cli-dir'].forEach(i => document.getElementById(i).value = "");
+    ['cli-nombre', 'cli-cif', 'cli-tel', 'cli-dir'].forEach(i => {
+        const el = document.getElementById(i);
+        if(el) el.value = "";
+    });
     irAPantalla('nuevo-cliente');
 };
 
@@ -44,19 +120,20 @@ window.guardarAjustes = () => {
         ciudad: document.getElementById('config-ciudad').value.toUpperCase(),
         nPresu: parseInt(document.getElementById('config-nPresu').value) || 1
     };
-    asegurarGuardado(); alert("✅ Datos guardados"); irAPantalla('clientes');
+    asegurarGuardado(); alert("✅ Guardado"); irAPantalla('clientes');
 };
 
 window.guardarDatosCliente = () => {
     const nom = document.getElementById('cli-nombre').value.trim();
-    if (!nom) return alert("El nombre es obligatorio");
+    if (!nom) return alert("Nombre obligatorio");
     db.clientes.push({ id: Date.now(), nombre: nom.toUpperCase(), cif: document.getElementById('cli-cif').value.toUpperCase() || "S/N", tel: document.getElementById('cli-tel').value || "S/T", dir: document.getElementById('cli-dir').value.toUpperCase() || "S/D" });
     asegurarGuardado(); irAPantalla('clientes');
 };
 
 window.renderListaClientes = () => {
     const cont = document.getElementById('lista-clientes');
-    cont.innerHTML = db.clientes.length === 0 ? '<p class="text-center opacity-40 py-10 italic">NO HAY CLIENTES</p>' :
+    if(!cont) return;
+    cont.innerHTML = db.clientes.length === 0 ? '<p class="text-center opacity-40 py-10 italic">SIN CLIENTES</p>' :
     db.clientes.map(c => `
         <div onclick="abrirExpediente(${c.id})" class="bg-white p-5 rounded-[30px] border shadow-sm flex justify-between items-center mb-3 active-scale">
             <p class="font-black text-slate-800 uppercase italic text-sm">${c.nombre}</p>
@@ -72,7 +149,7 @@ window.abrirExpediente = (id) => {
 
 window.confirmarNombreObra = () => {
     const v = document.getElementById('input-nombre-obra').value;
-    if (!v) return alert("Indica el nombre");
+    if (!v) return alert("Nombre de obra?");
     obraEnCurso = { nombre: v.toUpperCase(), lineas: [], iva: 21, fotos: [] };
     document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre;
     document.getElementById('galeria-fotos').innerHTML = '';
@@ -93,31 +170,6 @@ window.prepararMedida = (t) => {
     if (!tarea) return;
     calcEstado = { tipo: t, paso: 1, v1: 0, v2: 0, memoria: '', zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), modo: 'medida', editandoId: null };
     abrirCalculadora();
-};
-
-function abrirCalculadora() {
-    const conf = CONFIG_MEDIDAS[calcEstado.tipo];
-    let txt = calcEstado.modo === 'precio' ? `PRECIO PARA ${calcEstado.tarea}` : (calcEstado.paso === 1 ? conf.m1 : conf.m2);
-    document.getElementById('calc-titulo').innerText = txt;
-    document.getElementById('calc-display').innerText = calcEstado.memoria.replace(/\./g, ',') || '0';
-    document.getElementById('modal-calc').classList.remove('hidden');
-}
-
-window.teclear = (n) => {
-    if (n === 'OK') {
-        let cifra = 0; try { cifra = eval(calcEstado.memoria) || 0; } catch(e) { alert("Error"); return; }
-        if (calcEstado.modo === 'medida') {
-            const conf = CONFIG_MEDIDAS[calcEstado.tipo];
-            if (calcEstado.paso < conf.pasos) { calcEstado.v1 = cifra; calcEstado.paso++; calcEstado.memoria = ''; abrirCalculadora(); }
-            else { calcEstado.totalMetros = (conf.pasos === 1) ? cifra : calcEstado.v1 * cifra; calcEstado.modo = 'precio'; calcEstado.memoria = ''; abrirCalculadora(); }
-        } else {
-            const nuevaLinea = { id: calcEstado.editandoId || Date.now(), tipo: calcEstado.tipo, tarea: calcEstado.tarea, zona: calcEstado.zona, nombre: `${CONFIG_MEDIDAS[calcEstado.tipo].i} ${calcEstado.tarea} - ${calcEstado.zona}`, cantidad: calcEstado.totalMetros, precio: cifra, subtotal: calcEstado.totalMetros * cifra };
-            if (calcEstado.editandoId) { const idx = obraEnCurso.lineas.findIndex(l => l.id === calcEstado.editandoId); obraEnCurso.lineas[idx] = nuevaLinea; }
-            else { obraEnCurso.lineas.push(nuevaLinea); }
-            document.getElementById('modal-calc').classList.add('hidden'); renderMedidas();
-        }
-    } else if (n === 'DEL') { calcEstado.memoria = ''; abrirCalculadora(); }
-    else { calcEstado.memoria += n; abrirCalculadora(); }
 };
 
 function renderMedidas() {
@@ -150,7 +202,7 @@ window.cambiarIVA = (valor) => {
     obraEnCurso.iva = valor;
     document.querySelectorAll('.iva-btn').forEach(btn => { btn.classList.remove('bg-blue-600', 'text-white'); btn.classList.add('bg-slate-100'); });
     const b = document.getElementById(`btn-iva-${valor}`);
-    b.classList.replace('bg-slate-100', 'bg-blue-600'); b.classList.add('text-white');
+    if(b) { b.classList.replace('bg-slate-100', 'bg-blue-600'); b.classList.add('text-white'); }
     renderMedidas();
 };
 
