@@ -10,13 +10,16 @@ let calcEstado = { tipo: '', paso: 1, v1: 0, v2: 0, memoria: '', zona: '', tarea
 
 const CONFIG_MEDIDAS = {
     'techos': { n: 'Techo', i: '🏠', pasos: 2, m1: 'Ancho', m2: 'Largo' },
-    'tabiques': { n: 'Tabique', i: '🧱', pasos: 2, m1: 'Suma de tramos (Ej: 2+3.5)', m2: 'Altura' },
+    'tabiques': { n: 'Tabique', i: '🧱', pasos: 2, m1: 'Suma de tramos (Ej: 2+3,5)', m2: 'Altura' },
     'cajones': { n: 'Cajón', i: '📦', pasos: 2, m1: 'Suma de tramos', m2: 'Altura/Fondo' },
     'tabicas': { n: 'Tabica', i: '📐', pasos: 2, m1: 'Ancho', m2: 'Largo' },
     'cantoneras': { n: 'Cantonera', i: '📏', pasos: 1, m1: 'Metros Totales' }
 };
 
 const asegurarGuardado = () => localStorage.setItem('presupro_v3', JSON.stringify(db));
+
+// Función para mostrar números con coma
+const fNum = (n) => n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 window.irAPantalla = (id) => {
     document.querySelectorAll('[id^="pantalla-"]').forEach(p => p.classList.add('hidden'));
@@ -109,7 +112,8 @@ function abrirCalculadora() {
     const conf = CONFIG_MEDIDAS[calcEstado.tipo];
     let txt = calcEstado.modo === 'precio' ? `PRECIO PARA ${calcEstado.tarea}` : (calcEstado.paso === 1 ? conf.m1 : conf.m2);
     document.getElementById('calc-titulo').innerText = txt;
-    document.getElementById('calc-display').innerText = calcEstado.memoria || '0';
+    // Mostramos la memoria sustituyendo puntos por comas para que sea visual
+    document.getElementById('calc-display').innerText = calcEstado.memoria.replace(/\./g, ',') || '0';
     document.getElementById('modal-calc').classList.remove('hidden');
 }
 
@@ -117,7 +121,10 @@ window.teclear = (n) => {
     const disp = document.getElementById('calc-display');
     if (n === 'OK') {
         let cifra = 0;
-        try { cifra = eval(calcEstado.memoria.replace(/,/g, '.')) || 0; } catch(e) { alert("Error en suma"); return; }
+        try { 
+            // Evaluamos la memoria (aquí sí usamos puntos para que el sistema calcule)
+            cifra = eval(calcEstado.memoria) || 0; 
+        } catch(e) { alert("Error en suma"); return; }
         const conf = CONFIG_MEDIDAS[calcEstado.tipo];
         if (calcEstado.modo === 'medida') {
             if (calcEstado.paso < conf.pasos) {
@@ -136,7 +143,11 @@ window.teclear = (n) => {
             renderMedidas();
         }
     } else if (n === 'DEL') { calcEstado.memoria = ''; disp.innerText = '0'; }
-    else { calcEstado.memoria += n; disp.innerText = calcEstado.memoria; }
+    else { 
+        // n es el valor del botón. Si es '.', lo guardamos como punto pero el display lo mostrará como coma
+        calcEstado.memoria += n; 
+        disp.innerText = calcEstado.memoria.replace(/\./g, ','); 
+    }
 };
 
 function renderMedidas() {
@@ -146,21 +157,21 @@ function renderMedidas() {
         <div class="bg-white p-4 rounded-2xl border flex justify-between items-center mb-2 shadow-sm italic font-bold">
             <div class="text-[9px] uppercase leading-tight">
                 <p class="text-blue-800">${l.nombre}</p>
-                <p class="opacity-40">${l.cantidad.toFixed(2)} x ${l.precio.toFixed(2)}€</p>
+                <p class="opacity-40">${fNum(l.cantidad)} x ${fNum(l.precio)}€</p>
             </div>
             <div class="flex items-center gap-2">
-                <span class="text-xs font-black mr-2">${l.subtotal.toFixed(2)}€</span>
+                <span class="text-xs font-black mr-2">${fNum(l.subtotal)}€</span>
                 <button onclick="editarLinea(${l.id})" class="text-blue-500 bg-blue-50 p-2 rounded-xl text-xs">✏️</button>
                 <button onclick="borrarLinea(${l.id})" class="text-red-400 p-2 rounded-xl bg-red-50 text-xs">✕</button>
             </div>
         </div>`).reverse().join('') + 
-        (total > 0 ? `<div class="bg-slate-900 text-green-400 p-6 rounded-[35px] text-center font-black mt-5 shadow-xl">TOTAL: ${total.toFixed(2)}€</div>` : '');
+        (total > 0 ? `<div class="bg-slate-900 text-green-400 p-6 rounded-[35px] text-center font-black mt-5 shadow-xl">TOTAL: ${fNum(total)}€</div>` : '');
 }
 
 window.editarLinea = (id) => {
     let l = obraEnCurso.lineas.find(x => x.id === id);
-    let m = prompt("NUEVOS METROS:", l.cantidad); if(m === null) return;
-    let p = prompt("NUEVO PRECIO:", l.precio); if(p === null) return;
+    let m = prompt("NUEVOS METROS:", fNum(l.cantidad)); if(m === null) return;
+    let p = prompt("NUEVO PRECIO:", fNum(l.precio)); if(p === null) return;
     l.cantidad = parseFloat(m.replace(',','.'));
     l.precio = parseFloat(p.replace(',','.'));
     l.subtotal = l.cantidad * l.precio;
@@ -200,17 +211,17 @@ window.guardarObraCompleta = async () => {
                     </tr>
                 </thead>
                 <tbody>
-                    ${obraEnCurso.lineas.map(l => `<tr><td style="padding:10px; border-bottom:1px solid #e2e8f0; font-size:12px;"><b>${l.nombre}</b><br><span style="color:#666;">${l.cantidad.toFixed(2)} unid. x ${l.precio.toFixed(2)}€</span></td><td style="padding:10px; border-bottom:1px solid #e2e8f0; text-align:right; font-weight:bold;">${l.subtotal.toFixed(2)}€</td></tr>`).join('')}
+                    ${obraEnCurso.lineas.map(l => `<tr><td style="padding:10px; border-bottom:1px solid #e2e8f0; font-size:12px;"><b>${l.nombre}</b><br><span style="color:#666;">${fNum(l.cantidad)} unid. x ${fNum(l.precio)}€</span></td><td style="padding:10px; border-bottom:1px solid #e2e8f0; text-align:right; font-weight:bold;">${fNum(l.subtotal)}€</td></tr>`).join('')}
                 </tbody>
             </table>
             <div style="margin-top:30px; text-align:right;">
-                <h2 style="margin:0; color:#16a34a; font-size:32px;">TOTAL: ${total.toFixed(2)}€</h2>
+                <h2 style="margin:0; color:#16a34a; font-size:32px;">TOTAL: ${fNum(total)}€</h2>
             </div>
         </div>`;
     html2pdf().from(el).set({ margin: 0.5, filename: `Presu_${clienteActual.nombre}.pdf`, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).save();
     setTimeout(() => {
         if(confirm("✅ PDF Guardado. ¿WhatsApp?")){
-            window.open(`https://wa.me/?text=*PRESUPUESTO*%0A*Cliente:* ${clienteActual.nombre}%0A*Total:* ${total.toFixed(2)}€`, '_blank');
+            window.open(`https://wa.me/?text=*PRESUPUESTO*%0A*Cliente:* ${clienteActual.nombre}%0A*Total:* ${fNum(total)}€`, '_blank');
         }
         clienteActual.presupuestos.push({...obraEnCurso, total}); asegurarGuardado(); irAPantalla('expediente');
     }, 1500);
