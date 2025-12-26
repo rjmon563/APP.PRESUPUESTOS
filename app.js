@@ -1,4 +1,3 @@
-// 1. BASE DE DATOS Y ESTADO (Mantenemos tu estructura)
 let db = JSON.parse(localStorage.getItem('presupro_v3')) || { 
     clientes: [], ajustes: { nombre: '', tel: '', cif: '', dir: '', cp: '', ciudad: '', nPresu: 1 } 
 };
@@ -19,7 +18,7 @@ const CONFIG_MEDIDAS = {
 const fNum = (n) => Number(n).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const asegurarGuardado = () => localStorage.setItem('presupro_v3', JSON.stringify(db));
 
-// 2. NAVEGACIÓN (Sin cambios)
+// NAVEGACIÓN
 window.irAPantalla = (id) => {
     document.querySelectorAll('[id^="pantalla-"]').forEach(p => p.classList.add('hidden'));
     const p = document.getElementById(`pantalla-${id}`);
@@ -27,34 +26,28 @@ window.irAPantalla = (id) => {
     if (id === 'clientes') renderListaClientes();
 };
 
-// 3. CALCULADORA (Con arreglo de Coma y Suma Infinita)
+// CALCULADORA (COMA Y SUMA INFINITA)
 window.teclear = (n) => {
     if (n === '+') {
-        let valorPantalla = parseFloat(calcEstado.memoria.replace(',', '.')) || 0;
-        calcEstado.acumulado += valorPantalla;
-        calcEstado.memoria = ''; 
-        actualizarDisplay();
-    } 
-    else if (n === 'OK') {
-        let valorFinal = parseFloat(calcEstado.memoria.replace(',', '.')) || 0;
-        let resultadoTotal = calcEstado.acumulado + valorFinal;
-
+        let vP = parseFloat(calcEstado.memoria.replace(',', '.')) || 0;
+        calcEstado.acumulado += vP; calcEstado.memoria = ''; actualizarDisplay();
+    } else if (n === 'OK') {
+        let vF = parseFloat(calcEstado.memoria.replace(',', '.')) || 0;
+        let res = calcEstado.acumulado + vF;
         if (calcEstado.modo === 'medida') {
             const conf = CONFIG_MEDIDAS[calcEstado.tipo];
             if (calcEstado.paso < conf.pasos) { 
-                calcEstado.v1 = resultadoTotal; calcEstado.paso++; calcEstado.memoria = ''; calcEstado.acumulado = 0; abrirCalculadora(); 
+                calcEstado.v1 = res; calcEstado.paso++; calcEstado.memoria = ''; calcEstado.acumulado = 0; abrirCalculadora(); 
             } else { 
-                calcEstado.totalMetros = (conf.pasos === 1) ? resultadoTotal : calcEstado.v1 * resultadoTotal; 
+                calcEstado.totalMetros = (conf.pasos === 1) ? res : calcEstado.v1 * res; 
                 calcEstado.modo = 'precio'; calcEstado.memoria = ''; calcEstado.acumulado = 0; abrirCalculadora(); 
             }
         } else {
-            const linea = { id: calcEstado.editandoId || Date.now(), tipo: calcEstado.tipo, tarea: calcEstado.tarea, zona: calcEstado.zona, nombre: `${CONFIG_MEDIDAS[calcEstado.tipo].i} ${calcEstado.tarea} - ${calcEstado.zona}`, cantidad: calcEstado.totalMetros, precio: resultadoTotal, subtotal: calcEstado.totalMetros * resultadoTotal };
+            const l = { id: calcEstado.editandoId || Date.now(), tipo: calcEstado.tipo, tarea: calcEstado.tarea, zona: calcEstado.zona, nombre: `${CONFIG_MEDIDAS[calcEstado.tipo].i} ${calcEstado.tarea} - ${calcEstado.zona}`, cantidad: calcEstado.totalMetros, precio: res, subtotal: calcEstado.totalMetros * res };
             if (calcEstado.editandoId) {
-                const idx = obraEnCurso.lineas.findIndex(l => l.id === calcEstado.editandoId);
-                obraEnCurso.lineas[idx] = linea;
-            } else {
-                obraEnCurso.lineas.push(linea);
-            }
+                const idx = obraEnCurso.lineas.findIndex(x => x.id === calcEstado.editandoId);
+                obraEnCurso.lineas[idx] = l;
+            } else { obraEnCurso.lineas.push(l); }
             document.getElementById('modal-calc').classList.add('hidden'); renderMedidas();
         }
     } else if (n === 'DEL') { 
@@ -62,53 +55,66 @@ window.teclear = (n) => {
     } else if (n === '.') {
         if (!calcEstado.memoria.includes(',')) calcEstado.memoria += (calcEstado.memoria === '' ? '0,' : ',');
         actualizarDisplay();
-    } else { 
-        calcEstado.memoria += n; actualizarDisplay(); 
-    }
+    } else { calcEstado.memoria += n; actualizarDisplay(); }
 };
 
 function actualizarDisplay() {
     let visual = calcEstado.memoria || '0';
-    const display = document.getElementById('calc-display');
-    display.innerHTML = calcEstado.acumulado > 0 ? `<span class="text-sm opacity-50 font-normal">Suma: ${fNum(calcEstado.acumulado)} +</span><br>${visual}` : visual;
+    document.getElementById('calc-display').innerHTML = calcEstado.acumulado > 0 ? `<span class="text-sm opacity-50">Suma: ${fNum(calcEstado.acumulado)} +</span><br>${visual}` : visual;
 }
 
-// 4. GUARDADO DE PRESUPUESTO EN EL CLIENTE (CORREGIDO)
+// GUARDADO Y ENVÍO (WHATSAPP / EMAIL)
 window.guardarObraCompleta = async () => {
-    if (obraEnCurso.lineas.length === 0) return alert("Añade medidas primero");
+    if (obraEnCurso.lineas.length === 0) return alert("Añade medidas");
 
-    // Guardar en el historial del cliente
+    // 1. Guardar en Base de Datos
     if (!clienteActual.presupuestos) clienteActual.presupuestos = [];
-    
     const subtotal = obraEnCurso.lineas.reduce((a, b) => a + b.subtotal, 0);
     const total = subtotal * (1 + (obraEnCurso.iva / 100));
 
-    clienteActual.presupuestos.push({
+    const nuevoPresu = {
         id: Date.now(),
         numero: db.ajustes.nPresu,
         fecha: new Date().toLocaleDateString(),
         nombreObra: obraEnCurso.nombre,
         lineas: [...obraEnCurso.lineas],
         total: total
-    });
-
-    // Lanzar la descarga del PDF
-    const element = document.getElementById('pantalla-trabajo');
-    const opt = { margin: 10, filename: `Presu_${db.ajustes.nPresu}_${obraEnCurso.nombre}.pdf`, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+    };
+    clienteActual.presupuestos.push(nuevoPresu);
     
-    html2pdf().set(opt).from(element).save();
+    // 2. Generar PDF y Compartir
+    const element = document.getElementById('pantalla-trabajo');
+    const opt = { margin: 10, filename: `Presu_${db.ajustes.nPresu}.pdf`, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+    
+    // Generamos el blob para poder compartirlo
+    const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+    const file = new File([pdfBlob], `Presupuesto_${obraEnCurso.nombre}.pdf`, { type: 'application/pdf' });
+
+    // Intentar abrir el menú de compartir nativo (WhatsApp, Email, etc.)
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                files: [file],
+                title: 'Presupuesto ' + obraEnCurso.nombre,
+                text: 'Adjunto envío presupuesto solicitado.'
+            });
+        } catch (err) {
+            // Si el usuario cancela o el navegador no deja compartir archivos, lo descargamos
+            html2pdf().set(opt).from(element).save();
+        }
+    } else {
+        // Si no hay opción de compartir (navegador antiguo), descargamos normal
+        html2pdf().set(opt).from(element).save();
+    }
 
     db.ajustes.nPresu++; 
     asegurarGuardado();
-    alert("✅ Presupuesto guardado y PDF generado");
-    abrirExpediente(clienteActual.id); // Vuelve a la ficha donde ahora verás el historial
+    abrirExpediente(clienteActual.id);
 };
 
-// 5. VER HISTORIAL EN LA FICHA DEL CLIENTE
 window.abrirExpediente = (id) => {
     clienteActual = db.clientes.find(x => x.id === id);
     const historial = clienteActual.presupuestos || [];
-    
     document.getElementById('ficha-cliente-detalle').innerHTML = `
         <div class="bg-blue-600 text-white p-7 rounded-[40px] italic shadow-lg mb-4">
             <h2 class="text-xl font-black uppercase mb-1">${clienteActual.nombre}</h2>
@@ -117,7 +123,7 @@ window.abrirExpediente = (id) => {
         <div class="space-y-2 mb-4">
             <p class="text-[9px] font-black opacity-40 ml-2 uppercase">Historial de Presupuestos</p>
             ${historial.map(p => `
-                <div class="bg-white p-4 rounded-2xl border shadow-sm flex justify-between items-center">
+                <div class="bg-white p-4 rounded-2xl border shadow-sm flex justify-between items-center" onclick="alert('Abriendo presupuesto #${p.numero}...')">
                     <div><p class="text-[10px] font-bold">#${p.numero} - ${p.nombreObra}</p><p class="text-[8px] opacity-40">${p.fecha}</p></div>
                     <p class="text-xs font-black text-blue-600">${fNum(p.total)}€</p>
                 </div>
@@ -127,13 +133,11 @@ window.abrirExpediente = (id) => {
     irAPantalla('expediente');
 };
 
-// 6. RENDERIZADO (Tus estilos de siempre)
+// ... (El resto de funciones se mantienen iguales: renderMedidas, prepararMedida, etc.)
 window.renderMedidas = () => {
     const cont = document.getElementById('lista-medidas-obra');
     const subtotal = obraEnCurso.lineas.reduce((a, b) => a + b.subtotal, 0);
-    const cuotaIva = subtotal * (obraEnCurso.iva / 100);
-    const total = subtotal + cuotaIva;
-    
+    const total = subtotal * (1 + (obraEnCurso.iva / 100));
     cont.innerHTML = obraEnCurso.lineas.map(l => `
         <div class="bg-white p-4 rounded-2xl border flex justify-between items-center mb-2 font-bold text-[10px] uppercase italic shadow-sm">
             <div><p class="text-blue-800">${l.nombre}</p><p class="opacity-40">${fNum(l.cantidad)} x ${fNum(l.precio)}€</p></div>
@@ -143,10 +147,9 @@ window.renderMedidas = () => {
                 <button onclick="borrarLinea(${l.id})" class="text-red-400 p-2 rounded-xl bg-red-50">✕</button>
             </div>
         </div>`).reverse().join('') + 
-        (subtotal > 0 ? `<div class="bg-slate-900 text-white p-6 rounded-[35px] mt-5 italic shadow-xl"><div class="flex justify-between text-[10px] opacity-60 font-black"><span>Base: ${fNum(subtotal)}€</span><span>IVA (${obraEnCurso.iva}%): ${fNum(cuotaIva)}€</span></div><div class="flex justify-between text-xl font-black text-green-400 border-t border-white/10 pt-2"><span>TOTAL:</span><span>${fNum(total)}€</span></div></div>` : '');
+        (subtotal > 0 ? `<div class="bg-slate-900 text-white p-6 rounded-[35px] mt-5 italic shadow-xl"><div class="flex justify-between text-[10px] opacity-60 font-black text-green-400"><span>TOTAL: ${fNum(total)}€</span></div></div>` : '');
 };
 
-// ... Mantenemos el resto de tus funciones iguales para no romper nada ...
 window.renderBotones = () => { document.getElementById('botones-trabajo').innerHTML = Object.keys(CONFIG_MEDIDAS).map(k => `<button onclick="prepararMedida('${k}')" class="bg-white p-6 rounded-[30px] border flex flex-col items-center active-scale shadow-sm"><span class="text-3xl mb-1">${CONFIG_MEDIDAS[k].i}</span><span class="text-[9px] font-black uppercase opacity-60">${CONFIG_MEDIDAS[k].n}</span></button>`).join(''); };
 window.prepararMedida = (t) => { const zona = prompt("¿ZONA?", "GENERAL"); if (!zona) return; const tarea = (t === 'horas') ? prompt("¿CONCEPTO?", "ADMINISTRACIÓN") : prompt("¿TRABAJO?", "MONTAJE"); if (!tarea) return; calcEstado = { tipo: t, paso: 1, v1: 0, v2: 0, memoria: '', acumulado: 0, zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), modo: 'medida', editandoId: null }; abrirCalculadora(); };
 function abrirCalculadora() { const conf = CONFIG_MEDIDAS[calcEstado.tipo]; document.getElementById('calc-titulo').innerText = calcEstado.modo === 'precio' ? `PRECIO PARA ${calcEstado.tarea}` : (calcEstado.paso === 1 ? conf.m1 : conf.m2); actualizarDisplay(); document.getElementById('modal-calc').classList.remove('hidden'); }
