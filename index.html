@@ -81,11 +81,16 @@
 
         <div class="bg-white p-4 rounded-[25px] border mb-4 shadow-sm">
             <p class="text-[9px] font-black opacity-40 uppercase mb-2 ml-2 text-center">Seleccionar IVA</p>
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid grid-cols-3 gap-2 mb-3">
                 <button onclick="cambiarIVA(0)" id="btn-iva-0" class="iva-btn bg-slate-100 p-2 rounded-xl text-[10px] font-bold uppercase">0%</button>
                 <button onclick="cambiarIVA(10)" id="btn-iva-10" class="iva-btn bg-slate-100 p-2 rounded-xl text-[10px] font-bold uppercase">10%</button>
                 <button onclick="cambiarIVA(21)" id="btn-iva-21" class="iva-btn bg-blue-600 text-white p-2 rounded-xl text-[10px] font-bold uppercase">21%</button>
             </div>
+            <button onclick="document.getElementById('input-foto').click()" class="w-full bg-slate-800 text-white p-3 rounded-2xl text-[10px] font-black uppercase active-scale flex items-center justify-center gap-2">
+                📸 Añadir Foto de Obra
+            </button>
+            <input type="file" id="input-foto" accept="image/*" capture="environment" class="hidden" onchange="subirFoto(event)">
+            <div id="galeria-fotos" class="flex gap-2 mt-3 overflow-x-auto pb-2"></div>
         </div>
 
         <div id="lista-medidas-obra" class="space-y-3 pb-20"></div>
