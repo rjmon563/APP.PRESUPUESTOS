@@ -7,7 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .active-scale:active { transform: scale(0.95); transition: 0.1s; }
-        input[type="date"] { min-height: 45px; }
+        /* Esto evita que la pantalla de atrás se mueva cuando sale la calculadora */
+        .no-scroll { overflow: hidden; position: fixed; width: 100%; }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 overflow-x-hidden">
@@ -64,37 +65,26 @@
         <div id="lista-medidas-obra" class="mt-8 space-y-2 pb-20"></div>
     </div>
 
-    <div id="modal-calc" class="hidden fixed inset-0 bg-slate-900/98 z-[100] flex flex-col p-4 overflow-y-auto">
+    <div id="modal-calc" class="hidden fixed inset-0 bg-slate-900 z-[999] flex flex-col p-4">
         <div class="flex justify-between items-center mb-2">
             <div id="calc-titulo" class="text-blue-400 font-black uppercase text-xs italic text-left"></div>
-            <button onclick="cerrarCalc()" class="text-white bg-red-500/20 px-3 py-1 rounded-lg text-xs font-bold uppercase">✕</button>
+            <button onclick="cerrarCalc()" class="text-white bg-red-500/40 px-3 py-2 rounded-lg text-xs font-bold uppercase">✕ Cerrar</button>
         </div>
 
-        <div id="contenedor-fecha-horas" class="hidden mb-4 bg-white/5 p-3 rounded-2xl border border-white/10">
-            <label class="text-[10px] text-blue-300 font-bold uppercase mb-1 block italic">Fecha del trabajo:</label>
-            <input type="date" id="fecha-trabajo" class="w-full p-4 rounded-xl font-bold text-slate-800 bg-white outline-none">
+        <div id="contenedor-fecha-horas" class="hidden mb-4">
+            <input type="date" id="fecha-trabajo" class="w-full p-4 rounded-xl font-bold text-slate-800">
         </div>
 
-        <div id="calc-display" class="bg-white text-slate-800 text-4xl font-black p-6 rounded-2xl text-right mb-4 min-h-[100px] flex items-center justify-end shadow-[0_0_20px_rgba(255,255,255,0.1)]">0</div>
+        <div id="calc-display" class="bg-white text-slate-800 text-4xl font-black p-6 rounded-2xl text-right mb-4 min-h-[100px] flex items-center justify-end">0</div>
         
         <div class="grid grid-cols-3 gap-3 flex-1 text-white font-black text-2xl pb-4">
-            <button onclick="teclear('7')" class="bg-white/10 rounded-2xl p-4 active-scale">7</button>
-            <button onclick="teclear('8')" class="bg-white/10 rounded-2xl p-4 active-scale">8</button>
-            <button onclick="teclear('9')" class="bg-white/10 rounded-2xl p-4 active-scale">9</button>
-            <button onclick="teclear('4')" class="bg-white/10 rounded-2xl p-4 active-scale">4</button>
-            <button onclick="teclear('5')" class="bg-white/10 rounded-2xl p-4 active-scale">5</button>
-            <button onclick="teclear('6')" class="bg-white/10 rounded-2xl p-4 active-scale">6</button>
-            <button onclick="teclear('1')" class="bg-white/10 rounded-2xl p-4 active-scale">1</button>
-            <button onclick="teclear('2')" class="bg-white/10 rounded-2xl p-4 active-scale">2</button>
-            <button onclick="teclear('3')" class="bg-white/10 rounded-2xl p-4 active-scale">3</button>
-            <button onclick="teclear('0')" class="bg-white/10 rounded-2xl p-4 active-scale">0</button>
-            <button onclick="teclear('.')" class="bg-white/10 rounded-2xl p-4 active-scale">,</button>
-            <button onclick="teclear('+')" class="bg-orange-500 rounded-2xl p-4 text-4xl active-scale">+</button>
-            <button onclick="teclear('DEL')" class="bg-red-500/20 text-red-500 text-xs rounded-2xl uppercase p-4 active-scale">Borrar</button>
-            <button onclick="teclear('OK')" class="col-span-2 bg-blue-600 rounded-2xl uppercase italic text-xl font-black shadow-lg active-scale">Aceptar</button>
-        </div>
-    </div>
-
-    <script src="app.js"></script>
-</body>
-</html>
+            <button onclick="teclear('7')" class="bg-white/10 rounded-2xl active-scale">7</button>
+            <button onclick="teclear('8')" class="bg-white/10 rounded-2xl active-scale">8</button>
+            <button onclick="teclear('9')" class="bg-white/10 rounded-2xl active-scale">9</button>
+            <button onclick="teclear('4')" class="bg-white/10 rounded-2xl active-scale">4</button>
+            <button onclick="teclear('5')" class="bg-white/10 rounded-2xl active-scale">5</button>
+            <button onclick="teclear('6')" class="bg-white/10 rounded-2xl active-scale">6</button>
+            <button onclick="teclear('1')" class="bg-white/10 rounded-2xl active-scale">1</button>
+            <button onclick="teclear('2')" class="bg-white/10 rounded-2xl active-scale">2</button>
+            <button onclick="teclear('3')" class="bg-white/10 rounded-2xl active-scale">3</button>
+            <button onclick="teclear('0')" class="bg-white/10 rounded-2xl active-scale">0</button>
