@@ -11,6 +11,14 @@
         .active-scale:active { transform: scale(0.96); transition: 0.1s; }
         body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         input { font-size: 16px !important; } 
+        /* Visor que ajusta el tamaño del texto automáticamente */
+        #calc-display { 
+            display: flex; 
+            align-items: center; 
+            justify-content: flex-end; 
+            overflow-x: auto; 
+            white-space: nowrap; 
+        }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 select-none">
@@ -91,7 +99,7 @@
             <div id="calc-titulo" class="font-black uppercase text-blue-400 text-[10px] tracking-widest italic"></div>
             <button onclick="cerrarCalc()" class="bg-red-500/20 text-red-500 px-5 py-2 rounded-xl font-bold text-xs uppercase">✕</button>
         </div>
-        <div id="calc-display" class="bg-white text-slate-800 text-5xl font-black p-8 rounded-[35px] text-right mb-6 shadow-2xl overflow-hidden truncate italic">0</div>
+        <div id="calc-display" class="bg-white text-slate-800 text-4xl font-black p-8 rounded-[35px] text-right mb-6 shadow-2xl italic min-h-[100px]">0</div>
         
         <div class="grid grid-cols-3 gap-3 flex-1 font-black text-3xl pb-4">
             <button onclick="teclear('7')" class="bg-white/10 rounded-2xl active:bg-white/40">7</button>
