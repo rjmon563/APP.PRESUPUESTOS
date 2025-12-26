@@ -28,37 +28,39 @@
     <div id="pantalla-ajustes" class="hidden p-6 max-w-lg mx-auto">
         <button onclick="irAPantalla('clientes')" class="text-blue-600 font-bold mb-4 uppercase text-xs">← Volver</button>
         <h2 class="text-xl font-black italic text-blue-800 uppercase mb-6 text-center">Configuración Fiscal</h2>
-        <div class="space-y-3 bg-white p-6 rounded-[35px] shadow-sm border">
-            <input type="text" id="config-nombre" placeholder="Nombre Empresa" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
-            <input type="text" id="config-cif" placeholder="CIF / DNI" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
-            <input type="tel" id="config-tel" placeholder="Tu Teléfono" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
-            <input type="text" id="config-dir" placeholder="Dirección" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
+        
+        <form onsubmit="event.preventDefault(); guardarAjustes();" class="space-y-3 bg-white p-6 rounded-[35px] shadow-sm border">
+            <input type="text" id="config-nombre" name="name" autocomplete="organization" placeholder="Nombre Empresa / Autónomo" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
+            <input type="text" id="config-cif" name="tax-id" placeholder="CIF / DNI" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
+            <input type="tel" id="config-tel" name="tel" autocomplete="tel" placeholder="Tu Teléfono" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
+            <input type="text" id="config-dir" name="address" autocomplete="street-address" placeholder="Dirección" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
             <div class="grid grid-cols-2 gap-2">
-                <input type="text" id="config-cp" placeholder="C.P." class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
-                <input type="text" id="config-ciudad" placeholder="Ciudad" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
+                <input type="text" id="config-cp" name="postal-code" autocomplete="postal-code" placeholder="C.P." class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
+                <input type="text" id="config-ciudad" name="city" autocomplete="address-level2" placeholder="Ciudad" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none uppercase">
             </div>
-            <label class="block text-[9px] font-black opacity-40 uppercase ml-2 pt-2">Próximo Nº Presupuesto</label>
-            <input type="number" id="config-nPresu" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
             
-            <button onclick="guardarAjustes()" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase shadow-lg active-scale mt-4 italic tracking-widest text-sm">Guardar Mis Datos ➔</button>
+            <label class="block text-[9px] font-black opacity-40 uppercase ml-2 pt-2">Próximo Nº Presupuesto</label>
+            <input type="number" id="config-nPresu" name="number" class="w-full p-3 rounded-xl bg-slate-50 border-2 border-transparent font-bold outline-none">
+            
+            <button type="submit" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase shadow-lg active-scale mt-4 italic tracking-widest text-sm">Guardar Mis Datos ➔</button>
             
             <div class="grid grid-cols-2 gap-2 mt-4 pt-4 border-t">
-                <button onclick="exportarDatos()" class="bg-slate-800 text-white p-3 rounded-xl text-[9px] font-bold uppercase active-scale">📥 Exportar Copia</button>
-                <button onclick="importarDatos()" class="bg-slate-400 text-white p-3 rounded-xl text-[9px] font-bold uppercase active-scale">📤 Importar Copia</button>
+                <button type="button" onclick="exportarDatos()" class="bg-slate-800 text-white p-3 rounded-xl text-[9px] font-bold uppercase active-scale">📥 Exportar Copia</button>
+                <button type="button" onclick="importarDatos()" class="bg-slate-400 text-white p-3 rounded-xl text-[9px] font-bold uppercase active-scale">📤 Importar Copia</button>
             </div>
-        </div>
+        </form>
     </div>
 
     <div id="pantalla-nuevo-cliente" class="hidden p-6 max-w-lg mx-auto">
         <button onclick="irAPantalla('clientes')" class="text-blue-600 font-bold mb-4 uppercase text-xs">← Cancelar</button>
         <h2 class="text-xl font-black italic text-blue-800 uppercase mb-6 text-center">Ficha del Cliente</h2>
-        <div class="space-y-4">
-            <input type="text" id="cli-nombre" placeholder="Nombre Cliente" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none uppercase">
+        <form onsubmit="event.preventDefault(); guardarDatosCliente();" class="space-y-4">
+            <input type="text" id="cli-nombre" name="client-name" autocomplete="name" placeholder="Nombre Cliente" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none uppercase">
             <input type="text" id="cli-cif" placeholder="CIF Cliente" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none uppercase">
-            <input type="tel" id="cli-tel" placeholder="Teléfono" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none">
-            <input type="text" id="cli-dir" placeholder="Dirección" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none uppercase">
-            <button onclick="guardarDatosCliente()" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase shadow-lg active-scale mt-4 italic">Crear Ficha ➔</button>
-        </div>
+            <input type="tel" id="cli-tel" name="client-tel" autocomplete="tel" placeholder="Teléfono" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none">
+            <input type="text" id="cli-dir" name="client-address" autocomplete="street-address" placeholder="Dirección" class="w-full p-5 rounded-3xl border-2 border-white font-bold shadow-sm outline-none uppercase">
+            <button type="submit" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase shadow-lg active-scale mt-4 italic">Crear Ficha ➔</button>
+        </form>
     </div>
 
     <div id="pantalla-expediente" class="hidden p-4 max-w-lg mx-auto">
