@@ -1,7 +1,7 @@
 // MEMORIA Y DATOS
 let db = JSON.parse(localStorage.getItem('presupro_v3')) || { 
     clientes: [], 
-    ajustes: { nombre: '', tel: '', cif: '', dir: '', cp: '', ciudad: '' } 
+    ajustes: { nombre: '', tel: '', cif: '', dir: '', cp: '', ciudad: '', nPresu: 1 } 
 };
 
 let clienteActual = null;
@@ -17,8 +17,6 @@ const CONFIG_MEDIDAS = {
 };
 
 const asegurarGuardado = () => localStorage.setItem('presupro_v3', JSON.stringify(db));
-
-// Función para mostrar números con coma
 const fNum = (n) => n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 window.irAPantalla = (id) => {
@@ -26,7 +24,9 @@ window.irAPantalla = (id) => {
     document.getElementById(`pantalla-${id}`).classList.remove('hidden');
     if (id === 'clientes') renderListaClientes();
     if (id === 'ajustes') {
-        ['nombre','cif','tel','dir','cp','ciudad'].forEach(k => document.getElementById(`config-${k}`).value = db.ajustes[k] || '');
+        ['nombre','cif','tel','dir','cp','ciudad','nPresu'].forEach(k => {
+            document.getElementById(`config-${k}`).value = db.ajustes[k] || (k === 'nPresu' ? 1 : '');
+        });
     }
 };
 
@@ -37,7 +37,8 @@ window.guardarAjustes = () => {
         tel: document.getElementById('config-tel').value,
         dir: document.getElementById('config-dir').value.toUpperCase(),
         cp: document.getElementById('config-cp').value,
-        ciudad: document.getElementById('config-ciudad').value.toUpperCase()
+        ciudad: document.getElementById('config-ciudad').value.toUpperCase(),
+        nPresu: parseInt(document.getElementById('config-nPresu').value) || 1
     };
     asegurarGuardado();
     alert("✅ Configuración Guardada");
@@ -112,7 +113,6 @@ function abrirCalculadora() {
     const conf = CONFIG_MEDIDAS[calcEstado.tipo];
     let txt = calcEstado.modo === 'precio' ? `PRECIO PARA ${calcEstado.tarea}` : (calcEstado.paso === 1 ? conf.m1 : conf.m2);
     document.getElementById('calc-titulo').innerText = txt;
-    // Mostramos la memoria sustituyendo puntos por comas para que sea visual
     document.getElementById('calc-display').innerText = calcEstado.memoria.replace(/\./g, ',') || '0';
     document.getElementById('modal-calc').classList.remove('hidden');
 }
@@ -121,10 +121,7 @@ window.teclear = (n) => {
     const disp = document.getElementById('calc-display');
     if (n === 'OK') {
         let cifra = 0;
-        try { 
-            // Evaluamos la memoria (aquí sí usamos puntos para que el sistema calcule)
-            cifra = eval(calcEstado.memoria) || 0; 
-        } catch(e) { alert("Error en suma"); return; }
+        try { cifra = eval(calcEstado.memoria) || 0; } catch(e) { alert("Error en suma"); return; }
         const conf = CONFIG_MEDIDAS[calcEstado.tipo];
         if (calcEstado.modo === 'medida') {
             if (calcEstado.paso < conf.pasos) {
@@ -143,26 +140,22 @@ window.teclear = (n) => {
             renderMedidas();
         }
     } else if (n === 'DEL') { calcEstado.memoria = ''; disp.innerText = '0'; }
-    else { 
-        // n es el valor del botón. Si es '.', lo guardamos como punto pero el display lo mostrará como coma
-        calcEstado.memoria += n; 
-        disp.innerText = calcEstado.memoria.replace(/\./g, ','); 
-    }
+    else { calcEstado.memoria += n; disp.innerText = calcEstado.memoria.replace(/\./g, ','); }
 };
 
 function renderMedidas() {
     const cont = document.getElementById('lista-medidas-obra');
     const total = obraEnCurso.lineas.reduce((a, b) => a + b.subtotal, 0);
     cont.innerHTML = obraEnCurso.lineas.map(l => `
-        <div class="bg-white p-4 rounded-2xl border flex justify-between items-center mb-2 shadow-sm italic font-bold">
-            <div class="text-[9px] uppercase leading-tight">
+        <div class="bg-white p-4 rounded-2xl border flex justify-between items-center mb-2 shadow-sm italic font-bold text-xs uppercase">
+            <div>
                 <p class="text-blue-800">${l.nombre}</p>
-                <p class="opacity-40">${fNum(l.cantidad)} x ${fNum(l.precio)}€</p>
+                <p class="opacity-40 text-[9px]">${fNum(l.cantidad)} x ${fNum(l.precio)}€</p>
             </div>
             <div class="flex items-center gap-2">
-                <span class="text-xs font-black mr-2">${fNum(l.subtotal)}€</span>
-                <button onclick="editarLinea(${l.id})" class="text-blue-500 bg-blue-50 p-2 rounded-xl text-xs">✏️</button>
-                <button onclick="borrarLinea(${l.id})" class="text-red-400 p-2 rounded-xl bg-red-50 text-xs">✕</button>
+                <span class="font-black">${fNum(l.subtotal)}€</span>
+                <button onclick="editarLinea(${l.id})" class="text-blue-500 bg-blue-50 p-2 rounded-xl">✏️</button>
+                <button onclick="borrarLinea(${l.id})" class="text-red-400 p-2 rounded-xl">✕</button>
             </div>
         </div>`).reverse().join('') + 
         (total > 0 ? `<div class="bg-slate-900 text-green-400 p-6 rounded-[35px] text-center font-black mt-5 shadow-xl">TOTAL: ${fNum(total)}€</div>` : '');
@@ -185,17 +178,21 @@ window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('h
 window.guardarObraCompleta = async () => {
     if (obraEnCurso.lineas.length === 0) return alert("No hay datos");
     const total = obraEnCurso.lineas.reduce((a,b) => a+b.subtotal, 0);
+    const numFactura = `${new Date().getFullYear()}/${String(db.ajustes.nPresu).padStart(3, '0')}`;
+    
     const el = document.createElement('div');
     el.innerHTML = `
         <div style="padding:40px; font-family:sans-serif; color:#333;">
             <div style="display:flex; justify-content:space-between; border-bottom:4px solid #2563eb; padding-bottom:15px; margin-bottom:20px;">
-                <div style="width: 70%;">
+                <div style="width: 60%;">
                     <h1 style="margin:0; color:#2563eb; font-size:24px; font-style:italic;">PRESUPUESTO</h1>
-                    <p style="margin:5px 0 0 0; font-weight:bold; font-size:16px;">${db.ajustes.nombre}</p>
-                    <p style="margin:0; font-size:11px; color:#555;">CIF: ${db.ajustes.cif}</p>
-                    <p style="margin:0; font-size:11px; color:#555;">${db.ajustes.dir}</p>
-                    <p style="margin:0; font-size:11px; color:#555;">${db.ajustes.cp} ${db.ajustes.ciudad}</p>
-                    <p style="margin:0; font-size:11px; color:#555;">TEL: ${db.ajustes.tel}</p>
+                    <p style="margin:5px 0 0 0; font-weight:bold;">${db.ajustes.nombre}</p>
+                    <p style="margin:0; font-size:11px;">CIF: ${db.ajustes.cif}</p>
+                    <p style="margin:0; font-size:11px;">${db.ajustes.dir} - ${db.ajustes.cp} ${db.ajustes.ciudad}</p>
+                </div>
+                <div style="text-align:right;">
+                    <p style="margin:0; font-weight:bold; color:#2563eb;">Nº: ${numFactura}</p>
+                    <p style="margin:0; font-size:11px;">Fecha: ${new Date().toLocaleDateString('es-ES')}</p>
                 </div>
             </div>
             <div style="background:#f8fafc; padding:15px; border-radius:10px; margin-bottom:20px; font-size:12px; border:1px solid #e2e8f0;">
@@ -218,12 +215,16 @@ window.guardarObraCompleta = async () => {
                 <h2 style="margin:0; color:#16a34a; font-size:32px;">TOTAL: ${fNum(total)}€</h2>
             </div>
         </div>`;
-    html2pdf().from(el).set({ margin: 0.5, filename: `Presu_${clienteActual.nombre}.pdf`, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).save();
+    
+    html2pdf().from(el).set({ margin: 0.5, filename: `Presu_${numFactura.replace('/','-')}_${clienteActual.nombre}.pdf`, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).save();
+    
     setTimeout(() => {
         if(confirm("✅ PDF Guardado. ¿WhatsApp?")){
-            window.open(`https://wa.me/?text=*PRESUPUESTO*%0A*Cliente:* ${clienteActual.nombre}%0A*Total:* ${fNum(total)}€`, '_blank');
+            window.open(`https://wa.me/?text=*PRESUPUESTO ${numFactura}*%0A*Total:* ${fNum(total)}€`, '_blank');
         }
-        clienteActual.presupuestos.push({...obraEnCurso, total}); asegurarGuardado(); irAPantalla('expediente');
+        db.ajustes.nPresu++; // Subimos el número para el siguiente
+        clienteActual.presupuestos.push({...obraEnCurso, total, numero: numFactura}); 
+        asegurarGuardado(); irAPantalla('expediente');
     }, 1500);
 };
 
