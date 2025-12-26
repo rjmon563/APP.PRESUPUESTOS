@@ -79,11 +79,47 @@ window.teclear = n => {
 };
 function finalizarMedicion() {
     const d = calcEstado.datos;
+    // Calcula la cantidad final (Largo x Ancho o Total directo)
     let cant = (d.largo !== undefined && d.segundo_dato !== undefined) ? d.largo * d.segundo_dato : (d.total || 0);
+    
     if (cant > 0) {
-        trabajoActual.lineas.push({ tipo: calcEstado.tipo, cantidad: cant, precio: calcEstado.precio, icono: CONFIG[calcEstado.tipo].i, nombre: `${CONFIG[calcEstado.tipo].n} (${calcEstado.concepto})` });
+        // Añadimos la línea al trabajo actual
+        trabajoActual.lineas.push({ 
+            tipo: calcEstado.tipo, 
+            cantidad: cant, 
+            precio: calcEstado.precio, 
+            icono: CONFIG[calcEstado.tipo].i, 
+            nombre: `${CONFIG[calcEstado.tipo].n} (${calcEstado.concepto})` 
+        });
+        
+        // ¡ESTO ES LO IMPORTANTE!: Ordenamos que se pinte el icono y el resultado en la pantalla
         renderListaMedidas();
+        
+        // Limpiamos los datos para la siguiente medida
+        calcEstado.datos = {};
     }
+}
+
+window.renderListaMedidas = () => {
+    const contenedor = document.getElementById('resumen-medidas-pantalla');
+    if (!contenedor) return;
+    
+    // Dibujamos cada línea con su icono (🧱, 🏠, etc.) y el dinero que suma
+    contenedor.innerHTML = trabajoActual.lineas.map((l, i) => `
+        <div class="flex justify-between items-center bg-white p-4 rounded-2xl border mb-2 shadow-sm animate-in fade-in">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">${l.icono}</span>
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-black uppercase text-blue-600">${l.nombre}</span>
+                    <span class="text-[9px] text-slate-400 font-bold">${l.cantidad.toFixed(2)} ${CONFIG[l.tipo].uni} x ${l.precio}€</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="font-black text-slate-700">${(l.cantidad * l.precio).toFixed(2)}€</span>
+                <button onclick="trabajoActual.lineas.splice(${i},1);renderListaMedidas()" class="text-red-400 p-2">✕</button>
+            </div>
+        </div>`).join('');
+};
 }
 
 window.renderPresupuesto = () => {
@@ -133,3 +169,4 @@ window.abrirFirma = () => {
 window.gf = () => { trabajoActual.firma = canvas.toDataURL(); document.getElementById('mf').remove(); renderPresupuesto(); };
 
 window.onload = () => renderListaClientes();
+
