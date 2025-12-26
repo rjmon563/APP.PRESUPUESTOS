@@ -18,7 +18,7 @@ window.nuevoCliente = () => {
     const n = prompt("Nombre del Cliente:");
     if(!n) return;
     const t = prompt("Teléfono:");
-    const d = prompt("Dirección:");
+    const d = prompt("Dirección de la Obra:");
     db.clientes.push({ id: Date.now(), nombre: n.toUpperCase(), telefono: t || "", direccion: d || "", presupuestos: [] });
     save();
     renderListaClientes();
@@ -57,19 +57,29 @@ window.teclear = n => {
 };
 
 window.prepararMedida = tipo => {
-    const p = prompt("Precio:", "0"); if(!p) return;
-    const c = prompt("Lugar:", "Montaje");
+    const p = prompt(`Precio para ${CONFIG[tipo].n}:`, "0"); if(!p) return;
+    const c = prompt("Trabajo realizado (ej: Comedor, Pasillo, Fachada):", "Montaje");
     calcEstado = { tipo: tipo, precio: parseFloat(p.replace(',','.')), valor: '', datos: {}, concepto: c };
     siguientePaso();
 };
 
 function siguientePaso() {
     const t = calcEstado.tipo, d = calcEstado.datos;
-    if (['tabiques','techos','tabicas','cajones','cantoneras'].includes(t)) {
+    
+    if (t === 'techos') {
+        // LÓGICA EXCLUSIVA PARA TECHOS: LARGO X ANCHO
+        if (d.largo === undefined) { calcEstado.campo = 'largo'; abrirCalc("LARGO DEL TECHO"); }
+        else if (d.segundo_dato === undefined) { calcEstado.campo = 'segundo_dato'; abrirCalc("ANCHO DEL TECHO"); }
+        else { finalizarMedicion(); }
+    } 
+    else if (['tabiques','tabicas','cajones','cantoneras'].includes(t)) {
+        // LÓGICA PARA EL RESTO: SUMA TRAMOS X ALTURA
         if (d.largo === undefined) { calcEstado.campo = 'largo'; abrirCalc("SUMA TRAMOS (+)"); }
         else if (d.segundo_dato === undefined) { calcEstado.campo = 'segundo_dato'; abrirCalc("ALTURA"); }
         else { finalizarMedicion(); }
-    } else {
+    } 
+    else {
+        // LÓGICA PARA HORAS
         if (d.total === undefined) { calcEstado.campo = 'total'; abrirCalc("SUMA HORAS (+)"); }
         else { finalizarMedicion(); }
     }
@@ -77,9 +87,18 @@ function siguientePaso() {
 
 function finalizarMedicion() {
     const d = calcEstado.datos;
-    let cant = (d.largo !== undefined && d.segundo_dato !== undefined) ? d.largo * d.segundo_dato : d.total;
-    trabajoActual.lineas.push({ tipo: calcEstado.tipo, cantidad: cant, precio: calcEstado.precio, icono: CONFIG[calcEstado.tipo].i, nombre: `${CONFIG[calcEstado.tipo].n} (${calcEstado.concepto})` });
-    renderListaMedidas();
+    let cant = (d.largo !== undefined && d.segundo_dato !== undefined) ? d.largo * d.segundo_dato : (d.total || 0);
+    if (cant > 0) {
+        trabajoActual.lineas.push({ 
+            tipo: calcEstado.tipo, 
+            cantidad: cant, 
+            precio: calcEstado.precio, 
+            icono: CONFIG[calcEstado.tipo].i, 
+            nombre: `${CONFIG[calcEstado.tipo].n} (${calcEstado.concepto})` 
+        });
+        renderListaMedidas();
+        calcEstado.datos = {};
+    }
 }
 
 window.renderListaMedidas = () => {
@@ -134,15 +153,17 @@ window.renderPresupuesto = () => {
 
 window.abrirCalc = t => { document.getElementById('calc-titulo').innerText = t; document.getElementById('calc-display').innerText = '0'; calcEstado.valor = ''; document.getElementById('modal-calc').classList.remove('hidden'); };
 window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
-window.iniciarNuevaMedicion = () => { const l = prompt("Obra:"); if(l) { trabajoActual = { lugar: l, lineas: [], total: 0 }; irAPantalla('trabajo'); renderListaMedidas(); } };
+window.iniciarNuevaMedicion = () => { const l = prompt("Nombre del Proyecto/Obra:"); if(l) { trabajoActual = { lugar: l, lineas: [], total: 0 }; irAPantalla('trabajo'); renderListaMedidas(); } };
 window.guardarTodo = () => { clienteActual.presupuestos.push(JSON.parse(JSON.stringify(trabajoActual))); save(); irAPantalla('expediente'); renderHistorial(); };
 window.borrarCliente = i => { if(confirm('¿Borrar cliente?')) { db.clientes.splice(i,1); save(); renderListaClientes(); } };
 
 window.generarPDF = i => {
     const p = clienteActual.presupuestos[i];
     const el = document.createElement('div');
-    el.style.padding = '40px';
-    el.innerHTML = `<h1>${p.lugar}</h1><p>Cliente: ${clienteActual.nombre}</p><hr>` + p.lineas.map(l => `<p>${l.nombre}: ${l.cantidad.toFixed(2)} x ${l.precio}€ = ${(l.cantidad*l.precio).toFixed(2)}€</p>`).join('') + `<hr><h2>TOTAL: ${p.total.toFixed(2)}€</h2>`;
+    el.style.padding = '40px'; el.style.fontFamily = 'sans-serif';
+    el.innerHTML = `<h1 style="color:#1e40af">PRESUPUESTO: ${p.lugar}</h1><p><b>Cliente:</b> ${clienteActual.nombre}</p><p><b>Obra:</b> ${clienteActual.direccion}</p><hr>` + 
+        p.lineas.map(l => `<p>${l.nombre}: ${l.cantidad.toFixed(2)} x ${l.precio}€ = <b>${(l.cantidad*l.precio).toFixed(2)}€</b></p>`).join('') +
+        `<hr><h2 style="text-align:right">TOTAL CON IVA: ${p.total.toFixed(2)}€</h2>`;
     html2pdf().from(el).save(`${p.lugar}.pdf`);
 };
 
