@@ -57,15 +57,26 @@ function siguientePaso() {
 
 window.teclear = n => {
     const disp = document.getElementById('calc-display');
-    if (n === 'DEL') calcEstado.valor = calcEstado.valor.slice(0, -1);
-    else if (n === 'OK') {
-        const suma = calcEstado.valor.replace(/,/g, '.').split('+').reduce((a, b) => a + (parseFloat(b) || 0), 0);
-        calcEstado.datos[calcEstado.campo] = suma;
-        cerrarCalc(); siguientePaso(); return;
-    } else { calcEstado.valor += n; }
+    if (n === 'DEL') {
+        calcEstado.valor = calcEstado.valor.toString().slice(0, -1);
+    } else if (n === 'OK') {
+        try {
+            // Esta es la mejora: Calcula la suma de lo que hayas escrito (1+5+8...)
+            const resultado = eval(calcEstado.valor.replace(/,/g, '.'));
+            calcEstado.datos[calcEstado.campo] = resultado;
+            cerrarCalc(); 
+            siguientePaso(); 
+            return;
+        } catch (e) {
+            alert("Operación no válida");
+            calcEstado.valor = "";
+        }
+    } else {
+        // Permite ir acumulando números y el signo +
+        calcEstado.valor += n;
+    }
     disp.innerText = calcEstado.valor || '0';
 };
-
 function finalizarMedicion() {
     const d = calcEstado.datos;
     let cant = (d.largo !== undefined && d.segundo_dato !== undefined) ? d.largo * d.segundo_dato : (d.total || 0);
@@ -120,4 +131,5 @@ window.abrirFirma = () => {
     canvas.ontouchend = () => dibujando = false;
 };
 window.gf = () => { trabajoActual.firma = canvas.toDataURL(); document.getElementById('mf').remove(); renderPresupuesto(); };
+
 window.onload = () => renderListaClientes();
