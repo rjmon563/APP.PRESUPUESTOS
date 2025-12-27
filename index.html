@@ -35,7 +35,7 @@
     <div id="pantalla-clientes" class="p-6 pt-20">
         <h1 class="text-3xl font-black italic text-blue-700 mb-8 uppercase italic">PresuPro</h1>
         <div id="lista-clientes" class="space-y-3"></div>
-        <button onclick="nuevoCliente()" class="fixed bottom-10 right-6 bg-blue-600 text-white w-16 h-16 rounded-[25px] shadow-2xl text-3xl font-bold">+</button>
+        <button onclick="nuevoCliente()" class="fixed bottom-10 right-6 bg-blue-600 text-white w-16 h-16 rounded-[25px] shadow-2xl text-3xl font-bold active-scale">+</button>
     </div>
 
     <div id="pantalla-ajustes" class="hidden p-6 bg-white min-h-screen pt-20">
@@ -43,27 +43,29 @@
         <div class="space-y-3">
             <input id="config-nombre" type="text" placeholder="EMPRESA" class="w-full p-4 bg-slate-100 rounded-2xl">
             <input id="config-cif" type="text" placeholder="CIF" class="w-full p-4 bg-slate-100 rounded-2xl">
-            <input id="config-dir" type="text" placeholder="DIRECCIÓN" class="w-full p-4 bg-slate-100 rounded-2xl">
+            <input id="config-dir" type="text" placeholder="DIRECCIÓN FISCAL" class="w-full p-4 bg-slate-100 rounded-2xl">
             <input id="config-cp" type="text" placeholder="C.P." class="w-full p-4 bg-slate-100 rounded-2xl">
-            <button onclick="guardarAjustes()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black uppercase">Guardar</button>
+            <button onclick="guardarAjustes()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black uppercase shadow-lg">Guardar Configuración</button>
         </div>
     </div>
 
-    <div id="pantalla-nuevo-cliente" class="hidden p-6 bg-white min-h-screen pt-20">
-        <h2 class="text-2xl font-black mb-4 italic uppercase text-blue-700">Nuevo Cliente</h2>
+    <div id="pantalla-nuevo-cliente" class="hidden p-6 bg-white min-h-screen pt-20 pb-20">
+        <h2 class="text-2xl font-black mb-4 italic uppercase text-blue-700">Ficha Nuevo Cliente</h2>
         <div class="space-y-2 mb-6">
-            <input id="cli-nombre" type="text" placeholder="NOMBRE" class="w-full p-4 bg-slate-100 rounded-2xl border">
+            <input id="cli-nombre" type="text" placeholder="NOMBRE COMPLETO" class="w-full p-4 bg-slate-100 rounded-2xl border">
+            <input id="cli-dir" type="text" placeholder="DIRECCIÓN" class="w-full p-4 bg-slate-100 rounded-2xl border">
+            <input id="cli-cp" type="text" placeholder="CÓDIGO POSTAL" class="w-full p-4 bg-slate-100 rounded-2xl border">
             <input id="cli-tel" type="tel" placeholder="TELÉFONO" class="w-full p-4 bg-slate-100 rounded-2xl border">
             <input id="cli-email" type="email" placeholder="EMAIL" class="w-full p-4 bg-slate-100 rounded-2xl border">
         </div>
-        <p class="text-[10px] font-black opacity-50 uppercase mb-2 italic">Precios (€):</p>
+        <p class="text-[10px] font-black opacity-50 uppercase mb-2 italic text-center">Precios de Tarifas (€):</p>
         <div id="tarifas-nuevo-cliente" class="grid grid-cols-2 gap-3 mb-8"></div>
-        <button onclick="guardarDatosCliente()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black uppercase">Crear Cliente</button>
+        <button onclick="guardarDatosCliente()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black uppercase shadow-xl active-scale">Crear y Guardar Cliente</button>
     </div>
 
     <div id="pantalla-trabajo" class="hidden p-6 pb-80 pt-20">
         <h2 id="titulo-obra" class="text-xl font-black text-blue-800 uppercase italic mb-4"></h2>
-        <input id="lugar-trabajo" type="text" placeholder="DIRECCIÓN OBRA..." class="w-full p-4 bg-white rounded-2xl border-2 border-blue-100 shadow-sm font-bold mb-4">
+        <input id="lugar-trabajo" type="text" placeholder="DIRECCIÓN DE LA OBRA..." class="w-full p-4 bg-white rounded-2xl border-2 border-blue-100 shadow-sm font-bold mb-4">
         
         <div class="grid grid-cols-2 gap-2 mb-6">
             <input type="date" id="fecha-obra" class="w-full bg-white p-3 rounded-xl border font-bold text-sm">
@@ -74,7 +76,7 @@
             </select>
         </div>
 
-        <select onchange="if(this.value) abrirCalculadoraObra(this.value); this.value='';" class="w-full p-5 bg-blue-600 text-white rounded-3xl font-black uppercase mb-6 shadow-xl border-4 border-blue-400">
+        <select onchange="if(this.value) abrirCalculadoraObra(this.value); this.value='';" class="w-full p-5 bg-blue-600 text-white rounded-3xl font-black uppercase mb-6 shadow-xl border-4 border-blue-400 active-scale">
             <option value="">+ AÑADIR MEDICIONES Y HORA</option>
             <option value="TABIQUE">TABIQUE (M2)</option>
             <option value="TECHO">TECHO (M2)</option>
