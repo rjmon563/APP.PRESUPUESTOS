@@ -7,119 +7,86 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap');
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         .active-scale:active { transform: scale(0.95); }
         input, select { font-weight: bold; text-transform: uppercase; outline: none; }
+        
+        /* Capas de prioridad */
+        .capa-base { z-index: 10; }
+        .capa-menu { z-index: 100; }
+        .capa-modal { z-index: 9999; background-color: rgba(15, 23, 42, 1); }
+
         .editor-container { background: #1e3a8a; padding: 20px; border-radius: 30px; border: 4px solid #3b82f6; }
         .editor-input { background: transparent; color: white; font-size: 2.5rem; font-weight: 900; width: 100%; text-align: center; border-bottom: 2px dashed #60a5fa; }
     </style>
 </head>
 <body class="bg-slate-50">
 
-    <div id="pantalla-clientes" class="p-6">
+    <button onclick="toggleMenu()" class="fixed top-6 left-6 z-[60] bg-blue-700 text-white p-3 rounded-xl shadow-lg active-scale">
+        ☰
+    </button>
+
+    <div id="menu-lateral" class="fixed inset-y-0 left-0 w-64 bg-slate-900 capa-menu transform -translate-x-full transition-transform duration-300 ease-in-out shadow-2xl">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-10">
+                <h2 class="text-white font-black italic">MENÚ</h2>
+                <button onclick="toggleMenu()" class="text-white text-2xl">✕</button>
+            </div>
+            <nav class="space-y-4">
+                <button onclick="irAPantalla('clientes'); toggleMenu();" class="w-full text-left text-blue-300 font-bold p-3 rounded-lg hover:bg-slate-800 italic">📂 CLIENTES</button>
+                <button onclick="irAPantalla('ajustes'); toggleMenu();" class="w-full text-left text-blue-300 font-bold p-3 rounded-lg hover:bg-slate-800 italic">⚙️ MI EMPRESA</button>
+                <button onclick="alert('Próximamente: Historial de Trabajos')" class="w-full text-left text-slate-500 font-bold p-3 rounded-lg italic text-xs uppercase">📜 HISTORIAL</button>
+            </nav>
+        </div>
+    </div>
+    <div id="capa-oscura" onclick="toggleMenu()" class="hidden fixed inset-0 bg-black/50 z-[90]"></div>
+
+    <div id="pantalla-clientes" class="p-6 pt-20">
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-black italic text-blue-700">PRESU<span class="text-slate-400">PRO</span></h1>
-            <button onclick="irAPantalla('ajustes')" class="bg-white p-3 rounded-2xl shadow-sm border active-scale">⚙️</button>
         </div>
         <div id="lista-clientes" class="space-y-3"></div>
         <button onclick="nuevoCliente()" class="fixed bottom-10 right-6 bg-blue-600 text-white w-16 h-16 rounded-[25px] shadow-2xl text-3xl font-bold active-scale">+</button>
     </div>
 
-    <div id="pantalla-ajustes" class="hidden p-6 bg-white min-h-screen">
-        <button onclick="irAPantalla('clientes')" class="mb-6 font-black text-blue-600 uppercase">← Volver</button>
+    <div id="pantalla-ajustes" class="hidden p-6 bg-white min-h-screen pt-20">
         <h2 class="text-2xl font-black mb-6 italic uppercase">Datos de mi Empresa</h2>
         <div class="space-y-3">
             <input id="config-nombre" type="text" placeholder="TU NOMBRE / EMPRESA" class="w-full p-4 bg-slate-100 rounded-2xl">
             <input id="config-cif" type="text" placeholder="TU CIF / NIF" class="w-full p-4 bg-slate-100 rounded-2xl">
             <input id="config-dir" type="text" placeholder="DIRECCIÓN" class="w-full p-4 bg-slate-100 rounded-2xl">
             <input id="config-cp" type="text" placeholder="CÓDIGO POSTAL" class="w-full p-4 bg-slate-100 rounded-2xl">
-            <button onclick="guardarAjustes()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black shadow-lg mt-4 active-scale">GUARDAR</button>
+            <button onclick="guardarAjustes()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black shadow-lg mt-4 active-scale">GUARDAR DATOS</button>
         </div>
     </div>
 
-    <div id="pantalla-nuevo-cliente" class="hidden p-6 bg-white min-h-screen">
-        <button onclick="irAPantalla('clientes')" class="mb-6 font-black text-blue-600 uppercase">← Cancelar</button>
-        <h2 class="text-2xl font-black mb-6 italic uppercase">Nuevo Cliente</h2>
+    <div id="pantalla-nuevo-cliente" class="hidden p-6 bg-white min-h-screen pt-20">
+        <h2 class="text-2xl font-black mb-4 italic uppercase">Nuevo Cliente</h2>
         <div class="space-y-2 mb-6">
-            <input id="cli-nombre" type="text" placeholder="NOMBRE COMPLETO" class="w-full p-4 bg-slate-100 rounded-2xl border border-slate-200">
-            <input id="cli-cif" type="text" placeholder="DNI / CIF" class="w-full p-4 bg-slate-100 rounded-2xl border border-slate-200">
-            <input id="cli-cp" type="text" placeholder="CÓDIGO POSTAL" class="w-full p-4 bg-slate-100 rounded-2xl border border-slate-200">
-            <input id="cli-tel" type="tel" placeholder="TELÉFONO" class="w-full p-4 bg-slate-100 rounded-2xl border border-slate-200">
+            <input id="cli-nombre" type="text" placeholder="NOMBRE COMPLETO" class="w-full p-4 bg-slate-100 rounded-2xl border">
+            <input id="cli-cif" type="text" placeholder="DNI / CIF" class="w-full p-4 bg-slate-100 rounded-2xl border">
+            <input id="cli-dir" type="text" placeholder="DIRECCIÓN FISCAL" class="w-full p-4 bg-slate-100 rounded-2xl border">
+            <input id="cli-cp" type="text" placeholder="C.P. CLIENTE" class="w-full p-4 bg-slate-100 rounded-2xl border">
+            <input id="cli-tel" type="tel" placeholder="TELÉFONO" class="w-full p-4 bg-slate-100 rounded-2xl border">
         </div>
-        
-        <p class="text-[10px] font-black opacity-40 uppercase mb-3">Precios Pactados (Toca para calcular):</p>
+        <p class="text-[10px] font-black opacity-40 uppercase mb-3">Toca para poner el precio pactado:</p>
         <div id="tarifas-nuevo-cliente" class="grid grid-cols-2 gap-3 mb-8"></div>
-
-        <button onclick="guardarDatosCliente()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black shadow-lg uppercase active-scale">GUARDAR CLIENTE</button>
+        <button onclick="guardarDatosCliente()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black shadow-lg active-scale">CREAR CLIENTE</button>
     </div>
 
-    <div id="pantalla-trabajo" class="hidden p-6 pb-48">
-        <div class="flex justify-between items-center mb-4">
-            <h2 id="titulo-obra" class="text-xl font-black text-blue-800 uppercase italic"></h2>
-            <button onclick="irAPantalla('clientes')" class="font-bold text-slate-400">INICIO</button>
+    <div id="pantalla-trabajo" class="hidden p-6 pb-64 pt-20">
+        <h2 id="titulo-obra" class="text-xl font-black text-blue-800 uppercase italic mb-4"></h2>
+        
+        <div class="mb-6">
+            <p class="text-[10px] font-black opacity-40 uppercase mb-1 italic text-blue-600">Lugar donde se realiza el trabajo:</p>
+            <input id="lugar-trabajo" type="text" placeholder="DIRECCIÓN DE LA OBRA..." class="w-full p-4 bg-white rounded-2xl border-2 border-blue-100 shadow-sm font-bold">
         </div>
 
         <div class="grid grid-cols-2 gap-2 mb-6">
             <div class="bg-white p-3 rounded-xl border">
-                <p class="text-[10px] font-black opacity-40 uppercase">FECHA</p>
-                <input type="date" id="fecha-obra" class="w-full text-sm">
+                <p class="text-[10px] font-black opacity-40 uppercase text-center">FECHA</p>
+                <input type="date" id="fecha-obra" class="w-full text-sm text-center">
             </div>
             <div class="bg-white p-3 rounded-xl border">
                 <p class="text-[10px] font-black opacity-40 uppercase text-center">IVA</p>
-                <select id="iva-select" onchange="actualizarTotalFinal()" class="w-full text-blue-600 text-center font-black">
-                    <option value="21">21%</option>
-                    <option value="10">10%</option>
-                    <option value="0">0%</option>
-                </select>
-            </div>
-        </div>
-
-        <select onchange="abrirCalculadoraMedida(this.value); this.value='';" class="w-full p-5 bg-blue-600 text-white rounded-3xl font-black uppercase mb-6 shadow-xl border-4 border-blue-400">
-            <option value="">+ AÑADIR TRABAJO...</option>
-            <option value="TABIQUE">TABIQUE (M2)</option>
-            <option value="TECHO">TECHO (M2)</option>
-            <option value="CAJÓN">CAJÓN (0.60)</option>
-            <option value="TABICA">TABICA (0.60)</option>
-            <option value="CANTONERA">CANTONERA (ML)</option>
-            <option value="HORAS">HORAS ADMIN</option>
-        </select>
-
-        <div id="lista-medidas" class="space-y-2 mb-8"></div>
-
-        <div class="editor-container shadow-2xl">
-            <p class="text-blue-200 text-[10px] font-black mb-2 text-center italic">PRECIO FINAL (PUEDES EDITARLO)</p>
-            <div class="flex items-center">
-                <input type="text" id="total-final-corregible" class="editor-input">
-                <span class="text-white text-3xl font-black ml-2">€</span>
-            </div>
-            <p id="desglose-info" class="text-blue-300 text-[9px] text-center mt-3 font-bold uppercase"></p>
-        </div>
-
-        <div class="fixed bottom-6 left-6 right-6 grid grid-cols-3 gap-2">
-            <button onclick="enviar('pdf')" class="bg-green-500 text-white py-5 rounded-2xl font-black shadow-lg italic">PDF</button>
-            <button onclick="enviar('ws')" class="bg-blue-500 text-white py-5 rounded-2xl font-black shadow-lg italic">W-APP</button>
-            <button onclick="enviar('email')" class="bg-slate-800 text-white py-5 rounded-2xl font-black shadow-lg italic">EMAIL</button>
-        </div>
-    </div>
-
-    <div id="modal-calculadora" class="hidden fixed inset-0 bg-slate-900/98 z-[100] p-6 flex flex-col justify-center">
-        <h3 id="calc-titulo" class="text-blue-400 text-3xl font-black italic mb-8 uppercase text-center"></h3>
-        <div class="space-y-6">
-            <div>
-                <p id="label-m1" class="text-white/40 text-[10px] font-black mb-2 uppercase italic">Medida / Precio (5,5+8+2...)</p>
-                <input id="calc-input-1" type="text" class="w-full bg-white/10 p-6 rounded-3xl text-white text-5xl font-black border-2 border-blue-500 text-center" placeholder="0">
-            </div>
-            <div id="div-m2">
-                <p class="text-white/40 text-[10px] font-black mb-2 uppercase italic">Multiplicar por (Alto/Ancho)</p>
-                <input id="calc-input-2" type="text" class="w-full bg-white/10 p-6 rounded-3xl text-white text-5xl font-black border-2 border-blue-500 text-center" placeholder="0">
-            </div>
-            <div class="flex gap-3 pt-6">
-                <button onclick="cerrarCalculadora()" class="flex-1 bg-slate-800 text-white p-6 rounded-[30px] font-black uppercase">Cerrar</button>
-                <button id="btn-aceptar-calc" class="flex-1 bg-green-500 text-slate-900 p-6 rounded-[30px] font-black uppercase italic shadow-xl text-xl">ACEPTAR</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="app.js"></script>
-</body>
-</html>
+                <select id="iva-select" onchange="actualizarTotalFinal()" class="w-
