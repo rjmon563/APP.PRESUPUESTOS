@@ -89,4 +89,62 @@
             </div>
             <div class="bg-white p-3 rounded-xl border">
                 <p class="text-[10px] font-black opacity-40 uppercase text-center">IVA</p>
-                <select id="iva-select" onchange="actualizarTotalFinal()" class="w-
+                <select id="iva-select" onchange="actualizarTotalFinal()" class="w-full font-black text-blue-600 text-center">
+                    <option value="21">21%</option>
+                    <option value="10">10%</option>
+                    <option value="0">0%</option>
+                </select>
+            </div>
+        </div>
+
+        <select onchange="if(this.value) abrirCalculadoraMedida(this.value); this.value='';" class="w-full p-5 bg-blue-600 text-white rounded-3xl font-black uppercase mb-6 shadow-xl border-4 border-blue-400">
+            <option value="">+ AÑADIR TRABAJO...</option>
+            <option value="TABIQUE">TABIQUE (M2)</option>
+            <option value="TECHO">TECHO (M2)</option>
+            <option value="CAJÓN">CAJÓN (0.60)</option>
+            <option value="TABICA">TABICA (0.60)</option>
+            <option value="CANTONERA">CANTONERA (ML)</option>
+            <option value="HORAS">HORAS ADMIN</option>
+        </select>
+
+        <div id="lista-medidas" class="space-y-2 mb-8"></div>
+
+        <div class="editor-container shadow-2xl">
+            <p class="text-blue-200 text-[10px] font-black mb-2 text-center uppercase italic">Precio Final Rectificable</p>
+            <div class="flex items-center">
+                <input type="text" id="total-final-corregible" class="editor-input">
+                <span class="text-white text-3xl font-black ml-2">€</span>
+            </div>
+            <p id="desglose-info" class="text-blue-300 text-[9px] text-center mt-3 font-bold uppercase"></p>
+        </div>
+
+        <div class="fixed bottom-6 left-6 right-6 grid grid-cols-3 gap-2">
+            <button onclick="enviar('pdf')" class="bg-green-500 text-white py-5 rounded-2xl font-black italic shadow-lg active-scale">PDF</button>
+            <button onclick="enviar('ws')" class="bg-blue-500 text-white py-5 rounded-2xl font-black italic shadow-lg active-scale">W-APP</button>
+            <button onclick="enviar('email')" class="bg-slate-800 text-white py-5 rounded-2xl font-black italic shadow-lg active-scale">EMAIL</button>
+        </div>
+    </div>
+
+    <div id="modal-calculadora" class="hidden fixed inset-0 flex flex-col p-6 capa-modal">
+        <div class="flex-grow flex flex-col justify-center">
+            <h3 id="calc-titulo" class="text-blue-400 text-3xl font-black italic mb-10 uppercase text-center"></h3>
+            <div class="space-y-8">
+                <div>
+                    <p class="text-white/40 text-[10px] font-black mb-2 uppercase text-center italic">CANTIDAD / SUMA (5,5+10...)</p>
+                    <input id="calc-input-1" type="text" class="w-full bg-white/5 p-8 rounded-3xl text-white text-5xl font-black border-2 border-blue-500 text-center" placeholder="0">
+                </div>
+                <div id="div-m2">
+                    <p class="text-white/40 text-[10px] font-black mb-2 uppercase text-center italic">POR (ALTO/ANCHO)</p>
+                    <input id="calc-input-2" type="text" class="w-full bg-white/5 p-8 rounded-3xl text-white text-5xl font-black border-2 border-blue-500 text-center" placeholder="0">
+                </div>
+            </div>
+        </div>
+        <div class="flex gap-4 mb-10">
+            <button onclick="cerrarCalculadora()" class="flex-1 bg-slate-800 text-white p-6 rounded-[30px] font-black uppercase">Cancelar</button>
+            <button id="btn-aceptar-calc" class="flex-1 bg-green-500 text-slate-900 p-6 rounded-[30px] font-black italic text-xl">ACEPTAR</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
