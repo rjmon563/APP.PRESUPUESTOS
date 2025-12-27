@@ -12,7 +12,6 @@
         .active-scale:active { transform: scale(0.95); }
         input, select { font-weight: bold; text-transform: uppercase; outline: none; }
         .editor-container { background: #1e3a8a; padding: 20px; border-radius: 30px; border: 3px solid #3b82f6; }
-        /* Cambiamos a type="text" para que el móvil permita poner comas más fácilmente */
         .editor-input { background: transparent; color: white; font-size: 2.5rem; font-weight: 900; width: 100%; text-align: center; border-bottom: 2px dashed #60a5fa; }
     </style>
 </head>
@@ -21,21 +20,52 @@
     <div id="pantalla-clientes" class="p-6">
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-black italic text-blue-700">PRESU<span class="text-slate-400">PRO</span></h1>
-            <button onclick="irAPantalla('ajustes')" class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200">⚙️</button>
+            <button onclick="irAPantalla('ajustes')" class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 active-scale">⚙️</button>
         </div>
         <div id="lista-clientes" class="space-y-3"></div>
-        <button onclick="nuevoCliente()" class="fixed bottom-10 right-6 bg-blue-600 text-white w-16 h-16 rounded-[25px] shadow-2xl text-3xl font-bold">+</button>
+        <button onclick="nuevoCliente()" class="fixed bottom-10 right-6 bg-blue-600 text-white w-16 h-16 rounded-[25px] shadow-2xl text-3xl font-bold active-scale">+</button>
+    </div>
+
+    <div id="pantalla-ajustes" class="hidden p-6 bg-white min-h-screen">
+        <button onclick="irAPantalla('clientes')" class="mb-6 font-black text-blue-600 uppercase">← Volver</button>
+        <h2 class="text-2xl font-black mb-6 italic uppercase">Datos de mi Empresa</h2>
+        <div class="space-y-3">
+            <input id="config-nombre" type="text" placeholder="TU NOMBRE / EMPRESA" class="w-full p-4 bg-slate-100 rounded-2xl">
+            <input id="config-cif" type="text" placeholder="TU CIF / NIF" class="w-full p-4 bg-slate-100 rounded-2xl">
+            <input id="config-dir" type="text" placeholder="DIRECCIÓN FISCAL" class="w-full p-4 bg-slate-100 rounded-2xl">
+            <div class="flex gap-2">
+                <input id="config-cp" type="text" placeholder="CP" class="w-1/3 p-4 bg-slate-100 rounded-2xl">
+                <input id="config-ciudad" type="text" placeholder="CIUDAD" class="w-2/3 p-4 bg-slate-100 rounded-2xl">
+            </div>
+            <button onclick="guardarAjustes()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black shadow-lg uppercase mt-4 active-scale">Guardar Ajustes</button>
+        </div>
+    </div>
+
+    <div id="pantalla-nuevo-cliente" class="hidden p-6 bg-white min-h-screen">
+        <button onclick="irAPantalla('clientes')" class="mb-6 font-black text-blue-600 uppercase">← Cancelar</button>
+        <h2 class="text-2xl font-black mb-6 italic uppercase">Nuevo Cliente</h2>
+        <div class="space-y-3">
+            <input id="cli-nombre" type="text" placeholder="NOMBRE CLIENTE" class="w-full p-4 bg-slate-100 rounded-2xl">
+            <input id="cli-tel" type="tel" placeholder="TELÉFONO WHATSAPP" class="w-full p-4 bg-slate-100 rounded-2xl">
+            <input id="cli-email" type="email" placeholder="EMAIL" class="w-full p-4 bg-slate-100 rounded-2xl">
+            <input id="cli-dir" type="text" placeholder="DIRECCIÓN CLIENTE" class="w-full p-4 bg-slate-100 rounded-2xl">
+            
+            <p class="text-[10px] font-black opacity-40 uppercase mt-4">Precios Pactados (€)</p>
+            <div id="tarifas-nuevo-cliente" class="grid grid-cols-2 gap-2">
+                </div>
+            <button onclick="guardarDatosCliente()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black shadow-lg uppercase mt-6 active-scale">Crear Cliente</button>
+        </div>
     </div>
 
     <div id="pantalla-trabajo" class="hidden p-6 pb-48">
         <div class="flex justify-between items-center mb-4">
             <h2 id="titulo-obra" class="text-xl font-black text-blue-800 uppercase italic"></h2>
-            <button onclick="irAPantalla('clientes')" class="font-bold p-2 text-slate-400">VOLVER</button>
+            <button onclick="irAPantalla('clientes')" class="font-bold p-2 text-slate-400">INICIO</button>
         </div>
 
         <div class="grid grid-cols-2 gap-2 mb-6">
             <div class="bg-white p-3 rounded-xl border">
-                <p class="text-[10px] font-black opacity-40">IVA</p>
+                <p class="text-[10px] font-black opacity-40 uppercase">IVA</p>
                 <select id="iva-select" onchange="renderMedidas()" class="w-full text-sm">
                     <option value="21">21%</option>
                     <option value="10">10%</option>
@@ -43,7 +73,7 @@
                 </select>
             </div>
             <div class="bg-white p-3 rounded-xl border">
-                <p class="text-[10px] font-black opacity-40">FECHA</p>
+                <p class="text-[10px] font-black opacity-40 uppercase">FECHA</p>
                 <input type="date" id="fecha-obra" class="w-full text-sm">
             </div>
         </div>
@@ -52,8 +82,8 @@
             <option value="">+ AÑADIR TRABAJO...</option>
             <option value="TABIQUE">TABIQUE (M2)</option>
             <option value="TECHO">TECHO (M2)</option>
-            <option value="CAJÓN">CAJÓN (REGLA 0.60)</option>
-            <option value="TABICA">TABICA (REGLA 0.60)</option>
+            <option value="CAJÓN">CAJÓN (0,60)</option>
+            <option value="TABICA">TABICA (0,60)</option>
             <option value="CANTONERA">CANTONERA (ML)</option>
             <option value="HORAS">HORAS ADMIN</option>
         </select>
@@ -61,7 +91,7 @@
         <div id="lista-medidas" class="space-y-2 mb-8"></div>
 
         <div class="editor-container shadow-2xl">
-            <p class="text-blue-200 text-[10px] font-black mb-2 text-center uppercase italic">Presupuesto Final (Editable)</p>
+            <p class="text-blue-200 text-[10px] font-black mb-2 text-center uppercase italic">Precio Final corregible</p>
             <div class="flex items-center">
                 <input type="text" id="total-final-corregible" class="editor-input">
                 <span class="text-white text-3xl font-black ml-2">€</span>
@@ -71,7 +101,7 @@
 
         <div class="fixed bottom-6 left-6 right-6 grid grid-cols-3 gap-2">
             <button onclick="enviar('pdf')" class="bg-green-500 text-white py-5 rounded-2xl font-black shadow-lg">PDF</button>
-            <button onclick="enviar('ws')" class="bg-blue-500 text-white py-5 rounded-2xl font-black shadow-lg">WS</button>
+            <button onclick="enviar('ws')" class="bg-blue-500 text-white py-5 rounded-2xl font-black shadow-lg">W-APP</button>
             <button onclick="enviar('email')" class="bg-slate-800 text-white py-5 rounded-2xl font-black shadow-lg">EMAIL</button>
         </div>
     </div>
@@ -84,12 +114,12 @@
                 <input id="calc-input-1" type="text" class="w-full bg-white/10 p-6 rounded-2xl text-white text-4xl font-black border-2 border-blue-500/30" placeholder="0">
             </div>
             <div id="div-m2">
-                <p class="text-white/40 text-[10px] font-black mb-2 uppercase">Alto / Ancho</p>
+                <p class="text-white/40 text-[10px] font-black mb-2 uppercase tracking-widest">Alto / Ancho</p>
                 <input id="calc-input-2" type="text" class="w-full bg-white/10 p-6 rounded-2xl text-white text-4xl font-black border-2 border-blue-500/30" placeholder="0">
             </div>
             <div class="flex gap-3 pt-4">
-                <button onclick="cerrarCalculadora()" class="flex-1 bg-slate-700 text-white p-6 rounded-3xl font-black uppercase">Cancelar</button>
-                <button onclick="procesarCalculo()" class="flex-1 bg-green-500 text-slate-900 p-6 rounded-3xl font-black uppercase italic">Aceptar</button>
+                <button onclick="cerrarCalculadora()" class="flex-1 bg-slate-700 text-white p-6 rounded-3xl font-black uppercase active-scale">Cerrar</button>
+                <button onclick="procesarCalculo()" class="flex-1 bg-green-500 text-slate-900 p-6 rounded-3xl font-black uppercase italic active-scale shadow-xl">Aceptar</button>
             </div>
         </div>
     </div>
