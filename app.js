@@ -139,4 +139,76 @@ function abrirCalculadoraMedida(tipo) {
         let cant = 0; let uni = "m²";
 
         if (tipo === 'CANTONERA') { cant = v1; uni = "ml"; }
-        else if (
+        else if (tipo === 'HORAS') { cant = v1; uni = "h"; }
+        else if (tipo === 'CAJÓN' || tipo === 'TABICA') {
+            // Regla del 0,60: si uno es menor de 0.60, se cobra el lado largo como lineal
+            if (v1 <= 0.60 || v2 <= 0.60) {
+                cant = (v1 > v2) ? v1 : v2; 
+                uni = "ml";
+            } else {
+                cant = v1 * v2;
+            }
+        } else {
+            cant = v1 * v2; // Tabiques y Techos
+        }
+
+        const precioU = clienteActual.tarifas[tipo] || 0;
+        medidasObra.push({ tipo, cant, uni, precio: precioU, sub: cant * precioU });
+        
+        cerrarCalculadora();
+        renderMedidas();
+    };
+}
+
+// --- 7. RENDERIZADO DE TRABAJOS Y TOTALES ---
+
+function abrirExpediente(id) {
+    clienteActual = clientes.find(c => c.id === id);
+    document.getElementById('titulo-obra').innerText = clienteActual.nombre;
+    medidasObra = [];
+    document.getElementById('fecha-obra').valueAsDate = new Date();
+    renderMedidas();
+    irAPantalla('trabajo');
+}
+
+function renderMedidas() {
+    const lista = document.getElementById('lista-medidas');
+    lista.innerHTML = medidasObra.map((m, i) => `
+        <div class="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center border-l-8 border-blue-600 mb-2">
+            <p class="font-black text-xs uppercase text-slate-500">${m.tipo}</p>
+            <div class="text-right">
+                <p class="font-black text-lg text-slate-800">${aComa(m.cant)} ${m.uni}</p>
+                <p class="text-[9px] font-bold opacity-30">${aComa(m.sub)}€</p>
+            </div>
+            <button onclick="medidasObra.splice(${i},1); renderMedidas();" class="ml-4 text-red-500 font-black p-2">✕</button>
+        </div>
+    `).join('');
+    actualizarTotalFinal();
+}
+
+function actualizarTotalFinal() {
+    const base = medidasObra.reduce((acc, m) => acc + m.sub, 0);
+    const total = base * 1.21; // IVA 21% por defecto para el editor
+    
+    // EDITOR FINAL CORREGIBLE
+    document.getElementById('total-final-corregible').value = aComa(total);
+    document.getElementById('desglose-info').innerText = `BASE: ${aComa(base)}€ + IVA`;
+}
+
+function cerrarCalculadora() { 
+    document.getElementById('modal-calculadora').classList.add('hidden'); 
+}
+
+// --- 8. ENVÍO ---
+function enviar(modo) {
+    const totalFinal = document.getElementById('total-final-corregible').value;
+    const msg = `Presupuesto de ${ajustes.nombre} para ${clienteActual.nombre}. CIF: ${clienteActual.cif}. TOTAL: ${totalFinal}€.`;
+    
+    if(modo === 'ws') {
+        window.open(`https://wa.me/${clienteActual.tel}?text=${encodeURIComponent(msg)}`);
+    } else {
+        alert("FUNCIÓN PDF PRÓXIMAMENTE - Total: " + totalFinal + "€");
+    }
+}
+
+window.onload = () => renderClientes();
