@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PresuPro</title>
-    <link rel="manifest" href="manifest.json">
+    <title>PresuPro - Antonio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
@@ -12,9 +11,11 @@
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         .active-scale:active { transform: scale(0.95); }
         canvas { touch-action: none; cursor: crosshair; }
+        .input-pro { width: 100%; padding: 1rem; background: #f1f5f9; border-radius: 1rem; font-weight: bold; text-transform: uppercase; outline: none; border: 2px solid transparent; }
+        .input-pro:focus { border-color: #3b82f6; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 select-none">
+<body class="bg-slate-50 text-slate-900">
 
     <div id="pantalla-clientes" class="min-h-screen p-6">
         <div class="flex justify-between items-center mb-8">
@@ -26,98 +27,102 @@
     </div>
 
     <div id="pantalla-nuevo-cliente" class="hidden min-h-screen p-6 bg-white">
-        <button onclick="irAPantalla('clientes')" class="mb-6 text-blue-600 font-bold">← Volver</button>
+        <button onclick="irAPantalla('clientes')" class="mb-6 text-blue-600 font-bold font-black">← VOLVER</button>
         <h2 class="text-2xl font-black mb-6 italic uppercase">Nuevo Cliente</h2>
-        <div class="space-y-4">
-            <input id="cli-nombre" type="text" placeholder="NOMBRE DEL CLIENTE" class="w-full p-4 bg-slate-100 rounded-2xl font-bold uppercase outline-none">
-            <input id="cli-dir" type="text" placeholder="DIRECCIÓN DEL CLIENTE" class="w-full p-4 bg-slate-100 rounded-2xl font-bold uppercase outline-none">
-            
-            <p class="text-[10px] font-black opacity-40 uppercase mt-4">Precios pactados con este cliente (€)</p>
-            <div id="tarifas-nuevo-cliente" class="grid grid-cols-2 gap-2">
-                </div>
-            
-            <button onclick="guardarDatosCliente()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black shadow-lg uppercase italic mt-4">Guardar Cliente</button>
+        <div class="space-y-3">
+            <input id="cli-nombre" type="text" placeholder="NOMBRE / EMPRESA" class="input-pro">
+            <input id="cli-cif" type="text" placeholder="CIF / NIF" class="input-pro">
+            <input id="cli-tel" type="tel" placeholder="TELÉFONO" class="input-pro">
+            <input id="cli-dir" type="text" placeholder="DIRECCIÓN" class="input-pro">
+            <div class="flex gap-2">
+                <input id="cli-cp" type="text" placeholder="CP" class="input-pro w-1/3">
+                <input id="cli-ciudad" type="text" placeholder="CIUDAD" class="input-pro w-2/3">
+            </div>
+            <p class="text-[10px] font-black opacity-40 uppercase mt-4">Precios pactados (€)</p>
+            <div id="tarifas-nuevo-cliente" class="grid grid-cols-2 gap-2"></div>
+            <button onclick="guardarDatosCliente()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black shadow-lg uppercase mt-4">Guardar Cliente</button>
         </div>
     </div>
 
     <div id="pantalla-expediente" class="hidden min-h-screen p-6">
-        <button onclick="irAPantalla('clientes')" class="mb-4 text-blue-600 font-bold">← Inicio</button>
+        <button onclick="irAPantalla('clientes')" class="mb-4 text-blue-600 font-black">← INICIO</button>
         <div id="ficha-cliente-detalle"></div>
+        <div class="mt-6">
+            <p class="text-[10px] font-black opacity-30 mb-2 uppercase">Presupuestos Anteriores</p>
+            <div id="historial-obras" class="space-y-2"></div>
+        </div>
         <div class="mt-8 p-6 bg-slate-200 rounded-[40px]">
-            <input id="input-nombre-obra" type="text" placeholder="NOMBRE DE LA OBRA" class="w-full p-4 bg-white rounded-2xl mb-3 font-bold uppercase shadow-sm outline-none">
-            <button onclick="confirmarNombreObra()" class="w-full bg-slate-900 text-white p-5 rounded-3xl font-black uppercase italic shadow-lg">Nueva Medición</button>
+            <input id="input-nombre-obra" type="text" placeholder="NOMBRE DE LA NUEVA OBRA" class="input-pro mb-3 shadow-sm">
+            <button onclick="confirmarNombreObra()" class="w-full bg-slate-900 text-white p-5 rounded-3xl font-black uppercase italic shadow-lg">Empezar Medición</button>
         </div>
     </div>
 
-    <div id="pantalla-trabajo" class="hidden min-h-screen p-6 pb-32">
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h2 id="titulo-obra-actual" class="text-xl font-black italic text-blue-800 uppercase leading-none"></h2>
-                <input type="date" id="fecha-trabajo-actual" class="mt-2 text-[11px] font-bold border-none bg-slate-200 p-2 rounded-lg text-blue-700 outline-none">
-            </div>
-            <button onclick="irAPantalla('clientes')" class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200">✕</button>
+    <div id="pantalla-trabajo" class="hidden min-h-screen p-6 pb-44">
+        <div class="flex justify-between items-center mb-4">
+            <h2 id="titulo-obra-actual" class="text-xl font-black italic text-blue-800 uppercase leading-none"></h2>
+            <button onclick="irAPantalla('clientes')" class="bg-white p-3 rounded-2xl shadow-sm border">✕</button>
         </div>
+        <input type="date" id="fecha-trabajo-actual" class="mb-4 w-full p-4 bg-blue-50 rounded-2xl font-bold text-blue-700 outline-none">
 
-        <div class="bg-white p-4 rounded-[30px] shadow-sm mb-6 border border-slate-100">
-            <p class="text-[10px] font-black opacity-30 mb-2 uppercase">Seleccionar Trabajo</p>
-            <select id="selector-trabajo" onchange="prepararMedida(this.value); this.value='';" class="w-full p-4 bg-slate-50 rounded-2xl font-black text-blue-600 uppercase outline-none border-none">
-                <option value="">-- Elige un trabajo --</option>
-                <option value="TABIQUE">Tabique</option>
-                <option value="TECHO">Techo</option>
-                <option value="CAJÓN">Cajón</option>
-                <option value="TABICA">Tabica</option>
-                <option value="CANTONERA">Cantonera</option>
-                <option value="HORAS">Horas</option>
-            </select>
+        <select id="selector-trabajo" onchange="abrirCalculadoraCali(this.value); this.value='';" class="w-full p-5 bg-white border-2 border-blue-100 rounded-3xl font-black text-blue-600 uppercase mb-6 outline-none shadow-sm">
+            <option value="">+ AÑADIR TRABAJO...</option>
+            <option value="TABIQUE">TABIQUE (M2)</option>
+            <option value="TECHO">TECHO (M2)</option>
+            <option value="CAJÓN">CAJÓN (REGLA 0,60)</option>
+            <option value="TABICA">TABICA (REGLA 0,60)</option>
+            <option value="CANTONERA">CANTONERA (ML)</option>
+            <option value="HORAS">HORAS ADMINISTRACIÓN</option>
+        </select>
+
+        <div id="lista-medidas-obra" class="space-y-2"></div>
+
+        <div class="mt-6 p-6 bg-blue-700 rounded-[35px] text-white shadow-xl">
+            <p class="text-[10px] font-black opacity-50 uppercase mb-1">Total Presupuesto Ajustable (€)</p>
+            <input id="total-presupuesto-editable" type="number" step="0.01" class="bg-transparent text-4xl font-black w-full outline-none">
         </div>
-
-        <div id="lista-medidas-obra" class="space-y-2 mb-6"></div>
 
         <div class="mt-6 p-4 bg-white rounded-[30px] border-2 border-dashed border-slate-200">
-            <p class="text-[10px] font-black opacity-30 uppercase mb-2 text-center">Firma del Cliente</p>
+            <p class="text-[10px] font-black opacity-30 uppercase mb-2 text-center text-slate-400 font-black">Firma del Cliente</p>
             <canvas id="canvas-firma" class="w-full h-40 bg-slate-50 rounded-2xl"></canvas>
-            <button onclick="limpiarFirma()" class="text-[9px] font-black text-red-400 uppercase mt-2 w-full text-center">Borrar Firma</button>
+            <button onclick="limpiarFirma()" class="text-[9px] font-black text-red-400 uppercase mt-2 w-full">Borrar Firma</button>
         </div>
         
-        <button onclick="guardarObraCompleta()" class="fixed bottom-6 left-6 right-6 bg-green-500 text-white p-5 rounded-3xl font-black shadow-2xl uppercase italic">Guardar e Imprimir PDF</button>
+        <div class="fixed bottom-6 left-6 right-6 flex gap-3">
+            <button onclick="guardarObraCompleta('pdf')" class="flex-1 bg-green-500 text-white p-5 rounded-[25px] font-black shadow-2xl uppercase italic active-scale">PDF</button>
+            <button onclick="guardarObraCompleta('ws')" class="flex-1 bg-blue-500 text-white p-5 rounded-[25px] font-black shadow-2xl uppercase italic active-scale">WhatsApp</button>
+        </div>
+    </div>
+
+    <div id="modal-calculadora-pro" class="hidden fixed inset-0 bg-slate-900/95 backdrop-blur-md z-50 flex flex-col p-6">
+        <div class="flex justify-between items-center text-white mb-8 pt-10">
+            <h3 id="calc-pro-titulo" class="text-2xl font-black italic uppercase">TRABAJO</h3>
+            <button onclick="cerrarCalcPro()" class="text-3xl font-black">✕</button>
+        </div>
+        <div class="space-y-6">
+            <div>
+                <p id="label-paso-1" class="text-white/40 text-[10px] font-black uppercase mb-2 tracking-widest">LARGO (m)</p>
+                <input id="calc-val-1" type="number" step="0.01" class="w-full bg-white/10 p-6 rounded-3xl text-white text-6xl font-black outline-none border-2 border-white/10 focus:border-blue-500">
+            </div>
+            <div id="contenedor-paso-2">
+                <p id="label-paso-2" class="text-white/40 text-[10px] font-black uppercase mb-2 tracking-widest">ALTO / ANCHO (m)</p>
+                <input id="calc-val-2" type="number" step="0.01" class="w-full bg-white/10 p-6 rounded-3xl text-white text-6xl font-black outline-none border-2 border-white/10 focus:border-blue-500">
+            </div>
+            <button onclick="confirmarCalculoPro()" class="w-full bg-green-500 p-8 rounded-[40px] text-2xl font-black italic uppercase shadow-xl active-scale">Añadir Medida</button>
+        </div>
     </div>
 
     <div id="pantalla-ajustes" class="hidden min-h-screen p-6 bg-slate-100">
-        <button onclick="irAPantalla('clientes')" class="mb-6 font-bold text-blue-600">← Volver</button>
-        <h2 class="text-2xl font-black mb-6 italic uppercase">Mi Empresa</h2>
+        <button onclick="irAPantalla('clientes')" class="mb-6 text-blue-600 font-black font-black">← VOLVER</button>
+        <h2 class="text-2xl font-black mb-6 italic uppercase">Datos Fiscales Empresa</h2>
         <div class="space-y-3">
-            <input id="config-nombre" type="text" placeholder="NOMBRE COMERCIAL" class="w-full p-4 rounded-2xl border-none font-bold uppercase shadow-sm outline-none">
-            <input id="config-cif" type="text" placeholder="CIF / NIF" class="w-full p-4 rounded-2xl border-none font-bold uppercase shadow-sm outline-none">
-            <input id="config-dir" type="text" placeholder="DIRECCIÓN FISCAL" class="w-full p-4 rounded-2xl border-none font-bold uppercase shadow-sm outline-none">
+            <input id="config-nombre" type="text" placeholder="TU NOMBRE / EMPRESA" class="input-pro shadow-sm">
+            <input id="config-cif" type="text" placeholder="TU CIF / NIF" class="input-pro shadow-sm">
+            <input id="config-dir" type="text" placeholder="DIRECCIÓN FISCAL" class="input-pro shadow-sm">
             <div class="flex gap-2">
-                <input id="config-cp" type="text" placeholder="CP" class="w-1/3 p-4 rounded-2xl border-none font-bold uppercase shadow-sm outline-none">
-                <input id="config-ciudad" type="text" placeholder="CIUDAD" class="w-2/3 p-4 rounded-2xl border-none font-bold uppercase shadow-sm outline-none">
+                <input id="config-cp" type="text" placeholder="CP" class="input-pro w-1/3">
+                <input id="config-ciudad" type="text" placeholder="CIUDAD" class="input-pro w-2/3">
             </div>
-            <button onclick="guardarAjustes()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black uppercase italic shadow-lg mt-4">Guardar Datos</button>
-        </div>
-    </div>
-
-    <div id="modal-calc" class="hidden fixed inset-0 bg-slate-900/95 backdrop-blur-md z-50 flex flex-col justify-end p-6">
-        <div class="mb-auto pt-10 text-center">
-            <h3 id="calc-titulo" class="text-white/40 text-sm font-black uppercase italic mb-2">Medida</h3>
-            <div id="calc-display" class="text-white text-7xl font-black italic break-all leading-tight">0</div>
-        </div>
-        <div class="grid grid-cols-4 gap-3">
-            <button onclick="teclear('7')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">7</button>
-            <button onclick="teclear('8')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">8</button>
-            <button onclick="teclear('9')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">9</button>
-            <button onclick="teclear('DEL')" class="bg-red-500/20 text-red-500 p-6 rounded-3xl text-xl font-black">C</button>
-            <button onclick="teclear('4')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">4</button>
-            <button onclick="teclear('5')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">5</button>
-            <button onclick="teclear('6')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">6</button>
-            <button onclick="teclear('+')" class="bg-blue-600 text-white p-6 rounded-3xl text-3xl font-black">+</button>
-            <button onclick="teclear('1')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">1</button>
-            <button onclick="teclear('2')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">2</button>
-            <button onclick="teclear('3')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">3</button>
-            <button onclick="cerrarCalc()" class="bg-white/5 text-white p-6 rounded-3xl text-xl font-black italic">SALIR</button>
-            <button onclick="teclear('0')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">0</button>
-            <button onclick="teclear('.')" class="bg-white/10 text-white p-6 rounded-3xl text-3xl font-black">,</button>
-            <button onclick="teclear('OK')" class="col-span-2 bg-green-500 text-slate-900 p-6 rounded-3xl text-2xl font-black">OK</button>
+            <button onclick="guardarAjustes()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black uppercase mt-4">Guardar Datos Empresa</button>
         </div>
     </div>
 
