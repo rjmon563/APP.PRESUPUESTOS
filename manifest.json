@@ -1,12 +1,10 @@
 {
-  "name": "PresupuestosPro",
-  "short_name": "PresupuestosPro",
-  "description": "Presupuestos, mediciones y agenda profesional",
-  "start_url": "./index.html",
+  "name": "PresuPro",
+  "short_name": "PresuPro",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#1e40af",
-  "orientation": "portrait",
+  "theme_color": "#1d4ed8",
   "icons": [
     {
       "src": "icon-192.png",
@@ -14,9 +12,10 @@
       "type": "image/png"
     },
     {
-      "src": "icon-512.jpg",
+      "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
