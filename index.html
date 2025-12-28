@@ -3,24 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor de Presupuestos - Antonio Chacón</title>
+    <title>Gestor de Presupuestos | Panel de Control</title>
     <style>
-        /* Estilos base para mantener la estructura */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f7f6; }
-        .main-header { padding: 15px 20px; border-bottom: 2px solid #eee; backgroundColor: #ffffff; }
-        .header-container { display: flex; justify-content: space-between; align-items: center; max-width: 1300px; margin: 0 auto; }
-        .header-left { display: flex; align-items: center; gap: 15px; }
-        .header-left img { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; }
-        .header-left h1 { margin: 0; font-size: 1.4rem; font-weight: bold; color: #1a1a1a; }
-        .header-left small { color: #28a745; font-weight: 500; }
-        .header-actions { display: flex; gap: 12px; }
-        .btn-editor { padding: 10px 18px; border-radius: 6px; border: 1px solid #ccc; background: #f9f9f9; cursor: pointer; font-weight: 500; }
-        .btn-save { padding: 10px 18px; border-radius: 6px; border: none; background: #0056b3; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        /* Estilos base para asegurar que la estructura no se rompa */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #1c1e21;
+        }
+
+        /* Contenedor principal donde se inyectará la App */
+        #app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Estilo para el contenido dinámico (lo que ya tenías funcionando) */
+        #main-content {
+            padding: 20px;
+            max-width: 1300px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Botones de la cabecera (mejorados visualmente pero con la misma función) */
+        .header-btn {
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .header-btn:hover {
+            transform: translateY(-1px);
+            filter: brightness(95%);
+        }
+
+        .header-btn:active {
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
-    <div id="root">
+
+    <div id="app">
+        <div style="text-align: center; padding: 50px; color: #666;">
+            Cargando sistema de presupuestos...
         </div>
+    </div>
+
     <script src="app.js"></script>
+
 </body>
 </html>
