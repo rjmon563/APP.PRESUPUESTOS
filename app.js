@@ -41,9 +41,7 @@ window.teclear = (n) => {
     } else if (n === 'OK') {
         let vF = parseFloat(calcEstado.memoria.replace(',', '.')) || 0;
         let res = calcEstado.acumulado + vF;
-        
         calcEstado.historialSuma = [];
-
         if (calcEstado.modo === 'medida') {
             const conf = CONFIG_MEDIDAS[calcEstado.tipo];
             if (calcEstado.paso < conf.pasos) { 
@@ -53,16 +51,7 @@ window.teclear = (n) => {
                 calcEstado.modo = 'precio'; calcEstado.memoria = ''; calcEstado.acumulado = 0; abrirCalculadora(); 
             }
         } else {
-            const l = { 
-                id: calcEstado.editandoId || Date.now(), 
-                tipo: calcEstado.tipo, 
-                tarea: calcEstado.tarea, 
-                zona: calcEstado.zona, 
-                nombre: `${CONFIG_MEDIDAS[calcEstado.tipo].i} ${calcEstado.tarea} - ${calcEstado.zona}`, 
-                cantidad: calcEstado.totalMetros, 
-                precio: res, 
-                subtotal: calcEstado.totalMetros * res 
-            };
+            const l = { id: calcEstado.editandoId || Date.now(), tipo: calcEstado.tipo, tarea: calcEstado.tarea, zona: calcEstado.zona, nombre: `${CONFIG_MEDIDAS[calcEstado.tipo].i} ${calcEstado.tarea} - ${calcEstado.zona}`, cantidad: calcEstado.totalMetros, precio: res, subtotal: calcEstado.totalMetros * res };
             if (calcEstado.editandoId) {
                 const idx = obraEnCurso.lineas.findIndex(x => x.id === calcEstado.editandoId);
                 obraEnCurso.lineas[idx] = l;
@@ -70,59 +59,38 @@ window.teclear = (n) => {
             document.getElementById('modal-calc').classList.add('hidden'); renderMedidas();
         }
     } else if (n === 'DEL') { 
-        if (calcEstado.memoria !== '') {
-            calcEstado.memoria = ''; 
-        } else if (calcEstado.historialSuma.length > 0) {
+        if (calcEstado.memoria !== '') { calcEstado.memoria = ''; } 
+        else if (calcEstado.historialSuma.length > 0) {
             let ultimoDato = calcEstado.historialSuma.pop();
             calcEstado.acumulado -= ultimoDato;
             calcEstado.memoria = ultimoDato.toString().replace('.', ',');
-        } else {
-            calcEstado.acumulado = 0;
-        }
+        } else { calcEstado.acumulado = 0; }
         actualizarDisplay(); 
     } else if (n === '.') {
         if (!calcEstado.memoria.includes(',')) calcEstado.memoria += (calcEstado.memoria === '' ? '0,' : ',');
         actualizarDisplay();
-    } else { 
-        calcEstado.memoria += n; 
-        actualizarDisplay(); 
-    }
+    } else { calcEstado.memoria += n; actualizarDisplay(); }
 };
 
 function actualizarDisplay() {
     let visual = calcEstado.memoria || '0';
-    let textoHistorial = calcEstado.acumulado > 0 ? 
-        `<span class="text-xs opacity-50 italic">Acumulado: ${fNum(calcEstado.acumulado)} +</span><br>` : '';
+    let textoHistorial = calcEstado.acumulado > 0 ? `<span class="text-xs opacity-50 italic">Acumulado: ${fNum(calcEstado.acumulado)} +</span><br>` : '';
     document.getElementById('calc-display').innerHTML = textoHistorial + visual;
 }
 
 // ==========================================
-// 3. EDICIÓN TOTAL (MEDIDA + PRECIO)
+// 3. EDICIÓN DE LÍNEAS
 // ==========================================
 window.editarLinea = (id) => {
     const l = obraEnCurso.lineas.find(x => x.id === id);
     if (!l) return;
-
-    calcEstado = { 
-        tipo: l.tipo, 
-        paso: 1, 
-        v1: 0, 
-        v2: 0, 
-        memoria: l.cantidad.toString().replace('.', ','), 
-        acumulado: 0, 
-        zona: l.zona, 
-        tarea: l.tarea, 
-        modo: 'medida', 
-        totalMetros: l.cantidad, 
-        editandoId: id, 
-        historialSuma: [] 
-    };
+    calcEstado = { tipo: l.tipo, paso: 1, v1: 0, v2: 0, memoria: l.cantidad.toString().replace('.', ','), acumulado: 0, zona: l.zona, tarea: l.tarea, modo: 'medida', totalMetros: l.cantidad, editandoId: id, historialSuma: [] };
     abrirCalculadora();
     document.getElementById('calc-titulo').innerText = `EDITAR MEDIDA: ${l.tarea}`;
 };
 
 // ==========================================
-// 4. CLIENTES Y EXPEDIENTE
+// 4. CLIENTES Y EXPEDIENTE (CON BORRADO INDIVIDUAL)
 // ==========================================
 window.irAPantalla = (id) => {
     document.querySelectorAll('[id^="pantalla-"]').forEach(p => p.classList.add('hidden'));
@@ -141,21 +109,22 @@ window.renderListaClientes = () => {
 window.guardarDatosCliente = () => {
     const nom = document.getElementById('cli-nombre').value.trim();
     if (!nom) return alert("Nombre?");
-    db.clientes.push({ 
-        id: Date.now(), nombre: nom.toUpperCase(), 
-        cif: document.getElementById('cli-cif').value.toUpperCase(), 
-        tel: document.getElementById('cli-tel').value, 
-        dir: document.getElementById('cli-dir').value.toUpperCase(),
-        cp: document.getElementById('cli-cp').value.toUpperCase(),
-        presupuestos: [] 
-    });
+    db.clientes.push({ id: Date.now(), nombre: nom.toUpperCase(), cif: document.getElementById('cli-cif').value.toUpperCase(), tel: document.getElementById('cli-tel').value, dir: document.getElementById('cli-dir').value.toUpperCase(), cp: document.getElementById('cli-cp').value.toUpperCase(), presupuestos: [] });
     asegurarGuardado(); irAPantalla('clientes');
 };
 
 window.borrarCliente = (id) => {
-    if (confirm("¿BORRAR EXPEDIENTE?")) {
+    if (confirm("¿BORRAR EXPEDIENTE COMPLETO?")) {
         db.clientes = db.clientes.filter(c => c.id !== id);
         asegurarGuardado(); irAPantalla('clientes');
+    }
+};
+
+window.borrarPresupuestoIndividual = (idPresu) => {
+    if (confirm("¿Eliminar solo este presupuesto?")) {
+        clienteActual.presupuestos = clienteActual.presupuestos.filter(p => p.id !== idPresu);
+        asegurarGuardado();
+        abrirExpediente(clienteActual.id);
     }
 };
 
@@ -171,9 +140,12 @@ window.abrirExpediente = (id) => {
         <div class="space-y-2 mb-4">
             <p class="text-[9px] font-black opacity-40 ml-2 uppercase">Historial</p>
             ${historial.map(p => `
-                <div onclick="verPresupuestoGuardado(${p.id})" class="bg-white p-4 rounded-2xl border shadow-sm flex justify-between items-center active:scale-95 transition-all">
-                    <div><p class="text-[10px] font-bold">#${p.numero} - ${p.nombreObra}</p><p class="text-[8px] opacity-40">${p.fecha}</p></div>
-                    <p class="text-xs font-black text-blue-600">${fNum(p.total)}€</p>
+                <div class="flex items-center gap-2 mb-2">
+                    <div onclick="verPresupuestoGuardado(${p.id})" class="flex-1 bg-white p-4 rounded-2xl border shadow-sm flex justify-between items-center active:scale-95 transition-all cursor-pointer">
+                        <div><p class="text-[10px] font-bold">#${p.numero} - ${p.nombreObra}</p><p class="text-[8px] opacity-40">${p.fecha}</p></div>
+                        <p class="text-xs font-black text-blue-600">${fNum(p.total)}€</p>
+                    </div>
+                    <button onclick="borrarPresupuestoIndividual(${p.id})" class="bg-red-50 text-red-500 p-4 rounded-2xl border border-red-100 active:scale-90">🗑️</button>
                 </div>
             `).reverse().join('') || '<p class="text-center opacity-30 text-[10px] py-4">Sin presupuestos</p>'}
         </div>
