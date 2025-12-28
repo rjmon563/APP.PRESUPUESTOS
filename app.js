@@ -1,4 +1,27 @@
 // ==========================================
+// 0. CONFIGURACIÓN VISUAL (LOGO)
+// ==========================================
+const LOGO_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."; // Tu código Base64 aquí
+
+function renderHeader() {
+    const headerElement = document.getElementById('header-app');
+    if (headerElement) {
+        headerElement.innerHTML = `
+            <header class="bg-white border-b-2 p-4 flex justify-between items-center mb-4">
+                <div class="flex items-center gap-3">
+                    <img src="${LOGO_BASE64}" class="w-10 h-10 rounded-lg shadow-sm">
+                    <h1 class="font-black italic text-slate-800 uppercase text-lg">PresuPro</h1>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="irAPantalla('clientes')" class="text-[10px] font-black border p-2 rounded-lg bg-slate-50 active-scale">INICIO</button>
+                    <button onclick="irAPantalla('ajustes')" class="text-[10px] font-black border p-2 rounded-lg bg-slate-50 active-scale">⚙️</button>
+                </div>
+            </header>
+        `;
+    }
+}
+
+// ==========================================
 // 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
 let db = JSON.parse(localStorage.getItem('presupro_v3')) || { 
@@ -41,7 +64,7 @@ window.irAPantalla = (id) => {
 };
 
 // ==========================================
-// 3. LÓGICA DE CALCULADORA (IGUAL)
+// 3. LÓGICA DE CALCULADORA
 // ==========================================
 window.teclear = (n) => {
     if (n === '+') {
@@ -93,7 +116,7 @@ function actualizarDisplay() {
 }
 
 // ==========================================
-// 4. CLIENTES Y EXPEDIENTE (BORDES AZULES)
+// 4. CLIENTES Y EXPEDIENTE
 // ==========================================
 window.renderListaClientes = () => {
     const cont = document.getElementById('lista-clientes');
@@ -125,7 +148,6 @@ window.abrirExpediente = (id) => {
             <textarea oninput="guardarNotas(${clienteActual.id}, this.value)" class="w-full bg-transparent border-none outline-none font-bold text-sm h-20 resize-none" placeholder="Anotaciones importantes...">${clienteActual.notas}</textarea>
         </div>
         <div class="space-y-2 mb-4">
-            <p class="text-[9px] font-black opacity-40 ml-2 uppercase tracking-widest">Historial</p>
             ${historial.map(p => `
                 <div class="flex items-center gap-2 mb-2">
                     <div onclick="verPresupuestoGuardado(${p.id})" class="flex-1 bg-white p-4 rounded-2xl border shadow-sm flex justify-between items-center active:scale-95 transition-all cursor-pointer border-l-4 border-l-blue-400">
@@ -157,7 +179,7 @@ window.confirmarNombreObra = () => {
 };
 
 // ==========================================
-// 6. RENDER TRABAJO Y PDF (CON EDITOR)
+// 6. RENDER TRABAJO Y PDF
 // ==========================================
 window.renderMedidas = () => {
     const cont = document.getElementById('lista-medidas-obra');
@@ -185,19 +207,13 @@ window.guardarObraCompleta = async () => {
     if (obraEnCurso.lineas.length === 0) return alert("Añade medidas");
     const inputEditor = document.getElementById('total-editable');
     const totalFinal = inputEditor ? parseFloat(inputEditor.value.replace(/\./g, '').replace(',', '.')) : 0;
-    const fechaManual = document.getElementById('fecha-obra').value;
-    const nuevoPresu = { id: Date.now(), numero: db.ajustes.nPresu, fecha: fechaManual ? new Date(fechaManual).toLocaleDateString() : new Date().toLocaleDateString(), nombreObra: obraEnCurso.nombre, lineas: [...obraEnCurso.lineas], iva: obraEnCurso.iva, total: totalFinal };
+    const nuevoPresu = { id: Date.now(), numero: db.ajustes.nPresu, fecha: new Date().toLocaleDateString(), nombreObra: obraEnCurso.nombre, lineas: [...obraEnCurso.lineas], iva: obraEnCurso.iva, total: totalFinal };
     if (!clienteActual.presupuestos) clienteActual.presupuestos = [];
     clienteActual.presupuestos.push(nuevoPresu);
     db.ajustes.nPresu++; asegurarGuardado();
     const element = document.getElementById('pantalla-trabajo');
     const opt = { margin: 10, filename: `Presu_${nuevoPresu.numero}.pdf`, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-    try {
-        const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
-        const file = new File([pdfBlob], `Presu_${nuevoPresu.numero}.pdf`, { type: 'application/pdf' });
-        if (navigator.share) { await navigator.share({ files: [file], title: 'Presupuesto', text: 'Adjunto envío presupuesto.' }); } 
-        else { html2pdf().set(opt).from(element).save(); }
-    } catch (e) { html2pdf().set(opt).from(element).save(); }
+    html2pdf().set(opt).from(element).save();
     abrirExpediente(clienteActual.id);
 };
 
@@ -214,7 +230,7 @@ window.renderCalendario = () => {
     const primerDia = new Date(fechaCal.getFullYear(), fechaCal.getMonth(), 1).getDay();
     const diasMes = new Date(fechaCal.getFullYear(), fechaCal.getMonth() + 1, 0).getDate();
     let ajuste = (primerDia === 0 ? 6 : primerDia - 1);
-    grid.innerHTML = ['L','M','X','J','V','S','D'].map(d => `<div class="text-[8px] font-black opacity-20 py-3">${d}</div>`).join('');
+    grid.innerHTML = ['L','M','X','J','V','S','D'].map(d => `<div class="text-[8px] font-black opacity-20 py-3 text-center">${d}</div>`).join('');
     for(let i=0; i<ajuste; i++) grid.innerHTML += `<div></div>`;
     if(!db.agenda) db.agenda = {};
     for(let d=1; d<=diasMes; d++) {
@@ -232,8 +248,7 @@ window.selDia = (id) => {
 };
 
 window.guardarEventoDia = () => {
-    let t = document.getElementById('nota-dia').value;
-    if(t.trim()==="") delete db.agenda[diaSel]; else db.agenda[diaSel] = t;
+    db.agenda[diaSel] = document.getElementById('nota-dia').value;
     asegurarGuardado(); renderCalendario();
 };
 
@@ -243,22 +258,29 @@ window.cambiarMes = (n) => { fechaCal.setMonth(fechaCal.getMonth()+n); renderCal
 // 8. AUXILIARES
 // ==========================================
 window.renderBotones = () => { document.getElementById('botones-trabajo').innerHTML = Object.keys(CONFIG_MEDIDAS).map(k => `<button onclick="prepararMedida('${k}')" class="bg-white p-6 rounded-[30px] border flex flex-col items-center active-scale shadow-sm"><span class="text-3xl mb-1">${CONFIG_MEDIDAS[k].i}</span><span class="text-[9px] font-black uppercase opacity-60">${CONFIG_MEDIDAS[k].n}</span></button>`).join(''); };
-window.prepararMedida = (t) => { const zona = prompt("¿ZONA?", "GENERAL"); if (!zona) return; const tarea = (t === 'horas') ? prompt("¿CONCEPTO?", "ADMINISTRACIÓN") : prompt("¿TRABAJO?", "MONTAJE"); if (!tarea) return; calcEstado = { tipo: t, paso: 1, v1: 0, v2: 0, memoria: '', acumulado: 0, zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), modo: 'medida', editandoId: null, historialSuma: [] }; abrirCalculadora(); };
-function abrirCalculadora() { const conf = CONFIG_MEDIDAS[calcEstado.tipo]; document.getElementById('calc-titulo').innerText = calcEstado.modo === 'precio' ? `PRECIO PARA ${calcEstado.tarea}` : (calcEstado.paso === 1 ? conf.m1 : conf.m2); actualizarDisplay(); document.getElementById('modal-calc').classList.remove('hidden'); }
-window.borrarLinea = (id) => { if(confirm("¿Eliminar?")) { obraEnCurso.lineas = obraEnCurso.lineas.filter(x => x.id !== id); renderMedidas(); } };
-window.cambiarIVA = (valor) => { obraEnCurso.iva = valor; document.querySelectorAll('.iva-btn').forEach(btn => { btn.classList.remove('bg-blue-600', 'text-white'); btn.classList.add('bg-slate-100'); }); const b = document.getElementById(`btn-iva-${valor}`); if(b) { b.classList.replace('bg-slate-100', 'bg-blue-600'); b.classList.add('text-white'); } renderMedidas(); };
-window.guardarAjustes = () => { db.ajustes = { nombre: document.getElementById('config-nombre').value.toUpperCase(), cif: document.getElementById('config-cif').value.toUpperCase(), tel: document.getElementById('config-tel').value, dir: document.getElementById('config-dir').value.toUpperCase(), cp: document.getElementById('config-cp').value, ciudad: document.getElementById('config-ciudad').value.toUpperCase(), nPresu: parseInt(document.getElementById('config-nPresu').value) || 1 }; asegurarGuardado(); alert("Guardado"); irAPantalla('clientes'); };
+window.prepararMedida = (t) => { const zona = prompt("¿ZONA?", "GENERAL"); if (!zona) return; calcEstado = { tipo: t, paso: 1, v1: 0, v2: 0, memoria: '', acumulado: 0, zona: zona.toUpperCase(), tarea: 'MONTAJE', modo: 'medida', editandoId: null, historialSuma: [] }; abrirCalculadora(); };
+function abrirCalculadora() { const conf = CONFIG_MEDIDAS[calcEstado.tipo]; document.getElementById('calc-titulo').innerText = calcEstado.modo === 'precio' ? `PRECIO` : (calcEstado.paso === 1 ? conf.m1 : conf.m2); actualizarDisplay(); document.getElementById('modal-calc').classList.remove('hidden'); }
 window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
 window.nuevoCliente = () => irAPantalla('nuevo-cliente');
 window.borrarCliente = (id) => { if (confirm("¿BORRAR?")) { db.clientes = db.clientes.filter(c => c.id !== id); asegurarGuardado(); irAPantalla('clientes'); } };
-window.borrarPresupuestoIndividual = (idPresu) => { if (confirm("¿Eliminar?")) { clienteActual.presupuestos = clienteActual.presupuestos.filter(p => p.id !== idPresu); asegurarGuardado(); abrirExpediente(clienteActual.id); } };
-window.verPresupuestoGuardado = (idPresu) => { const p = clienteActual.presupuestos.find(x => x.id === idPresu); if (!p) return; obraEnCurso = { nombre: p.nombreObra, lineas: JSON.parse(JSON.stringify(p.lineas)), iva: p.iva || 21, fotos: [] }; document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre; irAPantalla('trabajo'); renderBotones(); renderMedidas(); };
+window.cambiarIVA = (valor) => { obraEnCurso.iva = valor; renderMedidas(); };
+window.guardarAjustes = () => { db.ajustes = { nombre: document.getElementById('config-nombre').value.toUpperCase(), cif: document.getElementById('config-cif').value.toUpperCase(), tel: document.getElementById('config-tel').value, dir: document.getElementById('config-dir').value.toUpperCase(), cp: document.getElementById('config-cp').value, ciudad: document.getElementById('config-ciudad').value.toUpperCase(), nPresu: parseInt(document.getElementById('config-nPresu').value) || 1 }; asegurarGuardado(); irAPantalla('clientes'); };
 
 window.editarLinea = (id) => {
     const l = obraEnCurso.lineas.find(x => x.id === id);
     if (!l) return;
     calcEstado = { tipo: l.tipo, paso: 1, v1: 0, v2: 0, memoria: l.cantidad.toString().replace('.', ','), acumulado: 0, zona: l.zona, tarea: l.tarea, modo: 'medida', totalMetros: l.cantidad, editandoId: id, historialSuma: [] };
     abrirCalculadora();
+};
+
+window.borrarLinea = (id) => { if(confirm("¿Eliminar?")) { obraEnCurso.lineas = obraEnCurso.lineas.filter(x => x.id !== id); renderMedidas(); } };
+
+window.verPresupuestoGuardado = (idPresu) => {
+    const p = clienteActual.presupuestos.find(x => x.id === idPresu);
+    if (!p) return;
+    obraEnCurso = { nombre: p.nombreObra, lineas: JSON.parse(JSON.stringify(p.lineas)), iva: p.iva || 21, fotos: [] };
+    document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre;
+    irAPantalla('trabajo'); renderBotones(); renderMedidas();
 };
 
 window.calcularResumenIVA = () => {
@@ -276,37 +298,16 @@ window.calcularResumenIVA = () => {
         }
     });
     cont.innerHTML = `
-        <div class="flex justify-between items-center text-[11px]"><span class="opacity-50 font-bold uppercase">Base Total:</span><span class="font-black text-slate-800">${fNum(totales.base)}€</span></div>
-        <div class="flex justify-between items-center text-blue-700 text-[11px]"><span class="font-bold uppercase">IVA 21%:</span><span class="font-black">${fNum(totales.iva21)}€</span></div>
-        <div class="flex justify-between items-center text-green-700 text-[11px]"><span class="font-bold uppercase">IVA 10%:</span><span class="font-black">${fNum(totales.iva10)}€</span></div>
+        <div class="flex justify-between items-center text-[11px] font-bold"><span class="opacity-50">Base Total:</span><span>${fNum(totales.base)}€</span></div>
+        <div class="flex justify-between items-center text-blue-700 text-[11px] font-bold"><span>IVA 21%:</span><span>${fNum(totales.iva21)}€</span></div>
+        <div class="flex justify-between items-center text-green-700 text-[11px] font-bold"><span>IVA 10%:</span><span>${fNum(totales.iva10)}€</span></div>
     `;
 };
 
-window.exportarDatos = () => {
-    const dataStr = JSON.stringify(db, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    const exportFileDefaultName = `PRESUPRO_BACKUP_${new Date().toISOString().slice(0,10)}.json`;
-    let linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
+// ==========================================
+// ONLOAD: CARGA DE APP
+// ==========================================
+window.onload = () => {
+    renderHeader();
+    renderListaClientes();
 };
-
-window.importarDatos = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const json = JSON.parse(e.target.result);
-            if (json.clientes) {
-                if (confirm("¿IMPORTAR COPIA? Se borrarán los datos actuales.")) {
-                    db = json; asegurarGuardado(); location.reload();
-                }
-            }
-        } catch (err) { alert("Archivo no válido"); }
-    };
-    reader.readAsText(file);
-};
-
-window.onload = () => renderListaClientes();
