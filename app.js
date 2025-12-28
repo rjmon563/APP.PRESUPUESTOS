@@ -1,11 +1,10 @@
 // ==========================================
 // 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
-// Mantenemos tu estructura y añadimos 'agenda' para que no de error
 let db = JSON.parse(localStorage.getItem('presupro_v3')) || { 
     clientes: [], 
     ajustes: { nombre: '', tel: '', cif: '', dir: '', cp: '', ciudad: '', nPresu: 1 },
-    agenda: {} // Añadido para el calendario
+    agenda: {}
 };
 
 let clienteActual = null;
@@ -29,7 +28,19 @@ const fNum = (n) => Number(n).toLocaleString('es-ES', { minimumFractionDigits: 2
 const asegurarGuardado = () => localStorage.setItem('presupro_v3', JSON.stringify(db));
 
 // ==========================================
-// 2. LÓGICA DE CALCULADORA (TUYA ORIGINAL)
+// 2. NAVEGACIÓN (CORREGIDA)
+// ==========================================
+window.irAPantalla = (id) => {
+    document.querySelectorAll('[id^="pantalla-"]').forEach(p => p.classList.add('hidden'));
+    const p = document.getElementById(`pantalla-${id}`);
+    if(p) p.classList.remove('hidden');
+    
+    if (id === 'clientes') renderListaClientes();
+    if (id === 'calendario') renderCalendario();
+};
+
+// ==========================================
+// 3. LÓGICA DE CALCULADORA (RESGUARDADA)
 // ==========================================
 window.teclear = (n) => {
     if (n === '+') {
@@ -81,27 +92,8 @@ function actualizarDisplay() {
 }
 
 // ==========================================
-// 3. EDICIÓN DE LÍNEAS (TUYA ORIGINAL)
+// 4. CLIENTES, EXPEDIENTE Y NOTAS
 // ==========================================
-window.editarLinea = (id) => {
-    const l = obraEnCurso.lineas.find(x => x.id === id);
-    if (!l) return;
-    calcEstado = { tipo: l.tipo, paso: 1, v1: 0, v2: 0, memoria: l.cantidad.toString().replace('.', ','), acumulado: 0, zona: l.zona, tarea: l.tarea, modo: 'medida', totalMetros: l.cantidad, editandoId: id, historialSuma: [] };
-    abrirCalculadora();
-    document.getElementById('calc-titulo').innerText = `EDITAR MEDIDA: ${l.tarea}`;
-};
-
-// ==========================================
-// 4. CLIENTES Y EXPEDIENTE (MODIFICADO SOLO PARA NOTAS)
-// ==========================================
-window.irAPantalla = (id) => {
-    document.querySelectorAll('[id^="pantalla-"]').forEach(p => p.classList.add('hidden'));
-    const p = document.getElementById(`pantalla-${id}`);
-    if(p) p.classList.remove('hidden');
-    if (id === 'clientes') renderListaClientes();
-    if (id === 'calendario') renderCalendario(); // Lanzar calendario
-};
-
 window.renderListaClientes = () => {
     const cont = document.getElementById('lista-clientes');
     if(!cont) return;
@@ -112,46 +104,27 @@ window.renderListaClientes = () => {
 window.guardarDatosCliente = () => {
     const nom = document.getElementById('cli-nombre').value.trim();
     if (!nom) return alert("Nombre?");
-    db.clientes.push({ 
-        id: Date.now(), 
-        nombre: nom.toUpperCase(), 
-        cif: document.getElementById('cli-cif').value.toUpperCase(), 
-        tel: document.getElementById('cli-tel').value, 
-        dir: document.getElementById('cli-dir').value.toUpperCase(), 
-        cp: document.getElementById('cli-cp').value.toUpperCase(), 
-        presupuestos: [],
-        notas: "" // Espacio para notas
-    });
+    db.clientes.push({ id: Date.now(), nombre: nom.toUpperCase(), cif: document.getElementById('cli-cif').value.toUpperCase(), tel: document.getElementById('cli-tel').value, dir: document.getElementById('cli-dir').value.toUpperCase(), cp: document.getElementById('cli-cp').value.toUpperCase(), presupuestos: [], notas: "" });
     asegurarGuardado(); irAPantalla('clientes');
-};
-
-// NUEVA FUNCIÓN PARA NOTAS
-window.guardarNotas = (id, texto) => {
-    const c = db.clientes.find(x => x.id === id);
-    if(c) { c.notas = texto; asegurarGuardado(); }
 };
 
 window.abrirExpediente = (id) => {
     clienteActual = db.clientes.find(x => x.id === id);
     if (!clienteActual) return;
-    if (clienteActual.notas === undefined) clienteActual.notas = ""; // Seguridad
-    
     const historial = clienteActual.presupuestos || [];
+    if (clienteActual.notas === undefined) clienteActual.notas = "";
+
     document.getElementById('ficha-cliente-detalle').innerHTML = `
         <div class="bg-blue-600 text-white p-7 rounded-[40px] italic shadow-lg mb-4">
             <h2 class="text-xl font-black uppercase mb-1">${clienteActual.nombre}</h2>
             <p class="text-[10px] opacity-80 uppercase">${clienteActual.dir} ${clienteActual.cp || ''}</p>
         </div>
-
-        <div class="bg-yellow-50 p-5 rounded-[30px] mb-4 border border-yellow-100">
-            <p class="text-[9px] font-black opacity-30 mb-2 uppercase italic text-yellow-800">📌 Notas privadas</p>
-            <textarea oninput="guardarNotas(${clienteActual.id}, this.value)" 
-                class="w-full bg-transparent border-none outline-none font-bold text-sm h-20 resize-none"
-                placeholder="Escribe algo aquí...">${clienteActual.notas}</textarea>
+        <div class="bg-yellow-100 p-5 rounded-[30px] mb-4 border border-yellow-200">
+            <p class="text-[9px] font-black opacity-30 mb-2 uppercase italic text-yellow-800">📌 Notas de la obra</p>
+            <textarea oninput="guardarNotas(${clienteActual.id}, this.value)" class="w-full bg-transparent border-none outline-none font-bold text-sm h-20 resize-none">${clienteActual.notas}</textarea>
         </div>
-
         <div class="space-y-2 mb-4">
-            <p class="text-[9px] font-black opacity-40 ml-2 uppercase">Historial</p>
+            <p class="text-[9px] font-black opacity-40 ml-2 uppercase tracking-widest">Historial</p>
             ${historial.map(p => `
                 <div class="flex items-center gap-2 mb-2">
                     <div onclick="verPresupuestoGuardado(${p.id})" class="flex-1 bg-white p-4 rounded-2xl border shadow-sm flex justify-between items-center active:scale-95 transition-all cursor-pointer">
@@ -162,12 +135,32 @@ window.abrirExpediente = (id) => {
                 </div>
             `).reverse().join('') || '<p class="text-center opacity-30 text-[10px] py-4">Sin presupuestos</p>'}
         </div>
-        <button onclick="borrarCliente(${clienteActual.id})" class="w-full mt-6 p-4 text-red-400 font-bold text-[9px] uppercase opacity-40 italic">🗑️ Eliminar cliente</button>`;
+        <button onclick="borrarCliente(${clienteActual.id})" class="w-full mt-6 p-4 text-red-400 font-bold text-[9px] uppercase opacity-40 italic">🗑️ Eliminar expediente completo</button>`;
     irAPantalla('expediente');
 };
 
+window.guardarNotas = (id, t) => { const c = db.clientes.find(x => x.id === id); if(c){ c.notas = t; asegurarGuardado(); } };
+
 // ==========================================
-// 5. RENDER TRABAJO Y PDF (TUYO ORIGINAL)
+// 5. INICIAR MEDICIÓN (REVISADO)
+// ==========================================
+window.confirmarNombreObra = () => {
+    const v = document.getElementById('input-nombre-obra').value;
+    if (!v) return alert("Pon un nombre a la obra");
+    
+    obraEnCurso = { nombre: v.toUpperCase(), lineas: [], iva: 21, fotos: [] };
+    document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre;
+    
+    // Limpiar input para la próxima vez
+    document.getElementById('input-nombre-obra').value = "";
+    
+    irAPantalla('trabajo');
+    renderBotones();
+    renderMedidas();
+};
+
+// ==========================================
+// 6. RENDER TRABAJO Y PDF
 // ==========================================
 window.renderMedidas = () => {
     const cont = document.getElementById('lista-medidas-obra');
@@ -191,11 +184,6 @@ window.renderMedidas = () => {
         </div>` : '');
 };
 
-// Funciones de borrado, PDF, etc. (Tuyas originales)
-window.borrarCliente = (id) => { if (confirm("¿BORRAR?")) { db.clientes = db.clientes.filter(c => c.id !== id); asegurarGuardado(); irAPantalla('clientes'); } };
-window.borrarPresupuestoIndividual = (idPresu) => { if (confirm("¿Eliminar?")) { clienteActual.presupuestos = clienteActual.presupuestos.filter(p => p.id !== idPresu); asegurarGuardado(); abrirExpediente(clienteActual.id); } };
-window.verPresupuestoGuardado = (idPresu) => { const p = clienteActual.presupuestos.find(x => x.id === idPresu); if (!p) return; obraEnCurso = { nombre: p.nombreObra, lineas: JSON.parse(JSON.stringify(p.lineas)), iva: p.iva || 21, fotos: [] }; document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre; irAPantalla('trabajo'); renderBotones(); renderMedidas(); };
-
 window.guardarObraCompleta = async () => {
     if (obraEnCurso.lineas.length === 0) return alert("Añade medidas");
     const inputEditor = document.getElementById('total-editable');
@@ -217,20 +205,7 @@ window.guardarObraCompleta = async () => {
 };
 
 // ==========================================
-// 6. AJUSTES, BOTONES Y AUXILIARES
-// ==========================================
-window.renderBotones = () => { document.getElementById('botones-trabajo').innerHTML = Object.keys(CONFIG_MEDIDAS).map(k => `<button onclick="prepararMedida('${k}')" class="bg-white p-6 rounded-[30px] border flex flex-col items-center active-scale shadow-sm"><span class="text-3xl mb-1">${CONFIG_MEDIDAS[k].i}</span><span class="text-[9px] font-black uppercase opacity-60">${CONFIG_MEDIDAS[k].n}</span></button>`).join(''); };
-window.prepararMedida = (t) => { const zona = prompt("¿ZONA?", "GENERAL"); if (!zona) return; const tarea = (t === 'horas') ? prompt("¿CONCEPTO?", "ADMINISTRACIÓN") : prompt("¿TRABAJO?", "MONTAJE"); if (!tarea) return; calcEstado = { tipo: t, paso: 1, v1: 0, v2: 0, memoria: '', acumulado: 0, zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), modo: 'medida', editandoId: null, historialSuma: [] }; abrirCalculadora(); };
-function abrirCalculadora() { const conf = CONFIG_MEDIDAS[calcEstado.tipo]; document.getElementById('calc-titulo').innerText = calcEstado.modo === 'precio' ? `PRECIO PARA ${calcEstado.tarea}` : (calcEstado.paso === 1 ? conf.m1 : conf.m2); actualizarDisplay(); document.getElementById('modal-calc').classList.remove('hidden'); }
-window.borrarLinea = (id) => { if(confirm("¿Eliminar?")) { obraEnCurso.lineas = obraEnCurso.lineas.filter(x => x.id !== id); renderMedidas(); } };
-window.cambiarIVA = (valor) => { obraEnCurso.iva = valor; document.querySelectorAll('.iva-btn').forEach(btn => { btn.classList.remove('bg-blue-600', 'text-white'); btn.classList.add('bg-slate-100'); }); const b = document.getElementById(`btn-iva-${valor}`); if(b) { b.classList.replace('bg-slate-100', 'bg-blue-600'); b.classList.add('text-white'); } renderMedidas(); };
-window.guardarAjustes = () => { db.ajustes = { nombre: document.getElementById('config-nombre').value.toUpperCase(), cif: document.getElementById('config-cif').value.toUpperCase(), tel: document.getElementById('config-tel').value, dir: document.getElementById('config-dir').value.toUpperCase(), cp: document.getElementById('config-cp').value, ciudad: document.getElementById('config-ciudad').value.toUpperCase(), nPresu: parseInt(document.getElementById('config-nPresu').value) || 1 }; asegurarGuardado(); alert("Guardado"); irAPantalla('clientes'); };
-window.confirmarNombreObra = () => { const v = document.getElementById('input-nombre-obra').value; if (!v) return alert("¿Obra?"); obraEnCurso = { nombre: v.toUpperCase(), lineas: [], iva: 21, fotos: [] }; document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre; irAPantalla('trabajo'); renderBotones(); renderMedidas(); };
-window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
-window.nuevoCliente = () => irAPantalla('nuevo-cliente');
-
-// ==========================================
-// 7. LÓGICA DE CALENDARIO (AÑADIDA AL FINAL)
+// 7. CALENDARIO
 // ==========================================
 let fechaCal = new Date();
 let diaSel = null;
@@ -266,5 +241,28 @@ window.guardarEventoDia = () => {
 };
 
 window.cambiarMes = (n) => { fechaCal.setMonth(fechaCal.getMonth()+n); renderCalendario(); };
+
+// ==========================================
+// 8. AUXILIARES
+// ==========================================
+window.renderBotones = () => { document.getElementById('botones-trabajo').innerHTML = Object.keys(CONFIG_MEDIDAS).map(k => `<button onclick="prepararMedida('${k}')" class="bg-white p-6 rounded-[30px] border flex flex-col items-center active-scale shadow-sm"><span class="text-3xl mb-1">${CONFIG_MEDIDAS[k].i}</span><span class="text-[9px] font-black uppercase opacity-60">${CONFIG_MEDIDAS[k].n}</span></button>`).join(''); };
+window.prepararMedida = (t) => { const zona = prompt("¿ZONA?", "GENERAL"); if (!zona) return; const tarea = (t === 'horas') ? prompt("¿CONCEPTO?", "ADMINISTRACIÓN") : prompt("¿TRABAJO?", "MONTAJE"); if (!tarea) return; calcEstado = { tipo: t, paso: 1, v1: 0, v2: 0, memoria: '', acumulado: 0, zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), modo: 'medida', editandoId: null, historialSuma: [] }; abrirCalculadora(); };
+function abrirCalculadora() { const conf = CONFIG_MEDIDAS[calcEstado.tipo]; document.getElementById('calc-titulo').innerText = calcEstado.modo === 'precio' ? `PRECIO PARA ${calcEstado.tarea}` : (calcEstado.paso === 1 ? conf.m1 : conf.m2); actualizarDisplay(); document.getElementById('modal-calc').classList.remove('hidden'); }
+window.borrarLinea = (id) => { if(confirm("¿Eliminar?")) { obraEnCurso.lineas = obraEnCurso.lineas.filter(x => x.id !== id); renderMedidas(); } };
+window.cambiarIVA = (valor) => { obraEnCurso.iva = valor; document.querySelectorAll('.iva-btn').forEach(btn => { btn.classList.remove('bg-blue-600', 'text-white'); btn.classList.add('bg-slate-100'); }); const b = document.getElementById(`btn-iva-${valor}`); if(b) { b.classList.replace('bg-slate-100', 'bg-blue-600'); b.classList.add('text-white'); } renderMedidas(); };
+window.guardarAjustes = () => { db.ajustes = { nombre: document.getElementById('config-nombre').value.toUpperCase(), cif: document.getElementById('config-cif').value.toUpperCase(), tel: document.getElementById('config-tel').value, dir: document.getElementById('config-dir').value.toUpperCase(), cp: document.getElementById('config-cp').value, ciudad: document.getElementById('config-ciudad').value.toUpperCase(), nPresu: parseInt(document.getElementById('config-nPresu').value) || 1 }; asegurarGuardado(); alert("Guardado"); irAPantalla('clientes'); };
+window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('hidden');
+window.nuevoCliente = () => irAPantalla('nuevo-cliente');
+window.borrarCliente = (id) => { if (confirm("¿BORRAR?")) { db.clientes = db.clientes.filter(c => c.id !== id); asegurarGuardado(); irAPantalla('clientes'); } };
+window.borrarPresupuestoIndividual = (idPresu) => { if (confirm("¿Eliminar?")) { clienteActual.presupuestos = clienteActual.presupuestos.filter(p => p.id !== idPresu); asegurarGuardado(); abrirExpediente(clienteActual.id); } };
+window.verPresupuestoGuardado = (idPresu) => { const p = clienteActual.presupuestos.find(x => x.id === idPresu); if (!p) return; obraEnCurso = { nombre: p.nombreObra, lineas: JSON.parse(JSON.stringify(p.lineas)), iva: p.iva || 21, fotos: [] }; document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre; irAPantalla('trabajo'); renderBotones(); renderMedidas(); };
+
+window.editarLinea = (id) => {
+    const l = obraEnCurso.lineas.find(x => x.id === id);
+    if (!l) return;
+    calcEstado = { tipo: l.tipo, paso: 1, v1: 0, v2: 0, memoria: l.cantidad.toString().replace('.', ','), acumulado: 0, zona: l.zona, tarea: l.tarea, modo: 'medida', totalMetros: l.cantidad, editandoId: id, historialSuma: [] };
+    abrirCalculadora();
+    document.getElementById('calc-titulo').innerText = `EDITAR MEDIDA: ${l.tarea}`;
+};
 
 window.onload = () => renderListaClientes();
