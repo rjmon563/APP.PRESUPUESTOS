@@ -37,11 +37,11 @@ window.irAPantalla = (id) => {
     
     if (id === 'clientes') renderListaClientes();
     if (id === 'calendario') renderCalendario();
-    if (id === 'ajustes') calcularResumenIVA(); // Nueva acción
+    if (id === 'ajustes') calcularResumenIVA();
 };
 
 // ==========================================
-// 3. LÓGICA DE CALCULADORA
+// 3. LÓGICA DE CALCULADORA (IGUAL)
 // ==========================================
 window.teclear = (n) => {
     if (n === '+') {
@@ -93,13 +93,13 @@ function actualizarDisplay() {
 }
 
 // ==========================================
-// 4. CLIENTES, EXPEDIENTE Y NOTAS
+// 4. CLIENTES Y EXPEDIENTE (BORDES AZULES)
 // ==========================================
 window.renderListaClientes = () => {
     const cont = document.getElementById('lista-clientes');
     if(!cont) return;
     cont.innerHTML = db.clientes.length === 0 ? '<p class="text-center opacity-40 py-10 italic">SIN CLIENTES</p>' :
-    db.clientes.map(c => `<div onclick="abrirExpediente(${c.id})" class="bg-white p-5 rounded-[30px] border shadow-sm flex justify-between items-center mb-3 active-scale"><p class="font-black text-slate-800 uppercase italic text-sm">${c.nombre}</p></div>`).reverse().join('');
+    db.clientes.map(c => `<div onclick="abrirExpediente(${c.id})" class="bg-white p-5 rounded-[30px] border shadow-sm flex justify-between items-center mb-3 active-scale border-l-4 border-l-blue-600"><p class="font-black text-slate-800 uppercase italic text-sm">${c.nombre}</p></div>`).reverse().join('');
 };
 
 window.guardarDatosCliente = () => {
@@ -122,14 +122,14 @@ window.abrirExpediente = (id) => {
         </div>
         <div class="bg-yellow-100 p-5 rounded-[30px] mb-4 border border-yellow-200">
             <p class="text-[9px] font-black opacity-30 mb-2 uppercase italic text-yellow-800">📌 Notas de la obra</p>
-            <textarea oninput="guardarNotas(${clienteActual.id}, this.value)" class="w-full bg-transparent border-none outline-none font-bold text-sm h-20 resize-none">${clienteActual.notas}</textarea>
+            <textarea oninput="guardarNotas(${clienteActual.id}, this.value)" class="w-full bg-transparent border-none outline-none font-bold text-sm h-20 resize-none" placeholder="Anotaciones importantes...">${clienteActual.notas}</textarea>
         </div>
         <div class="space-y-2 mb-4">
             <p class="text-[9px] font-black opacity-40 ml-2 uppercase tracking-widest">Historial</p>
             ${historial.map(p => `
                 <div class="flex items-center gap-2 mb-2">
-                    <div onclick="verPresupuestoGuardado(${p.id})" class="flex-1 bg-white p-4 rounded-2xl border shadow-sm flex justify-between items-center active:scale-95 transition-all cursor-pointer">
-                        <div><p class="text-[10px] font-bold">#${p.numero} - ${p.nombreObra}</p><p class="text-[8px] opacity-40">${p.fecha}</p></div>
+                    <div onclick="verPresupuestoGuardado(${p.id})" class="flex-1 bg-white p-4 rounded-2xl border shadow-sm flex justify-between items-center active:scale-95 transition-all cursor-pointer border-l-4 border-l-blue-400">
+                        <div><p class="text-[10px] font-bold">#${p.numero} - ${p.nombreObra}</p><p class="text-[8px] opacity-40 uppercase font-black">${p.fecha}</p></div>
                         <p class="text-xs font-black text-blue-600">${fNum(p.total)}€</p>
                     </div>
                     <button onclick="borrarPresupuestoIndividual(${p.id})" class="bg-red-50 text-red-500 p-4 rounded-2xl border border-red-100 active:scale-90">🗑️</button>
@@ -173,10 +173,10 @@ window.renderMedidas = () => {
                 <button onclick="borrarLinea(${l.id})" class="text-red-400 p-2 rounded-xl bg-red-50">✕</button>
             </div>
         </div>`).reverse().join('') + 
-        (subtotal > 0 ? `<div class="bg-slate-900 text-white p-6 rounded-[35px] mt-5 italic shadow-xl">
+        (subtotal > 0 ? `<div class="bg-slate-900 text-white p-6 rounded-[35px] mt-5 italic shadow-xl border-l-4 border-l-blue-500">
             <div class="flex justify-between text-[10px] opacity-60 font-black mb-1"><span>Base:</span><span>${fNum(subtotal)}€</span></div>
             <div class="flex justify-between text-[10px] opacity-60 font-black mb-2"><span>IVA (${obraEnCurso.iva}%):</span><span>${fNum(cuotaIva)}€</span></div>
-            <p class="text-[8px] text-blue-400 font-black uppercase mb-1">Total Corregible (€):</p>
+            <p class="text-[8px] text-blue-400 font-black uppercase mb-1">Total Presupuesto (€):</p>
             <input type="text" id="total-editable" class="w-full bg-transparent text-green-400 text-2xl font-black border-b border-green-400/30 outline-none" value="${fNum(total)}">
         </div>` : '');
 };
@@ -240,7 +240,7 @@ window.guardarEventoDia = () => {
 window.cambiarMes = (n) => { fechaCal.setMonth(fechaCal.getMonth()+n); renderCalendario(); };
 
 // ==========================================
-// 8. AUXILIARES Y AJUSTES
+// 8. AUXILIARES
 // ==========================================
 window.renderBotones = () => { document.getElementById('botones-trabajo').innerHTML = Object.keys(CONFIG_MEDIDAS).map(k => `<button onclick="prepararMedida('${k}')" class="bg-white p-6 rounded-[30px] border flex flex-col items-center active-scale shadow-sm"><span class="text-3xl mb-1">${CONFIG_MEDIDAS[k].i}</span><span class="text-[9px] font-black uppercase opacity-60">${CONFIG_MEDIDAS[k].n}</span></button>`).join(''); };
 window.prepararMedida = (t) => { const zona = prompt("¿ZONA?", "GENERAL"); if (!zona) return; const tarea = (t === 'horas') ? prompt("¿CONCEPTO?", "ADMINISTRACIÓN") : prompt("¿TRABAJO?", "MONTAJE"); if (!tarea) return; calcEstado = { tipo: t, paso: 1, v1: 0, v2: 0, memoria: '', acumulado: 0, zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), modo: 'medida', editandoId: null, historialSuma: [] }; abrirCalculadora(); };
@@ -261,9 +261,6 @@ window.editarLinea = (id) => {
     abrirCalculadora();
 };
 
-// ==========================================
-// 9. LÓGICA DE RESUMEN DE IVA
-// ==========================================
 window.calcularResumenIVA = () => {
     const cont = document.getElementById('resumen-iva-lista');
     if (!cont) return;
@@ -285,9 +282,6 @@ window.calcularResumenIVA = () => {
     `;
 };
 
-// ==========================================
-// 10. COPIA DE SEGURIDAD
-// ==========================================
 window.exportarDatos = () => {
     const dataStr = JSON.stringify(db, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
