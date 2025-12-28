@@ -1,5 +1,5 @@
 // ==========================================
-// 1. ESTADO INICIAL (CON HISTORIAL DE SUMA)
+// 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
 let db = JSON.parse(localStorage.getItem('presupro_v3')) || { 
     clientes: [], 
@@ -11,7 +11,7 @@ let obraEnCurso = { nombre: '', lineas: [], iva: 21, fotos: [] };
 let calcEstado = { 
     tipo: '', paso: 1, v1: 0, v2: 0, memoria: '', acumulado: 0, 
     zona: '', tarea: '', modo: 'medida', editandoId: null,
-    historialSuma: [] // <--- AQUÍ GUARDAMOS LOS PASOS DE LA SUMA
+    historialSuma: [] 
 }; 
 
 const CONFIG_MEDIDAS = {
@@ -27,22 +27,21 @@ const fNum = (n) => Number(n).toLocaleString('es-ES', { minimumFractionDigits: 2
 const asegurarGuardado = () => localStorage.setItem('presupro_v3', JSON.stringify(db));
 
 // ==========================================
-// 2. LÓGICA DE CALCULADORA "TIPO FÍSICA"
+// 2. LÓGICA DE CALCULADORA (RECTIFICABLE)
 // ==========================================
 window.teclear = (n) => {
     if (n === '+') {
         let valorActual = parseFloat(calcEstado.memoria.replace(',', '.')) || 0;
         if (valorActual !== 0) {
-            calcEstado.historialSuma.push(valorActual); // Guardamos el dato
-            calcEstado.acumulado += valorActual; // Sumamos al saco
-            calcEstado.memoria = ''; // Limpiamos pantalla para el siguiente
+            calcEstado.historialSuma.push(valorActual);
+            calcEstado.acumulado += valorActual;
+            calcEstado.memoria = '';
         }
         actualizarDisplay();
     } else if (n === 'OK') {
         let vF = parseFloat(calcEstado.memoria.replace(',', '.')) || 0;
         let res = calcEstado.acumulado + vF;
         
-        // Al terminar la medición, reseteamos la cinta de la calculadora
         calcEstado.historialSuma = [];
 
         if (calcEstado.modo === 'medida') {
@@ -71,17 +70,13 @@ window.teclear = (n) => {
             document.getElementById('modal-calc').classList.add('hidden'); renderMedidas();
         }
     } else if (n === 'DEL') { 
-        // LÓGICA DE RECTIFICACIÓN
         if (calcEstado.memoria !== '') {
-            // Caso A: Estás escribiendo y quieres borrar lo de la pantalla
             calcEstado.memoria = ''; 
         } else if (calcEstado.historialSuma.length > 0) {
-            // Caso B: Pantalla vacía, quieres RECTIFICAR el último número sumado
-            let ultimoDato = calcEstado.historialSuma.pop(); // Sacamos el último de la cinta
-            calcEstado.acumulado -= ultimoDato; // Lo restamos del total
-            calcEstado.memoria = ultimoDato.toString().replace('.', ','); // Lo ponemos en pantalla para editarlo
+            let ultimoDato = calcEstado.historialSuma.pop();
+            calcEstado.acumulado -= ultimoDato;
+            calcEstado.memoria = ultimoDato.toString().replace('.', ',');
         } else {
-            // Caso C: No hay nada, reset total
             calcEstado.acumulado = 0;
         }
         actualizarDisplay(); 
@@ -96,15 +91,38 @@ window.teclear = (n) => {
 
 function actualizarDisplay() {
     let visual = calcEstado.memoria || '0';
-    // Mostramos la "cinta" arriba para ver qué llevamos sumado
     let textoHistorial = calcEstado.acumulado > 0 ? 
-        `<span class="text-xs opacity-50 italic">Total acumulado: ${fNum(calcEstado.acumulado)} +</span><br>` : '';
-    
+        `<span class="text-xs opacity-50 italic">Acumulado: ${fNum(calcEstado.acumulado)} +</span><br>` : '';
     document.getElementById('calc-display').innerHTML = textoHistorial + visual;
 }
 
 // ==========================================
-// 3. RESTO DE FUNCIONES (CLIENTES, PDF, ETC.)
+// 3. EDICIÓN TOTAL (MEDIDA + PRECIO)
+// ==========================================
+window.editarLinea = (id) => {
+    const l = obraEnCurso.lineas.find(x => x.id === id);
+    if (!l) return;
+
+    calcEstado = { 
+        tipo: l.tipo, 
+        paso: 1, 
+        v1: 0, 
+        v2: 0, 
+        memoria: l.cantidad.toString().replace('.', ','), 
+        acumulado: 0, 
+        zona: l.zona, 
+        tarea: l.tarea, 
+        modo: 'medida', 
+        totalMetros: l.cantidad, 
+        editandoId: id, 
+        historialSuma: [] 
+    };
+    abrirCalculadora();
+    document.getElementById('calc-titulo').innerText = `EDITAR MEDIDA: ${l.tarea}`;
+};
+
+// ==========================================
+// 4. CLIENTES Y EXPEDIENTE
 // ==========================================
 window.irAPantalla = (id) => {
     document.querySelectorAll('[id^="pantalla-"]').forEach(p => p.classList.add('hidden'));
@@ -171,6 +189,9 @@ window.verPresupuestoGuardado = (idPresu) => {
     irAPantalla('trabajo'); renderBotones(); renderMedidas();
 };
 
+// ==========================================
+// 5. RENDER TRABAJO Y PDF
+// ==========================================
 window.renderMedidas = () => {
     const cont = document.getElementById('lista-medidas-obra');
     const subtotal = obraEnCurso.lineas.reduce((a, b) => a + b.subtotal, 0);
@@ -213,10 +234,12 @@ window.guardarObraCompleta = async () => {
     abrirExpediente(clienteActual.id);
 };
 
+// ==========================================
+// 6. AJUSTES Y AUXILIARES
+// ==========================================
 window.renderBotones = () => { document.getElementById('botones-trabajo').innerHTML = Object.keys(CONFIG_MEDIDAS).map(k => `<button onclick="prepararMedida('${k}')" class="bg-white p-6 rounded-[30px] border flex flex-col items-center active-scale shadow-sm"><span class="text-3xl mb-1">${CONFIG_MEDIDAS[k].i}</span><span class="text-[9px] font-black uppercase opacity-60">${CONFIG_MEDIDAS[k].n}</span></button>`).join(''); };
 window.prepararMedida = (t) => { const zona = prompt("¿ZONA?", "GENERAL"); if (!zona) return; const tarea = (t === 'horas') ? prompt("¿CONCEPTO?", "ADMINISTRACIÓN") : prompt("¿TRABAJO?", "MONTAJE"); if (!tarea) return; calcEstado = { tipo: t, paso: 1, v1: 0, v2: 0, memoria: '', acumulado: 0, zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), modo: 'medida', editandoId: null, historialSuma: [] }; abrirCalculadora(); };
 function abrirCalculadora() { const conf = CONFIG_MEDIDAS[calcEstado.tipo]; document.getElementById('calc-titulo').innerText = calcEstado.modo === 'precio' ? `PRECIO PARA ${calcEstado.tarea}` : (calcEstado.paso === 1 ? conf.m1 : conf.m2); actualizarDisplay(); document.getElementById('modal-calc').classList.remove('hidden'); }
-window.editarLinea = (id) => { const l = obraEnCurso.lineas.find(x => x.id === id); calcEstado = { tipo: l.tipo, paso: 1, v1: l.cantidad, v2: 0, memoria: l.precio.toString().replace('.', ','), acumulado: 0, zona: l.zona, tarea: l.tarea, modo: 'precio', totalMetros: l.cantidad, editandoId: id, historialSuma: [] }; abrirCalculadora(); };
 window.borrarLinea = (id) => { if(confirm("¿Eliminar?")) { obraEnCurso.lineas = obraEnCurso.lineas.filter(x => x.id !== id); renderMedidas(); } };
 window.cambiarIVA = (valor) => { obraEnCurso.iva = valor; document.querySelectorAll('.iva-btn').forEach(btn => { btn.classList.remove('bg-blue-600', 'text-white'); btn.classList.add('bg-slate-100'); }); const b = document.getElementById(`btn-iva-${valor}`); if(b) { b.classList.replace('bg-slate-100', 'bg-blue-600'); b.classList.add('text-white'); } renderMedidas(); };
 window.guardarAjustes = () => { db.ajustes = { nombre: document.getElementById('config-nombre').value.toUpperCase(), cif: document.getElementById('config-cif').value.toUpperCase(), tel: document.getElementById('config-tel').value, dir: document.getElementById('config-dir').value.toUpperCase(), cp: document.getElementById('config-cp').value, ciudad: document.getElementById('config-ciudad').value.toUpperCase(), nPresu: parseInt(document.getElementById('config-nPresu').value) || 1 }; asegurarGuardado(); alert("Guardado"); irAPantalla('clientes'); };
