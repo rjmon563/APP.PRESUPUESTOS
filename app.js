@@ -28,7 +28,7 @@ const fNum = (n) => Number(n).toLocaleString('es-ES', { minimumFractionDigits: 2
 const asegurarGuardado = () => localStorage.setItem('presupro_v3', JSON.stringify(db));
 
 // ==========================================
-// 2. NAVEGACIÓN (CORREGIDA)
+// 2. NAVEGACIÓN
 // ==========================================
 window.irAPantalla = (id) => {
     document.querySelectorAll('[id^="pantalla-"]').forEach(p => p.classList.add('hidden'));
@@ -37,10 +37,11 @@ window.irAPantalla = (id) => {
     
     if (id === 'clientes') renderListaClientes();
     if (id === 'calendario') renderCalendario();
+    if (id === 'ajustes') calcularResumenIVA(); // Nueva acción
 };
 
 // ==========================================
-// 3. LÓGICA DE CALCULADORA (RESGUARDADA)
+// 3. LÓGICA DE CALCULADORA
 // ==========================================
 window.teclear = (n) => {
     if (n === '+') {
@@ -142,25 +143,21 @@ window.abrirExpediente = (id) => {
 window.guardarNotas = (id, t) => { const c = db.clientes.find(x => x.id === id); if(c){ c.notas = t; asegurarGuardado(); } };
 
 // ==========================================
-// 5. INICIAR MEDICIÓN (REVISADO)
+// 5. INICIAR MEDICIÓN
 // ==========================================
 window.confirmarNombreObra = () => {
     const v = document.getElementById('input-nombre-obra').value;
     if (!v) return alert("Pon un nombre a la obra");
-    
     obraEnCurso = { nombre: v.toUpperCase(), lineas: [], iva: 21, fotos: [] };
     document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre;
-    
-    // Limpiar input para la próxima vez
     document.getElementById('input-nombre-obra').value = "";
-    
     irAPantalla('trabajo');
     renderBotones();
     renderMedidas();
 };
 
 // ==========================================
-// 6. RENDER TRABAJO Y PDF
+// 6. RENDER TRABAJO Y PDF (CON EDITOR)
 // ==========================================
 window.renderMedidas = () => {
     const cont = document.getElementById('lista-medidas-obra');
@@ -216,7 +213,7 @@ window.renderCalendario = () => {
     document.getElementById('mes-actual').innerText = `${meses[fechaCal.getMonth()]} ${fechaCal.getFullYear()}`;
     const primerDia = new Date(fechaCal.getFullYear(), fechaCal.getMonth(), 1).getDay();
     const diasMes = new Date(fechaCal.getFullYear(), fechaCal.getMonth() + 1, 0).getDate();
-    let ajuste = primerDia === 0 ? 6 : primerDia - 1;
+    let ajuste = (primerDia === 0 ? 6 : primerDia - 1);
     grid.innerHTML = ['L','M','X','J','V','S','D'].map(d => `<div class="text-[8px] font-black opacity-20 py-3">${d}</div>`).join('');
     for(let i=0; i<ajuste; i++) grid.innerHTML += `<div></div>`;
     if(!db.agenda) db.agenda = {};
@@ -243,7 +240,7 @@ window.guardarEventoDia = () => {
 window.cambiarMes = (n) => { fechaCal.setMonth(fechaCal.getMonth()+n); renderCalendario(); };
 
 // ==========================================
-// 8. AUXILIARES
+// 8. AUXILIARES Y AJUSTES
 // ==========================================
 window.renderBotones = () => { document.getElementById('botones-trabajo').innerHTML = Object.keys(CONFIG_MEDIDAS).map(k => `<button onclick="prepararMedida('${k}')" class="bg-white p-6 rounded-[30px] border flex flex-col items-center active-scale shadow-sm"><span class="text-3xl mb-1">${CONFIG_MEDIDAS[k].i}</span><span class="text-[9px] font-black uppercase opacity-60">${CONFIG_MEDIDAS[k].n}</span></button>`).join(''); };
 window.prepararMedida = (t) => { const zona = prompt("¿ZONA?", "GENERAL"); if (!zona) return; const tarea = (t === 'horas') ? prompt("¿CONCEPTO?", "ADMINISTRACIÓN") : prompt("¿TRABAJO?", "MONTAJE"); if (!tarea) return; calcEstado = { tipo: t, paso: 1, v1: 0, v2: 0, memoria: '', acumulado: 0, zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), modo: 'medida', editandoId: null, historialSuma: [] }; abrirCalculadora(); };
@@ -262,7 +259,60 @@ window.editarLinea = (id) => {
     if (!l) return;
     calcEstado = { tipo: l.tipo, paso: 1, v1: 0, v2: 0, memoria: l.cantidad.toString().replace('.', ','), acumulado: 0, zona: l.zona, tarea: l.tarea, modo: 'medida', totalMetros: l.cantidad, editandoId: id, historialSuma: [] };
     abrirCalculadora();
-    document.getElementById('calc-titulo').innerText = `EDITAR MEDIDA: ${l.tarea}`;
+};
+
+// ==========================================
+// 9. LÓGICA DE RESUMEN DE IVA
+// ==========================================
+window.calcularResumenIVA = () => {
+    const cont = document.getElementById('resumen-iva-lista');
+    if (!cont) return;
+    let totales = { iva21: 0, iva10: 0, base: 0 };
+    db.clientes.forEach(c => {
+        if (c.presupuestos) {
+            c.presupuestos.forEach(p => {
+                const subtotal = p.lineas.reduce((a, b) => a + b.subtotal, 0);
+                totales.base += subtotal;
+                if (p.iva === 21) totales.iva21 += (subtotal * 0.21);
+                if (p.iva === 10) totales.iva10 += (subtotal * 0.10);
+            });
+        }
+    });
+    cont.innerHTML = `
+        <div class="flex justify-between items-center text-[11px]"><span class="opacity-50 font-bold uppercase">Base Total:</span><span class="font-black text-slate-800">${fNum(totales.base)}€</span></div>
+        <div class="flex justify-between items-center text-blue-700 text-[11px]"><span class="font-bold uppercase">IVA 21%:</span><span class="font-black">${fNum(totales.iva21)}€</span></div>
+        <div class="flex justify-between items-center text-green-700 text-[11px]"><span class="font-bold uppercase">IVA 10%:</span><span class="font-black">${fNum(totales.iva10)}€</span></div>
+    `;
+};
+
+// ==========================================
+// 10. COPIA DE SEGURIDAD
+// ==========================================
+window.exportarDatos = () => {
+    const dataStr = JSON.stringify(db, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    const exportFileDefaultName = `PRESUPRO_BACKUP_${new Date().toISOString().slice(0,10)}.json`;
+    let linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+};
+
+window.importarDatos = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const json = JSON.parse(e.target.result);
+            if (json.clientes) {
+                if (confirm("¿IMPORTAR COPIA? Se borrarán los datos actuales.")) {
+                    db = json; asegurarGuardado(); location.reload();
+                }
+            }
+        } catch (err) { alert("Archivo no válido"); }
+    };
+    reader.readAsText(file);
 };
 
 window.onload = () => renderListaClientes();
