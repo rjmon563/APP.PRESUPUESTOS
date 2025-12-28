@@ -24,16 +24,17 @@
     </div>
 
     <div id="pantalla-nuevo-cliente" class="hidden min-h-screen p-6 bg-white">
-        <button onclick="irAPantalla('clientes')" class="mb-6 text-blue-600 font-bold">← Volver</button>
-        <h2 class="text-2xl font-black mb-6 italic uppercase">Nuevo Cliente</h2>
-        <div class="space-y-4">
-            <input id="cli-nombre" type="text" placeholder="NOMBRE DEL CLIENTE" class="w-full p-4 bg-slate-100 rounded-2xl border-none outline-none font-bold uppercase">
-            <input id="cli-cif" type="text" placeholder="CIF / NIF" class="w-full p-4 bg-slate-100 rounded-2xl border-none outline-none font-bold uppercase">
-            <input id="cli-tel" type="tel" placeholder="TELÉFONO" class="w-full p-4 bg-slate-100 rounded-2xl border-none outline-none font-bold uppercase">
-            <input id="cli-dir" type="text" placeholder="DIRECCIÓN" class="w-full p-4 bg-slate-100 rounded-2xl border-none outline-none font-bold uppercase">
-            <button onclick="guardarDatosCliente()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black shadow-lg uppercase italic">Guardar Cliente</button>
-        </div>
+    <button onclick="irAPantalla('clientes')" class="mb-6 text-blue-600 font-bold">← Volver</button>
+    <h2 class="text-2xl font-black mb-6 italic uppercase">Nuevo Cliente</h2>
+    <div class="space-y-4">
+        <input id="cli-nombre" type="text" placeholder="NOMBRE DEL CLIENTE" class="w-full p-4 bg-slate-100 rounded-2xl border-none outline-none font-bold uppercase">
+        <input id="cli-cif" type="text" placeholder="CIF / NIF" class="w-full p-4 bg-slate-100 rounded-2xl border-none outline-none font-bold uppercase">
+        <input id="cli-tel" type="tel" placeholder="TELÉFONO" class="w-full p-4 bg-slate-100 rounded-2xl border-none outline-none font-bold uppercase">
+        <input id="cli-dir" type="text" placeholder="DIRECCIÓN" class="w-full p-4 bg-slate-100 rounded-2xl border-none outline-none font-bold uppercase">
+        <input id="cli-cp" type="text" placeholder="CÓDIGO POSTAL" class="w-full p-4 bg-slate-100 rounded-2xl border-none outline-none font-bold uppercase">
+        <button onclick="guardarDatosCliente()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black shadow-lg uppercase italic">Guardar Cliente</button>
     </div>
+</div>
 
     <div id="pantalla-ajustes" class="hidden min-h-screen p-6 bg-slate-100">
         <button onclick="irAPantalla('clientes')" class="mb-6 font-bold text-blue-600">← Volver</button>
@@ -109,3 +110,4 @@
     <script src="app.js"></script>
 </body>
 </html>
+
