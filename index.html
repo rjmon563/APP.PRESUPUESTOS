@@ -40,9 +40,9 @@
         <button class="back" onclick="irAPantalla('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Volver</button>
         <h2 class="h-screen">Agenda de obra</h2>
         <div class="cal-nav">
-            <button onclick="cambiarMes(-1)" aria-label="Mes anterior"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <button onclick="cambiarMes(-1)" aria-label="Mes anterior">◀</button>
             <div id="mes-actual">Mes</div>
-            <button onclick="cambiarMes(1)" aria-label="Mes siguiente"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+            <button onclick="cambiarMes(1)" aria-label="Mes siguiente">▶</button>
         </div>
         <div id="calendario-grid"></div>
         <div id="detalle-dia" class="day-detail hidden">
@@ -135,7 +135,6 @@
     <div id="modal-calc" class="hidden calc">
         <div class="ruler" aria-hidden="true"></div>
         <div class="calc-top">
-            <p id="calc-ctx" class="calc-ctx"></p>
             <p id="calc-titulo" class="calc-title">Medida</p>
             <div id="calc-display" class="calc-display">0</div>
         </div>
