@@ -623,5 +623,10 @@ window.onload = () => {
     renderListaClientes();
     // Pide al navegador que no borre los datos automáticamente
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => { });
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(() => { });
+    if ('serviceWorker' in navigator) {
+        // Si se publica una versión nueva, la app se recarga sola una vez para usarla
+        let recargando = !navigator.serviceWorker.controller; // primera visita: no hace falta recargar
+        navigator.serviceWorker.addEventListener('controllerchange', () => { if (!recargando) { recargando = true; location.reload(); } });
+        navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' }).then(r => r.update()).catch(() => { });
+    }
 };

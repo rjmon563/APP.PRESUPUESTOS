@@ -1,5 +1,5 @@
 // Primero la red (para recibir siempre la última versión); si no hay conexión, la copia guardada.
-const CACHE_NAME = "presupro-v2";
+const CACHE_NAME = "presupro-v3";
 const FILES = ["./", "./index.html", "./app.js", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -14,7 +14,7 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
   e.respondWith(
-    fetch(e.request).then(res => {
+    fetch(e.request, { cache: "no-cache" }).then(res => {
       if (res.ok && new URL(e.request.url).origin === location.origin) {
         const copia = res.clone();
         caches.open(CACHE_NAME).then(c => c.put(e.request, copia));
