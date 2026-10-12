@@ -1,7 +1,7 @@
 // ==========================================
 // 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
-const VERSION = '5';
+const VERSION = '6';
 
 // Si el móvil conserva un index.html antiguo, se borra la copia guardada y se recarga limpio (máximo 2 intentos)
 (function comprobarVersion() {
@@ -33,7 +33,9 @@ window.addEventListener('unhandledrejection', e => mostrarError(String(e.reason 
 const AJUSTES_DEFECTO = {
     nombre: '', tel: '', cif: '', dir: '', cp: '', ciudad: '', email: '', nPresu: 1,
     condiciones: 'Presupuesto válido durante 30 días desde su fecha.\nLos trabajos no incluidos expresamente se presupuestarán aparte.',
-    ultimaCopia: null
+    ultimaCopia: null,
+    prefParte: '',
+    contParte: null
 };
 
 let db;
@@ -304,6 +306,7 @@ window.abrirExpediente = (id) => {
                 <button onclick="alternarAceptado(${p.id})" aria-label="${p.aceptado ? 'Quitar aceptado' : 'Marcar como aceptado'}" class="sq ${p.aceptado ? 'on' : ''}">${ICON.check}</button>
                 <button onclick="borrarPresupuestoIndividual(${p.id})" aria-label="Eliminar presupuesto" class="sq del">${ICON.trash}</button>
             </div>`).join('') || '<div class="empty" style="padding:18px 0">Todavía no hay presupuestos para este cliente.</div>'}
+        ${typeof htmlPartesCliente === 'function' ? htmlPartesCliente(clienteActual) : ''}
         <button onclick="borrarCliente(${clienteActual.id})" class="btn-link-danger">Eliminar cliente y todos sus presupuestos</button>`;
     irAPantalla('expediente');
 };
@@ -491,14 +494,20 @@ async function generarPDF(presu, cli) {
     window.scrollTo(0, 0);
     try {
         const pdfBlob = await html2pdf().set(opt).from(html).output('blob');
-        const file = new File([pdfBlob], nombreArchivo, { type: 'application/pdf' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: `Presupuesto ${presu.numero}`, text: 'Adjunto envío presupuesto.' });
-        } else { descargarBlob(pdfBlob, nombreArchivo); }
+        await compartirPDF(pdfBlob, nombreArchivo, `Presupuesto ${presu.numero}`, 'Adjunto envío presupuesto.');
     } catch (e) {
-        if (e && e.name === 'AbortError') return; // el usuario cerró el menú de compartir
         try { await html2pdf().set(opt).from(html).save(); } catch (e2) { alert('No se pudo generar el PDF'); }
     } finally { contenedor.remove(); }
+}
+
+// Abre el menú de compartir del móvil (WhatsApp, correo...) y, si no existe, descarga el PDF
+async function compartirPDF(blob, nombre, titulo, texto) {
+    const file = new File([blob], nombre, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: titulo, text: texto }); return 'compartido'; }
+        catch (e) { if (e && e.name === 'AbortError') return 'cancelado'; }
+    }
+    descargarBlob(blob, nombre); return 'descargado';
 }
 
 function descargarBlob(blob, nombre) {
@@ -561,7 +570,7 @@ window.cambiarIVA = (valor) => {
     renderMedidas();
 };
 
-const CAMPOS_AJUSTES = ['nombre', 'cif', 'tel', 'email', 'dir', 'cp', 'ciudad', 'condiciones'];
+const CAMPOS_AJUSTES = ['nombre', 'cif', 'tel', 'email', 'dir', 'cp', 'ciudad', 'condiciones', 'prefParte'];
 
 function cargarAjustesEnFormulario() {
     CAMPOS_AJUSTES.forEach(c => { const el = document.getElementById(`config-${c}`); if (el) el.value = db.ajustes[c] || ''; });
@@ -584,7 +593,7 @@ window.guardarAjustes = () => {
 };
 
 window.nuevoCliente = () => irAPantalla('nuevo-cliente');
-window.borrarCliente = (id) => { if (confirm("¿BORRAR?")) { db.clientes = db.clientes.filter(c => c.id !== id); asegurarGuardado(); irAPantalla('clientes'); } };
+window.borrarCliente = (id) => { if (confirm("¿BORRAR?")) { const c = db.clientes.find(x => x.id === id); if (c && typeof limpiarMediosCliente === 'function') limpiarMediosCliente(c); db.clientes = db.clientes.filter(c => c.id !== id); asegurarGuardado(); irAPantalla('clientes'); } };
 window.borrarPresupuestoIndividual = (idPresu) => { if (confirm("¿Eliminar?")) { clienteActual.presupuestos = clienteActual.presupuestos.filter(p => p.id !== idPresu); asegurarGuardado(); abrirExpediente(clienteActual.id); } };
 
 window.verPresupuestoGuardado = (idPresu) => {
@@ -632,7 +641,9 @@ window.calcularResumenIVA = () => {
 // ==========================================
 window.exportarDatos = async () => {
     const nombre = `PRESUPRO_BACKUP_${hoyISO()}.json`;
-    const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+    let datosMedios = {};
+    try { if (typeof medios !== 'undefined') datosMedios = await medios.todo(); } catch (e) { }
+    const blob = new Blob([JSON.stringify(Object.assign({}, db, { _medios: datosMedios }))], { type: 'application/json' });
     let hecho = false;
     try {
         const file = new File([blob], nombre, { type: 'application/json' });
@@ -657,8 +668,12 @@ window.importarDatos = (event) => {
             const json = JSON.parse(e.target.result);
             if (!json.clientes) return alert("Archivo no válido");
             if (confirm("¿IMPORTAR COPIA? Se borrarán los datos actuales.")) {
+                const datosMedios = json._medios; delete json._medios;
                 db = json; db.ajustes = Object.assign({}, AJUSTES_DEFECTO, db.ajustes || {}); if (!db.agenda) db.agenda = {};
-                asegurarGuardado(); location.reload();
+                (async () => {
+                    if (datosMedios && typeof medios !== 'undefined') { await medios.vaciar(); for (const k in datosMedios) await medios.set(k, datosMedios[k]); }
+                    asegurarGuardado(); location.reload();
+                })();
             }
         } catch (err) { alert("Archivo no válido"); }
     };
@@ -671,6 +686,7 @@ window.importarDatos = (event) => {
 // ==========================================
 window.onload = () => {
     renderListaClientes();
+    if (typeof iniciarFirma === 'function') iniciarFirma();
     // Pide al navegador que no borre los datos automáticamente
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => { });
     if ('serviceWorker' in navigator) {

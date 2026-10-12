@@ -180,3 +180,18 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 .center { text-align: center; }
 @media (min-width: 560px) { .screen { max-width: 520px; margin: 0 auto; } .ruler { margin-left: -20px; margin-right: -20px; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Partes de trabajo */
+.row2b { display: flex; gap: 10px; } .row2b .field { flex: 1; min-width: 0; }
+.plinea { display: grid; grid-template-columns: 1fr 1fr 44px; gap: 8px; align-items: center; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px dashed var(--line); }
+.plinea .p-desc { grid-column: 1 / -1; }
+.plinea select.input { padding-right: 6px; }
+.plinea .mini { width: 44px; height: 48px; }
+.fotos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.foto { position: relative; overflow: hidden; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+.foto img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.foto .mini { position: absolute; top: 6px; right: 6px; width: 36px; height: 36px; background: rgba(255,255,255,.92); }
+.foto input { width: 100%; padding: 10px; border: 0; border-top: 1px solid var(--line); font-size: 15px; background: transparent; }
+.firma-box { background: var(--card); border: 1.5px dashed #8ea2b6; border-radius: 12px; }
+.firma-box canvas { display: block; width: 100%; height: 160px; touch-action: none; }
+.btn-link { padding: 12px 2px; margin-bottom: 8px; font-weight: 700; color: var(--navy); }
