@@ -54,7 +54,9 @@ function nuevaObra(nombre) {
 const CONFIG_MEDIDAS = {
     'techos':     { n: 'Techo',       i: '🏠', pasos: 2, m1: 'Ancho',          m2: 'Largo',       u: 'm²' },
     'tabiques':   { n: 'Tabique',     i: '🧱', pasos: 2, m1: 'Suma de tramos', m2: 'Altura',      u: 'm²' },
+    'trasdosados': { n: 'Trasdosado', i: '🏗️', pasos: 2, m1: 'Suma de tramos', m2: 'Altura',      u: 'm²' },
     'cajones':    { n: 'Cajón',       i: '📦', pasos: 2, m1: 'Suma de tramos', m2: 'Altura/Fondo', u: 'm²' },
+    'camaras':    { n: 'Cámara',      i: '🔲', pasos: 2, m1: 'Suma de tramos', m2: 'Altura/Fondo', u: 'm²' },
     'tabicas':    { n: 'Tabica',      i: '📐', pasos: 2, m1: 'Ancho',          m2: 'Largo',       u: 'm²' },
     'cantoneras': { n: 'Cantonera',   i: '📏', pasos: 1, m1: 'Metros Totales',                    u: 'ml' },
     'horas':      { n: 'Horas Admin', i: '🕒', pasos: 1, m1: 'Número de Horas',                   u: 'h' }
