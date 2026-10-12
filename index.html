@@ -2,154 +2,162 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>PresuPro</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1d4ed8">
+    <meta name="theme-color" content="#0b3a6e">
     <link rel="apple-touch-icon" href="icon-192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=4">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,900;1,400;1,900&display=swap');
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .active-scale:active { transform: scale(0.95); }
-    </style>
 </head>
-<body class="bg-slate-50 text-slate-900 select-none">
+<body>
 
-    <div id="pantalla-clientes" class="min-h-screen p-6">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-black italic tracking-tighter text-blue-700">PRESU<span class="text-slate-400">PRO</span></h1>
-            <div class="flex gap-2">
-                <button onclick="irAPantalla('calendario')" class="bg-white p-3 rounded-2xl shadow-sm border active-scale">📅</button>
-                <button onclick="irAPantalla('ajustes')" class="bg-white p-3 rounded-2xl shadow-sm border active-scale">⚙️</button>
+    <!-- Clientes -->
+    <div id="pantalla-clientes" class="screen">
+        <header class="appbar">
+            <h1 class="brand">Presu<span>Pro</span></h1>
+            <div class="appbar-actions">
+                <button class="icon-btn" aria-label="Agenda de obra" onclick="irAPantalla('calendario')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>
+                </button>
+                <button class="icon-btn" aria-label="Mis datos y copia de seguridad" onclick="irAPantalla('ajustes')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+                </button>
             </div>
-        </div>
+        </header>
+        <div class="ruler" aria-hidden="true"></div>
         <div id="aviso-copia"></div>
-        <div id="lista-clientes" class="space-y-3 pb-28"></div>
-        <button onclick="nuevoCliente()" class="fixed bottom-10 right-6 bg-blue-600 text-white w-16 h-16 rounded-[25px] shadow-2xl text-3xl font-bold active-scale">+</button>
+        <div id="lista-clientes"></div>
+        <button class="fab" onclick="nuevoCliente()" aria-label="Nuevo cliente">+</button>
     </div>
 
-    <div id="pantalla-calendario" class="hidden min-h-screen p-6 bg-slate-50">
-        <button onclick="irAPantalla('clientes')" class="mb-6 text-blue-600 font-bold">← Volver</button>
-        <h2 class="text-xl font-black mb-4 italic uppercase">Agenda de Obra</h2>
-        <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm mb-4 border border-blue-100">
-            <button onclick="cambiarMes(-1)" class="p-2 text-blue-600 font-black">◀</button>
-            <div id="mes-actual" class="font-black uppercase text-sm italic">MES</div>
-            <button onclick="cambiarMes(1)" class="p-2 text-blue-600 font-black">▶</button>
+    <!-- Agenda -->
+    <div id="pantalla-calendario" class="hidden screen screen-pad">
+        <button class="back" onclick="irAPantalla('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Volver</button>
+        <h2 class="h-screen">Agenda de obra</h2>
+        <div class="cal-nav">
+            <button onclick="cambiarMes(-1)" aria-label="Mes anterior"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <div id="mes-actual">Mes</div>
+            <button onclick="cambiarMes(1)" aria-label="Mes siguiente"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
         </div>
-        <div id="calendario-grid" class="grid grid-cols-7 gap-1 bg-white p-2 rounded-2xl shadow-sm border border-slate-200 text-center mb-4"></div>
-        <div id="detalle-dia" class="bg-blue-600 text-white p-6 rounded-[30px] shadow-lg hidden">
-            <p id="fecha-seleccionada" class="text-[10px] font-black uppercase opacity-60 mb-2"></p>
-            <textarea id="nota-dia" class="bg-transparent w-full border-none outline-none font-bold placeholder:text-blue-300 text-sm h-24 resize-none" placeholder="¿Qué hay que hacer hoy?" oninput="guardarEventoDia()"></textarea>
-        </div>
-    </div>
-
-    <div id="pantalla-nuevo-cliente" class="hidden min-h-screen p-6 bg-white">
-        <button onclick="irAPantalla('clientes')" class="mb-6 text-blue-600 font-bold">← Volver</button>
-        <h2 class="text-2xl font-black mb-6 italic uppercase">Nuevo Cliente</h2>
-        <div class="space-y-4">
-            <input id="cli-nombre" type="text" placeholder="NOMBRE DEL CLIENTE" class="w-full p-4 bg-slate-100 rounded-2xl border-none outline-none font-bold uppercase">
-            <input id="cli-cif" type="text" placeholder="CIF / NIF" class="w-full p-4 bg-slate-100 rounded-2xl border-none outline-none font-bold uppercase">
-            <input id="cli-tel" type="tel" placeholder="TELÉFONO" class="w-full p-4 bg-slate-100 rounded-2xl border-none outline-none font-bold uppercase">
-            <input id="cli-dir" type="text" placeholder="DIRECCIÓN" class="w-full p-4 bg-slate-100 rounded-2xl border-none outline-none font-bold uppercase">
-            <input id="cli-cp" type="text" placeholder="CÓDIGO POSTAL" class="w-full p-4 bg-slate-100 rounded-2xl border-none outline-none font-bold uppercase">
-            <button onclick="guardarDatosCliente()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black shadow-lg uppercase italic">Guardar Cliente</button>
+        <div id="calendario-grid"></div>
+        <div id="detalle-dia" class="day-detail hidden">
+            <p id="fecha-seleccionada"></p>
+            <textarea id="nota-dia" placeholder="¿Qué hay que hacer ese día?" oninput="guardarEventoDia()"></textarea>
         </div>
     </div>
 
-    <div id="pantalla-ajustes" class="hidden min-h-screen p-6 bg-slate-100">
-        <button onclick="irAPantalla('clientes')" class="mb-6 font-bold text-blue-600">← Volver</button>
-        <h2 class="text-2xl font-black mb-6 italic uppercase">Mis Datos Fiscales</h2>
-        <div class="space-y-3">
-            <input id="config-nombre" type="text" placeholder="TU NOMBRE / EMPRESA" class="w-full p-4 rounded-2xl border-none font-bold uppercase shadow-sm">
-            <input id="config-cif" type="text" placeholder="TU CIF" class="w-full p-4 rounded-2xl border-none font-bold uppercase shadow-sm">
-            <input id="config-tel" type="tel" placeholder="TU TELÉFONO" class="w-full p-4 rounded-2xl border-none font-bold uppercase shadow-sm">
-            <input id="config-email" type="email" placeholder="TU EMAIL" class="w-full p-4 rounded-2xl border-none font-bold shadow-sm">
-            <input id="config-dir" type="text" placeholder="DIRECCIÓN" class="w-full p-4 rounded-2xl border-none font-bold uppercase shadow-sm">
-            <div class="flex gap-2">
-                <input id="config-cp" type="text" placeholder="CP" class="w-1/3 p-4 rounded-2xl border-none font-bold uppercase shadow-sm">
-                <input id="config-ciudad" type="text" placeholder="CIUDAD" class="w-2/3 p-4 rounded-2xl border-none font-bold uppercase shadow-sm">
+    <!-- Nuevo cliente -->
+    <div id="pantalla-nuevo-cliente" class="hidden screen screen-pad">
+        <button class="back" onclick="irAPantalla('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Volver</button>
+        <h2 class="h-screen">Nuevo cliente</h2>
+        <label class="field"><span>Nombre del cliente</span><input id="cli-nombre" type="text" autocomplete="off"></label>
+        <label class="field"><span>CIF / NIF</span><input id="cli-cif" type="text" autocomplete="off"></label>
+        <label class="field"><span>Teléfono</span><input id="cli-tel" type="tel" autocomplete="off"></label>
+        <label class="field"><span>Dirección</span><input id="cli-dir" type="text" autocomplete="off"></label>
+        <label class="field"><span>Código postal</span><input id="cli-cp" type="text" inputmode="numeric" autocomplete="off"></label>
+        <button class="btn btn-primary" onclick="guardarDatosCliente()">Guardar cliente</button>
+    </div>
+
+    <!-- Mis datos -->
+    <div id="pantalla-ajustes" class="hidden screen screen-pad">
+        <button class="back" onclick="irAPantalla('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Volver</button>
+        <h2 class="h-screen">Mis datos fiscales</h2>
+        <label class="field"><span>Tu nombre o empresa</span><input id="config-nombre" type="text"></label>
+        <label class="field"><span>Tu CIF</span><input id="config-cif" type="text"></label>
+        <label class="field"><span>Teléfono</span><input id="config-tel" type="tel"></label>
+        <label class="field"><span>Email</span><input id="config-email" type="email"></label>
+        <label class="field"><span>Dirección</span><input id="config-dir" type="text"></label>
+        <div class="row2">
+            <label class="field"><span>CP</span><input id="config-cp" type="text" inputmode="numeric"></label>
+            <label class="field"><span>Ciudad</span><input id="config-ciudad" type="text"></label>
+        </div>
+        <label class="field"><span>Siguiente nº de presupuesto</span><input id="config-nPresu" type="number" inputmode="numeric"></label>
+        <label class="field"><span>Condiciones (salen al pie del PDF)</span><textarea id="config-condiciones" rows="4"></textarea></label>
+        <button class="btn btn-primary" onclick="guardarAjustes()">Guardar configuración</button>
+
+        <div class="group">
+            <h3>Resumen de presupuestos</h3>
+            <div id="resumen-iva-lista"></div>
+        </div>
+
+        <div class="group">
+            <h3>Copia de seguridad</h3>
+            <div class="two-btn">
+                <button class="btn btn-light" onclick="exportarDatos()">Exportar</button>
+                <button class="btn btn-light" onclick="document.getElementById('import-file').click()">Importar</button>
             </div>
-            <label class="block text-[9px] font-black opacity-40 uppercase ml-2 mt-2">Siguiente nº de presupuesto</label>
-            <input id="config-nPresu" type="number" inputmode="numeric" class="w-full p-4 rounded-2xl border-none font-bold uppercase shadow-sm">
-            <label class="block text-[9px] font-black opacity-40 uppercase ml-2 mt-2">Condiciones (salen al pie del PDF)</label>
-            <textarea id="config-condiciones" rows="4" class="w-full p-4 rounded-2xl border-none font-bold text-sm shadow-sm"></textarea>
-            <button onclick="guardarAjustes()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black uppercase italic shadow-lg mt-4">Guardar Configuración</button>
-        </div>
-
-        <div class="mt-8 p-6 bg-white rounded-[35px] shadow-sm border border-slate-200">
-            <p class="text-[10px] font-black opacity-40 mb-4 uppercase italic">Resumen de presupuestos</p>
-            <div id="resumen-iva-lista" class="space-y-3"></div>
-        </div>
-
-        <div class="mt-6 p-6 bg-slate-200 rounded-[35px] shadow-inner mb-20">
-            <p class="text-[10px] font-black opacity-40 mb-4 uppercase text-center italic">Copia de Seguridad</p>
-            <div class="flex gap-3">
-                <button onclick="exportarDatos()" class="flex-1 bg-white p-4 rounded-2xl text-[10px] font-black uppercase active-scale shadow-sm">💾 Exportar</button>
-                <button onclick="document.getElementById('import-file').click()" class="flex-1 bg-white p-4 rounded-2xl text-[10px] font-black uppercase active-scale shadow-sm">📥 Importar</button>
-            </div>
-            <p id="info-copia" class="text-[9px] text-center opacity-50 mt-3 font-bold"></p>
+            <p id="info-copia" class="small center"></p>
             <input type="file" id="import-file" class="hidden" accept=".json" onchange="importarDatos(event)">
         </div>
     </div>
 
-    <div id="pantalla-expediente" class="hidden min-h-screen p-6">
-        <button onclick="irAPantalla('clientes')" class="mb-4 text-blue-600 font-bold">← Inicio</button>
+    <!-- Ficha del cliente -->
+    <div id="pantalla-expediente" class="hidden screen screen-pad">
+        <button class="back" onclick="irAPantalla('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Clientes</button>
         <div id="ficha-cliente-detalle"></div>
-        <div class="mt-10 p-6 bg-slate-200 rounded-[40px]">
-            <p class="text-[10px] font-black opacity-40 mb-4 uppercase text-center">Crear Nuevo Presupuesto</p>
-            <input id="input-nombre-obra" type="text" placeholder="NOMBRE DE LA OBRA" class="w-full p-4 bg-white rounded-2xl mb-3 border-none shadow-sm font-bold uppercase">
-            <button onclick="confirmarNombreObra()" class="w-full bg-slate-900 text-white p-5 rounded-3xl font-black uppercase italic shadow-lg">Empezar Medición</button>
+        <div class="new-presu">
+            <b>Nuevo presupuesto</b>
+            <input id="input-nombre-obra" class="input" type="text" placeholder="Nombre de la obra">
+            <button class="btn btn-dark" onclick="confirmarNombreObra()">Empezar medición</button>
         </div>
     </div>
 
-    <div id="pantalla-trabajo" class="hidden min-h-screen p-6 pb-32">
-        <div class="flex justify-between items-center mb-6">
+    <!-- Obra en curso -->
+    <div id="pantalla-trabajo" class="hidden screen screen-pad" style="padding-bottom:120px">
+        <div class="work-head">
             <div>
-                <h2 id="titulo-obra-actual" class="text-xl font-black italic text-blue-800 uppercase leading-none"></h2>
-                <input type="date" id="fecha-obra" class="mt-2 text-[10px] font-bold border-none bg-transparent outline-none">
-                <p id="aviso-edicion" class="text-[9px] font-black text-amber-600 uppercase"></p>
+                <h2 id="titulo-obra-actual" class="work-title"></h2>
+                <input type="date" id="fecha-obra" class="work-date">
+                <div id="aviso-edicion" class="work-edit"></div>
             </div>
-            <div class="flex gap-2">
-                <button onclick="guardarObraCompleta()" class="bg-green-500 text-white p-3 rounded-2xl shadow-md font-bold">PDF</button>
-                <button onclick="irAPantalla('clientes')" class="bg-white p-3 rounded-2xl shadow-sm border font-bold">✕</button>
+            <div class="work-actions">
+                <button class="btn-pdf" onclick="guardarObraCompleta()">PDF</button>
+                <button class="icon-btn" aria-label="Cerrar" onclick="irAPantalla('clientes')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
             </div>
         </div>
-        <div class="flex gap-2 mb-6 bg-slate-200 p-1 rounded-2xl">
-            <button id="btn-iva-21" onclick="cambiarIVA(21)" class="iva-btn flex-1 py-2 rounded-xl font-black text-[10px] bg-blue-600 text-white">IVA 21%</button>
-            <button id="btn-iva-10" onclick="cambiarIVA(10)" class="iva-btn flex-1 py-2 rounded-xl font-black text-[10px] bg-slate-100">IVA 10%</button>
-            <button id="btn-iva-0" onclick="cambiarIVA(0)" class="iva-btn flex-1 py-2 rounded-xl font-black text-[10px] bg-slate-100">SIN IVA</button>
+        <div class="seg" role="group" aria-label="IVA">
+            <button id="btn-iva-21" class="iva-btn on" onclick="cambiarIVA(21)">IVA 21%</button>
+            <button id="btn-iva-10" class="iva-btn" onclick="cambiarIVA(10)">IVA 10%</button>
+            <button id="btn-iva-0" class="iva-btn" onclick="cambiarIVA(0)">Sin IVA</button>
         </div>
-        <div id="lista-medidas-obra" class="space-y-2 mb-10"></div>
-        <div id="botones-trabajo" class="grid grid-cols-3 gap-3"></div>
+        <div id="lista-medidas-obra"></div>
+        <div id="botones-trabajo" class="tiles"></div>
     </div>
 
-    <div id="modal-calc" class="hidden fixed inset-0 bg-slate-900/95 backdrop-blur-sm z-50 flex flex-col justify-end p-6">
-        <div class="mb-auto pt-10 text-center">
-            <h3 id="calc-titulo" class="text-white/40 text-sm font-black uppercase italic tracking-widest mb-2">Medida</h3>
-            <div id="calc-display" class="text-white text-6xl font-black italic break-all leading-tight">0</div>
+    <!-- Calculadora -->
+    <div id="modal-calc" class="hidden calc">
+        <div class="ruler" aria-hidden="true"></div>
+        <div class="calc-top">
+            <p id="calc-ctx" class="calc-ctx"></p>
+            <p id="calc-titulo" class="calc-title">Medida</p>
+            <div id="calc-display" class="calc-display">0</div>
         </div>
-        <div class="grid grid-cols-4 gap-3">
-            <button onclick="teclear('7')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">7</button>
-            <button onclick="teclear('8')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">8</button>
-            <button onclick="teclear('9')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">9</button>
-            <button onclick="teclear('DEL')" class="bg-red-500/20 text-red-500 p-6 rounded-3xl text-xl font-black">C</button>
-            <button onclick="teclear('4')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">4</button>
-            <button onclick="teclear('5')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">5</button>
-            <button onclick="teclear('6')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">6</button>
-            <button onclick="teclear('+')" class="bg-blue-600 text-white p-6 rounded-3xl text-3xl font-black">+</button>
-            <button onclick="teclear('1')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">1</button>
-            <button onclick="teclear('2')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">2</button>
-            <button onclick="teclear('3')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">3</button>
-            <button onclick="cerrarCalc()" class="bg-white/5 text-white p-6 rounded-3xl text-xl font-black italic">SALIR</button>
-            <button onclick="teclear('0')" class="bg-white/10 text-white p-6 rounded-3xl text-2xl font-black">0</button>
-            <button onclick="teclear('.')" class="bg-white/10 text-white p-6 rounded-3xl text-3xl font-black">,</button>
-            <button onclick="teclear('OK')" class="col-span-2 bg-green-500 text-slate-900 p-6 rounded-3xl text-2xl font-black">OK</button>
+        <div class="keys">
+            <button class="key" onclick="teclear('7')">7</button>
+            <button class="key" onclick="teclear('8')">8</button>
+            <button class="key" onclick="teclear('9')">9</button>
+            <button class="key del" onclick="teclear('DEL')" aria-label="Borrar">C</button>
+            <button class="key" onclick="teclear('4')">4</button>
+            <button class="key" onclick="teclear('5')">5</button>
+            <button class="key" onclick="teclear('6')">6</button>
+            <button class="key op" onclick="teclear('+')" aria-label="Sumar tramo">+</button>
+            <button class="key" onclick="teclear('1')">1</button>
+            <button class="key" onclick="teclear('2')">2</button>
+            <button class="key" onclick="teclear('3')">3</button>
+            <button class="key exit" onclick="cerrarCalc()">Salir</button>
+            <button class="key" onclick="teclear('0')">0</button>
+            <button class="key" onclick="teclear('.')">,</button>
+            <button class="key ok" onclick="teclear('OK')">OK</button>
         </div>
     </div>
 
-    <script src="app.js?v=3"></script>
+    <script src="app.js?v=4"></script>
 </body>
 </html>

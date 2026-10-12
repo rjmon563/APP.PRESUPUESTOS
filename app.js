@@ -37,6 +37,13 @@ const unidadDe = (tipo) => (CONFIG_MEDIDAS[tipo] || {}).u || '';
 function hoyISO() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 function fechaES(iso) { if (!iso) return ''; const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; }
 
+const ICON = {
+    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+};
+
 // Escapa texto del usuario antes de meterlo en HTML
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -161,8 +168,8 @@ const valorPrevio = (v) => (v === null || v === undefined) ? '' : String(v).repl
 
 function actualizarDisplay() {
     let visual = esc(calcEstado.memoria || '0');
-    let textoHistorial = calcEstado.acumulado > 0 ? `<span class="text-xs opacity-50 italic">Acumulado: ${fNum(calcEstado.acumulado)} +</span><br>` : '';
-    let pista = calcEstado.fresco ? `<br><span class="text-xs opacity-40 italic">Valor anterior · pulsa OK para mantenerlo</span>` : '';
+    let textoHistorial = calcEstado.acumulado > 0 ? `<span class="calc-acc">Acumulado ${fNum(calcEstado.acumulado)} +</span>` : '';
+    let pista = calcEstado.fresco ? `<span class="calc-hint">Valor anterior. Pulsa OK para mantenerlo.</span>` : '';
     document.getElementById('calc-display').innerHTML = textoHistorial + visual + pista;
 }
 
@@ -171,6 +178,7 @@ function abrirCalculadora() {
     let titulo;
     if (calcEstado.modo === 'precio') titulo = `PRECIO €/${conf.u} · ${fNum(calcEstado.totalMetros)} ${conf.u}`;
     else titulo = calcEstado.paso === 1 ? conf.m1 : `${conf.m2} (${conf.m1}: ${fNum(calcEstado.v1)})`;
+    document.getElementById('calc-ctx').innerText = `${calcEstado.tarea} · ${calcEstado.zona}`;
     document.getElementById('calc-titulo').innerText = titulo;
     actualizarDisplay();
     document.getElementById('modal-calc').classList.remove('hidden');
@@ -208,8 +216,16 @@ window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('h
 window.renderListaClientes = () => {
     const cont = document.getElementById('lista-clientes');
     if (!cont) return;
-    cont.innerHTML = db.clientes.length === 0 ? '<p class="text-center opacity-40 py-10 italic">SIN CLIENTES</p>' :
-        db.clientes.map(c => `<div onclick="abrirExpediente(${c.id})" class="bg-white p-5 rounded-[30px] border shadow-sm flex justify-between items-center mb-3 active-scale"><p class="font-black text-slate-800 uppercase italic text-sm">${esc(c.nombre)}</p><p class="text-[10px] opacity-40 font-bold">${(c.presupuestos || []).length} presu.</p></div>`).reverse().join('');
+    cont.innerHTML = db.clientes.length === 0
+        ? '<div class="empty"><b>Aún no hay clientes</b>Pulsa + para añadir el primero.</div>'
+        : db.clientes.slice().reverse().map(c => {
+            const ps = c.presupuestos || [];
+            const suma = ps.reduce((a, p) => a + (Number(p.total) || 0), 0);
+            return `<button onclick="abrirExpediente(${c.id})" class="row-client">
+                <div><div class="name">${esc(c.nombre)}</div><div class="meta">${ps.length === 1 ? '1 presupuesto' : ps.length + ' presupuestos'}</div></div>
+                ${ps.length ? `<div class="amount">${fNum(suma)} €</div>` : ''}
+            </button>`;
+        }).join('');
     renderAvisoCopia();
 };
 
@@ -220,9 +236,7 @@ function renderAvisoCopia() {
     const dias = db.ajustes.ultimaCopia ? (Date.now() - db.ajustes.ultimaCopia) / 86400000 : Infinity;
     if (hayDatos && dias > 7) {
         const txt = db.ajustes.ultimaCopia ? `Última copia hace ${Math.floor(dias)} días.` : 'Aún no has hecho ninguna copia.';
-        aviso.innerHTML = `<div class="bg-amber-100 border border-amber-200 text-amber-900 p-4 rounded-[25px] mb-4 flex items-center justify-between gap-3">
-            <p class="text-[11px] font-bold">⚠️ Los datos solo están en este móvil. ${txt}</p>
-            <button onclick="exportarDatos()" class="bg-amber-500 text-white px-4 py-2 rounded-2xl text-[10px] font-black uppercase shrink-0">Copia</button></div>`;
+        aviso.innerHTML = `<div class="notice"><span>Tus datos solo están en este móvil. ${txt}</span><button onclick="exportarDatos()">Copia</button></div>`;
     } else aviso.innerHTML = '';
 }
 
@@ -241,28 +255,25 @@ window.abrirExpediente = (id) => {
     if (clienteActual.notas === undefined) clienteActual.notas = "";
 
     document.getElementById('ficha-cliente-detalle').innerHTML = `
-        <div class="bg-blue-600 text-white p-7 rounded-[40px] italic shadow-lg mb-4">
-            <h2 class="text-xl font-black uppercase mb-1">${esc(clienteActual.nombre)}</h2>
-            <p class="text-[10px] opacity-80 uppercase">${esc(clienteActual.dir)} ${esc(clienteActual.cp || '')}</p>
+        <div class="client-head">
+            <h2>${esc(clienteActual.nombre)}</h2>
+            <p>${esc(clienteActual.dir)} ${esc(clienteActual.cp || '')}</p>
         </div>
-        <div class="bg-yellow-100 p-5 rounded-[30px] mb-4 border border-yellow-200">
-            <p class="text-[9px] font-black opacity-30 mb-2 uppercase italic text-yellow-800">📌 Notas de la obra</p>
-            <textarea oninput="guardarNotas(${clienteActual.id}, this.value)" class="w-full bg-transparent border-none outline-none font-bold text-sm h-20 resize-none">${esc(clienteActual.notas)}</textarea>
+        <div class="note">
+            <b>Notas de la obra</b>
+            <textarea oninput="guardarNotas(${clienteActual.id}, this.value)">${esc(clienteActual.notas)}</textarea>
         </div>
-        <div class="space-y-2 mb-4">
-            <p class="text-[9px] font-black opacity-40 ml-2 uppercase tracking-widest">Historial</p>
-            ${historial.map(p => `
-                <div class="flex items-center gap-2 mb-2">
-                    <div onclick="verPresupuestoGuardado(${p.id})" class="flex-1 bg-white p-4 rounded-2xl border shadow-sm flex justify-between items-center active:scale-95 transition-all cursor-pointer">
-                        <div><p class="text-[10px] font-bold">#${esc(p.numero)} - ${esc(p.nombreObra)}</p><p class="text-[8px] opacity-40">${esc(p.fecha)}${p.aceptado ? ' · <span class="text-green-600 font-black">ACEPTADO</span>' : ''}</p></div>
-                        <p class="text-xs font-black text-blue-600">${fNum(p.total)}€</p>
-                    </div>
-                    <button onclick="alternarAceptado(${p.id})" title="Marcar como aceptado" class="${p.aceptado ? 'bg-green-500 text-white border-green-500' : 'bg-white text-slate-300 border-slate-200'} p-4 rounded-2xl border active:scale-90 font-black">✓</button>
-                    <button onclick="borrarPresupuestoIndividual(${p.id})" class="bg-red-50 text-red-500 p-4 rounded-2xl border border-red-100 active:scale-90">🗑️</button>
-                </div>
-            `).reverse().join('') || '<p class="text-center opacity-30 text-[10px] py-4">Sin presupuestos</p>'}
-        </div>
-        <button onclick="borrarCliente(${clienteActual.id})" class="w-full mt-6 p-4 text-red-400 font-bold text-[9px] uppercase opacity-40 italic">🗑️ Eliminar expediente completo</button>`;
+        <p class="sub">Presupuestos</p>
+        ${historial.slice().reverse().map(p => `
+            <div class="presu">
+                <button onclick="verPresupuestoGuardado(${p.id})" class="presu-main">
+                    <div><b>Nº ${esc(p.numero)} · ${esc(p.nombreObra)}</b><small>${esc(p.fecha)}${p.aceptado ? ' · <span class="tag-ok">Aceptado</span>' : ''}</small></div>
+                    <div class="amount">${fNum(p.total)} €</div>
+                </button>
+                <button onclick="alternarAceptado(${p.id})" aria-label="${p.aceptado ? 'Quitar aceptado' : 'Marcar como aceptado'}" class="sq ${p.aceptado ? 'on' : ''}">${ICON.check}</button>
+                <button onclick="borrarPresupuestoIndividual(${p.id})" aria-label="Eliminar presupuesto" class="sq del">${ICON.trash}</button>
+            </div>`).join('') || '<div class="empty" style="padding:18px 0">Todavía no hay presupuestos para este cliente.</div>'}
+        <button onclick="borrarCliente(${clienteActual.id})" class="btn-link-danger">Eliminar cliente y todos sus presupuestos</button>`;
     irAPantalla('expediente');
 };
 
@@ -302,22 +313,27 @@ function abrirPantallaTrabajo() {
 window.renderMedidas = () => {
     const cont = document.getElementById('lista-medidas-obra');
     const t = calcularTotales(obraEnCurso.lineas, obraEnCurso.iva, obraEnCurso.totalManual);
-    cont.innerHTML = obraEnCurso.lineas.map(l => `
-        <div class="bg-white p-4 rounded-2xl border flex justify-between items-center mb-2 font-bold text-[10px] uppercase italic shadow-sm">
-            <div><p class="text-blue-800">${esc(l.nombre)}</p><p class="opacity-40 normal-case">${fNum(l.cantidad)} ${unidadDe(l.tipo)} × ${fNum(l.precio)} €/${unidadDe(l.tipo)}</p></div>
-            <div class="flex items-center gap-1">
-                <span class="font-black text-xs mr-2">${fNum(l.subtotal)}€</span>
-                <button onclick="editarLinea(${l.id})" class="text-blue-500 p-2 rounded-xl bg-blue-50">✏️</button>
-                <button onclick="borrarLinea(${l.id})" class="text-red-400 p-2 rounded-xl bg-red-50">✕</button>
+    cont.innerHTML = obraEnCurso.lineas.slice().reverse().map(l => {
+        const conf = CONFIG_MEDIDAS[l.tipo] || {};
+        const u = unidadDe(l.tipo);
+        return `<div class="line">
+            <b>${conf.i || ''} ${esc(l.tarea)}</b>
+            <span class="amount">${fNum(l.subtotal)} €</span>
+            <small>${esc(l.zona)} · ${fNum(l.cantidad)}&nbsp;${u} × ${fNum(l.precio)}&nbsp;€/${u}</small>
+            <div class="line-actions">
+                <button onclick="editarLinea(${l.id})" class="mini" aria-label="Editar línea">${ICON.edit}</button>
+                <button onclick="borrarLinea(${l.id})" class="mini del" aria-label="Eliminar línea">${ICON.close}</button>
             </div>
-        </div>`).reverse().join('') +
-        (t.subtotal > 0 ? `<div class="bg-slate-900 text-white p-6 rounded-[35px] mt-5 italic shadow-xl">
-            <div class="flex justify-between text-[10px] opacity-60 font-black mb-1"><span>Suma partidas:</span><span>${fNum(t.subtotal)}€</span></div>
-            <div id="fila-ajuste" class="flex justify-between text-[10px] text-amber-300 font-black mb-1 ${t.ajuste ? '' : 'hidden'}"><span>Ajuste / redondeo:</span><span id="valor-ajuste">${fNum(t.ajuste)}€</span></div>
-            <div class="flex justify-between text-[10px] opacity-60 font-black mb-1"><span>Base imponible:</span><span id="valor-base">${fNum(t.base)}€</span></div>
-            <div class="flex justify-between text-[10px] opacity-60 font-black mb-2"><span>IVA (${obraEnCurso.iva}%):</span><span id="valor-iva">${fNum(t.cuotaIva)}€</span></div>
-            <p class="text-[8px] text-blue-400 font-black uppercase mb-1">Total (puedes corregirlo, se ajusta la base):</p>
-            <input type="text" inputmode="decimal" id="total-editable" oninput="corregirTotal(this.value)" class="w-full bg-transparent text-green-400 text-2xl font-black border-b border-green-400/30 outline-none" value="${fNum(t.total)}">
+        </div>`;
+    }).join('') +
+        (t.subtotal > 0 ? `<div class="total-card">
+            <div class="ruler thin" aria-hidden="true"></div>
+            <div class="kv"><span>Suma de partidas</span><span>${fNum(t.subtotal)} €</span></div>
+            <div id="fila-ajuste" class="kv adj ${t.ajuste ? '' : 'hidden'}"><span>Ajuste / redondeo</span><span id="valor-ajuste">${fNum(t.ajuste)} €</span></div>
+            <div class="kv"><span>Base imponible</span><span id="valor-base">${fNum(t.base)} €</span></div>
+            <div class="kv"><span>IVA ${obraEnCurso.iva}%</span><span id="valor-iva">${fNum(t.cuotaIva)} €</span></div>
+            <p class="total-label">Total. Puedes corregirlo y se ajusta la base.</p>
+            <div class="total-row"><input type="text" inputmode="decimal" id="total-editable" oninput="corregirTotal(this.value)" class="total-input" value="${fNum(t.total)}"><span class="eur">€</span></div>
         </div>` : '');
 };
 
@@ -381,9 +397,10 @@ function htmlPresupuesto(p, cli) {
     const lineaDatos = (...v) => v.filter(Boolean).map(esc).join(' · ');
 
     return `<div style="font-family:Helvetica,Arial,sans-serif;color:#0f172a;background:#fff;font-size:10px;padding:4mm;width:182mm;">
+        <div style="height:6px;background:#ffc20e;margin-bottom:14px;"></div>
         <table style="width:100%;border-collapse:collapse;margin-bottom:18px;"><tr>
             <td style="vertical-align:top;">
-                <div style="font-size:17px;font-weight:900;color:#1d4ed8;">${esc(a.nombre || 'TU EMPRESA')}</div>
+                <div style="font-size:17px;font-weight:900;color:#0b3a6e;">${esc(a.nombre || 'TU EMPRESA')}</div>
                 <div style="margin-top:4px;line-height:1.5;color:#334155;">
                     ${a.cif ? 'CIF/NIF: ' + esc(a.cif) + '<br>' : ''}${lineaDatos(a.dir)}<br>${lineaDatos(a.cp, a.ciudad)}<br>${lineaDatos(a.tel ? 'Tel. ' + a.tel : '', a.email)}
                 </div>
@@ -407,7 +424,7 @@ function htmlPresupuesto(p, cli) {
         </tr></table>
 
         <table style="width:100%;border-collapse:collapse;">
-            <thead><tr style="background:#1d4ed8;color:#fff;font-size:9px;">
+            <thead><tr style="background:#0b3a6e;color:#fff;font-size:9px;">
                 <th style="padding:6px 4px;text-align:left;">CONCEPTO</th><th style="padding:6px 4px;text-align:right;">CANTIDAD</th>
                 <th style="padding:6px 4px;text-align:right;">PRECIO</th><th style="padding:6px 4px;text-align:right;">IMPORTE</th>
             </tr></thead>
@@ -473,12 +490,13 @@ window.renderCalendario = () => {
     const primerDia = new Date(fechaCal.getFullYear(), fechaCal.getMonth(), 1).getDay();
     const diasMes = new Date(fechaCal.getFullYear(), fechaCal.getMonth() + 1, 0).getDate();
     let ajuste = (primerDia === 0 ? 6 : primerDia - 1);
-    let html = ['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(d => `<div class="text-[8px] font-black opacity-20 py-3">${d}</div>`).join('');
+    const hoy = new Date();
+    let html = ['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(d => `<div class="cal-h">${d}</div>`).join('');
     for (let i = 0; i < ajuste; i++) html += `<div></div>`;
     for (let d = 1; d <= diasMes; d++) {
         let id = `${fechaCal.getFullYear()}-${fechaCal.getMonth() + 1}-${d}`;
-        let marca = db.agenda[id] ? 'bg-blue-100 text-blue-600 border border-blue-200' : '';
-        html += `<div onclick="selDia('${id}')" class="aspect-square flex items-center justify-center text-xs font-bold rounded-xl active-scale transition-all ${marca}">${d}</div>`;
+        const esHoy = hoy.getFullYear() === fechaCal.getFullYear() && hoy.getMonth() === fechaCal.getMonth() && hoy.getDate() === d;
+        html += `<button onclick="selDia('${id}')" class="cal-d ${db.agenda[id] ? 'has' : ''} ${esHoy ? 'today' : ''}">${d}</button>`;
     }
     grid.innerHTML = html;
 };
@@ -486,7 +504,7 @@ window.renderCalendario = () => {
 window.selDia = (id) => {
     diaSel = id;
     document.getElementById('detalle-dia').classList.remove('hidden');
-    document.getElementById('fecha-seleccionada').innerText = "TAJOS DEL " + id.split('-').reverse().join('/');
+    document.getElementById('fecha-seleccionada').innerText = "Tajos del " + id.split('-').reverse().join('/');
     document.getElementById('nota-dia').value = db.agenda[id] || "";
 };
 
@@ -501,14 +519,14 @@ window.cambiarMes = (n) => { fechaCal.setDate(1); fechaCal.setMonth(fechaCal.get
 // ==========================================
 // 9. AUXILIARES Y AJUSTES
 // ==========================================
-window.renderBotones = () => { document.getElementById('botones-trabajo').innerHTML = Object.keys(CONFIG_MEDIDAS).map(k => `<button onclick="prepararMedida('${k}')" class="bg-white p-6 rounded-[30px] border flex flex-col items-center active-scale shadow-sm"><span class="text-3xl mb-1">${CONFIG_MEDIDAS[k].i}</span><span class="text-[9px] font-black uppercase opacity-60">${CONFIG_MEDIDAS[k].n}</span></button>`).join(''); };
+window.renderBotones = () => { document.getElementById('botones-trabajo').innerHTML = Object.keys(CONFIG_MEDIDAS).map(k => `<button onclick="prepararMedida('${k}')" class="tile"><span class="ico">${CONFIG_MEDIDAS[k].i}</span>${CONFIG_MEDIDAS[k].n}<small>${CONFIG_MEDIDAS[k].u}</small></button>`).join(''); };
 window.borrarLinea = (id) => { if (confirm("¿Eliminar?")) { obraEnCurso.lineas = obraEnCurso.lineas.filter(x => x.id !== id); obraEnCurso.totalManual = null; renderMedidas(); } };
 window.cambiarIVA = (valor) => {
     if (valor !== obraEnCurso.iva) obraEnCurso.totalManual = null;
     obraEnCurso.iva = valor;
-    document.querySelectorAll('.iva-btn').forEach(btn => { btn.classList.remove('bg-blue-600', 'text-white'); btn.classList.add('bg-slate-100'); });
+    document.querySelectorAll('.iva-btn').forEach(btn => btn.classList.remove('on'));
     const b = document.getElementById(`btn-iva-${valor}`);
-    if (b) { b.classList.remove('bg-slate-100'); b.classList.add('bg-blue-600', 'text-white'); }
+    if (b) b.classList.add('on');
     renderMedidas();
 };
 
@@ -567,14 +585,14 @@ window.calcularResumenIVA = () => {
             if (p.iva === 10) g.iva10 += t.cuotaIva;
         });
     }));
-    const bloque = (titulo, g, color) => `
-        <p class="text-[10px] font-black uppercase ${color} mt-2">${titulo} (${g.n})</p>
-        <div class="flex justify-between text-[11px]"><span class="opacity-50 font-bold uppercase">Base:</span><span class="font-black">${fNum(g.base)}€</span></div>
-        <div class="flex justify-between text-[11px]"><span class="opacity-50 font-bold uppercase">IVA 21%:</span><span class="font-black">${fNum(g.iva21)}€</span></div>
-        <div class="flex justify-between text-[11px]"><span class="opacity-50 font-bold uppercase">IVA 10%:</span><span class="font-black">${fNum(g.iva10)}€</span></div>
-        <div class="flex justify-between text-[11px]"><span class="opacity-50 font-bold uppercase">Total:</span><span class="font-black">${fNum(g.total)}€</span></div>`;
-    cont.innerHTML = bloque('Aceptados', r.aceptados, 'text-green-700') + bloque('Todos los presupuestos', r.todos, 'text-slate-500') +
-        `<p class="text-[9px] opacity-40 italic mt-3">Son importes de presupuestos, no de facturas emitidas. Marca con ✓ en cada cliente los que te acepten.</p>`;
+    const bloque = (titulo, g) => `
+        <h4>${titulo} (${g.n})</h4>
+        <div class="kv"><span>Base</span><span>${fNum(g.base)} €</span></div>
+        <div class="kv"><span>IVA 21%</span><span>${fNum(g.iva21)} €</span></div>
+        <div class="kv"><span>IVA 10%</span><span>${fNum(g.iva10)} €</span></div>
+        <div class="kv"><span>Total</span><span>${fNum(g.total)} €</span></div>`;
+    cont.innerHTML = bloque('Aceptados', r.aceptados) + bloque('Todos los presupuestos', r.todos) +
+        `<p class="small">Son importes de presupuestos, no de facturas emitidas. Marca con ✓ en cada cliente los que te acepten.</p>`;
 };
 
 // ==========================================

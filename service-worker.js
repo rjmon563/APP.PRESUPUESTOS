@@ -1,6 +1,7 @@
 // Primero la red (para recibir siempre la última versión); si no hay conexión, la copia guardada.
-const CACHE_NAME = "presupro-v3";
-const FILES = ["./", "./index.html", "./app.js", "./manifest.json", "./icon-192.png", "./icon-512.png"];
+const CACHE_NAME = "presupro-v4";
+const FILES = ["./", "./index.html", "./app.js",
+  "./styles.css", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
   self.skipWaiting();
