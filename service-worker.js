@@ -1,5 +1,5 @@
 // Primero la red (para recibir siempre la última versión); si no hay conexión, la copia guardada.
-const CACHE_NAME = "presupro-v4";
+const CACHE_NAME = "presupro-v5";
 const FILES = ["./", "./index.html", "./app.js",
   "./styles.css", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 

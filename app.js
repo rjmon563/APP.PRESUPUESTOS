@@ -1,6 +1,35 @@
 // ==========================================
 // 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
+const VERSION = '5';
+
+// Si el móvil conserva un index.html antiguo, se borra la copia guardada y se recarga limpio (máximo 2 intentos)
+(function comprobarVersion() {
+    const m = document.querySelector('meta[name="presupro-version"]');
+    if (m && m.content === VERSION) return;
+    let intentos = 0;
+    try { intentos = Number(sessionStorage.getItem('presupro_heal') || 0); } catch (e) { }
+    if (intentos >= 2) return;
+    try { sessionStorage.setItem('presupro_heal', String(intentos + 1)); } catch (e) { }
+    const tareas = [];
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) tareas.push(navigator.serviceWorker.getRegistrations().then(rs => Promise.all(rs.map(r => r.unregister()))));
+    if (window.caches) tareas.push(caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))));
+    Promise.all(tareas).catch(() => { }).then(() => location.replace(location.pathname + '?v=' + Date.now()));
+})();
+
+// Si algo falla, se ve en pantalla en vez de quedarse la app muda
+function mostrarError(msg) {
+    let b = document.getElementById('banner-error');
+    if (!b) {
+        b = document.createElement('div'); b.id = 'banner-error';
+        b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:99;background:#bf3b2e;color:#fff;padding:12px 14px;border-radius:12px;font:600 14px/1.3 sans-serif;';
+        b.onclick = () => b.remove(); document.body.appendChild(b);
+    }
+    b.textContent = 'Fallo en la app (versión ' + VERSION + '): ' + msg + ' — toca para cerrar y haz captura';
+}
+window.addEventListener('error', e => mostrarError(e.message));
+window.addEventListener('unhandledrejection', e => mostrarError(String(e.reason && e.reason.message || e.reason)));
+
 const AJUSTES_DEFECTO = {
     nombre: '', tel: '', cif: '', dir: '', cp: '', ciudad: '', email: '', nPresu: 1,
     condiciones: 'Presupuesto válido durante 30 días desde su fecha.\nLos trabajos no incluidos expresamente se presupuestarán aparte.',
@@ -45,7 +74,7 @@ const ICON = {
 };
 
 // Escapa texto del usuario antes de meterlo en HTML
-const esc = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // Acepta "1.234,56", "1234,56" y "1234.56"
 function parseNum(txt) {
@@ -76,8 +105,8 @@ function calcularTotales(lineas, iva, totalManual) {
 
 // Presupuestos antiguos (guardados antes de esta versión) no tienen base/ajuste
 function totalesDePresupuesto(p) {
-    if (p.base !== undefined) return { subtotal: p.subtotal ?? p.base, ajuste: p.ajuste || 0, base: p.base, cuotaIva: p.cuotaIva, total: p.total };
-    const iva = p.iva ?? 21;
+    if (p.base !== undefined) return { subtotal: p.subtotal != null ? p.subtotal : p.base, ajuste: p.ajuste || 0, base: p.base, cuotaIva: p.cuotaIva, total: p.total };
+    const iva = p.iva != null ? p.iva : 21;
     return calcularTotales(p.lineas || [], iva, p.total);
 }
 
@@ -178,7 +207,7 @@ function abrirCalculadora() {
     let titulo;
     if (calcEstado.modo === 'precio') titulo = `PRECIO €/${conf.u} · ${fNum(calcEstado.totalMetros)} ${conf.u}`;
     else titulo = calcEstado.paso === 1 ? conf.m1 : `${conf.m2} (${conf.m1}: ${fNum(calcEstado.v1)})`;
-    document.getElementById('calc-ctx').innerText = `${calcEstado.tarea} · ${calcEstado.zona}`;
+    const ctx = document.getElementById('calc-ctx'); if (ctx) ctx.innerText = `${calcEstado.tarea} · ${calcEstado.zona}`;
     document.getElementById('calc-titulo').innerText = titulo;
     actualizarDisplay();
     document.getElementById('modal-calc').classList.remove('hidden');
@@ -535,6 +564,7 @@ const CAMPOS_AJUSTES = ['nombre', 'cif', 'tel', 'email', 'dir', 'cp', 'ciudad', 
 function cargarAjustesEnFormulario() {
     CAMPOS_AJUSTES.forEach(c => { const el = document.getElementById(`config-${c}`); if (el) el.value = db.ajustes[c] || ''; });
     document.getElementById('config-nPresu').value = db.ajustes.nPresu;
+    const ver = document.getElementById('version'); if (ver) ver.innerText = 'Versión ' + VERSION;
     const info = document.getElementById('info-copia');
     if (info) info.innerText = db.ajustes.ultimaCopia ? `Última copia: ${new Date(db.ajustes.ultimaCopia).toLocaleDateString('es-ES')}` : 'Aún no has hecho ninguna copia';
 }
@@ -562,7 +592,7 @@ window.verPresupuestoGuardado = (idPresu) => {
     let fechaISO = p.fechaISO;
     if (!fechaISO && p.fecha) { const m = p.fecha.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (m) fechaISO = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`; }
     obraEnCurso = {
-        nombre: p.nombreObra, lineas: JSON.parse(JSON.stringify(p.lineas)), iva: p.iva ?? 21, fotos: [],
+        nombre: p.nombreObra, lineas: JSON.parse(JSON.stringify(p.lineas)), iva: p.iva != null ? p.iva : 21, fotos: [],
         presuId: p.id, fecha: fechaISO || hoyISO(), totalManual: t.ajuste ? t.total : null
     };
     abrirPantallaTrabajo();
