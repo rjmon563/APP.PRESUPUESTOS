@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PresuPro</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1d4ed8">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
@@ -22,7 +26,8 @@
                 <button onclick="irAPantalla('ajustes')" class="bg-white p-3 rounded-2xl shadow-sm border active-scale">⚙️</button>
             </div>
         </div>
-        <div id="lista-clientes" class="space-y-3"></div>
+        <div id="aviso-copia"></div>
+        <div id="lista-clientes" class="space-y-3 pb-28"></div>
         <button onclick="nuevoCliente()" class="fixed bottom-10 right-6 bg-blue-600 text-white w-16 h-16 rounded-[25px] shadow-2xl text-3xl font-bold active-scale">+</button>
     </div>
 
@@ -60,18 +65,22 @@
         <div class="space-y-3">
             <input id="config-nombre" type="text" placeholder="TU NOMBRE / EMPRESA" class="w-full p-4 rounded-2xl border-none font-bold uppercase shadow-sm">
             <input id="config-cif" type="text" placeholder="TU CIF" class="w-full p-4 rounded-2xl border-none font-bold uppercase shadow-sm">
-            <input id="config-tel" type="text" placeholder="TU TELÉFONO" class="w-full p-4 rounded-2xl border-none font-bold uppercase shadow-sm">
+            <input id="config-tel" type="tel" placeholder="TU TELÉFONO" class="w-full p-4 rounded-2xl border-none font-bold uppercase shadow-sm">
+            <input id="config-email" type="email" placeholder="TU EMAIL" class="w-full p-4 rounded-2xl border-none font-bold shadow-sm">
             <input id="config-dir" type="text" placeholder="DIRECCIÓN" class="w-full p-4 rounded-2xl border-none font-bold uppercase shadow-sm">
             <div class="flex gap-2">
                 <input id="config-cp" type="text" placeholder="CP" class="w-1/3 p-4 rounded-2xl border-none font-bold uppercase shadow-sm">
                 <input id="config-ciudad" type="text" placeholder="CIUDAD" class="w-2/3 p-4 rounded-2xl border-none font-bold uppercase shadow-sm">
             </div>
-            <input id="config-nPresu" type="number" placeholder="Siguiente nº Presupuesto" class="w-full p-4 rounded-2xl border-none font-bold uppercase shadow-sm">
+            <label class="block text-[9px] font-black opacity-40 uppercase ml-2 mt-2">Siguiente nº de presupuesto</label>
+            <input id="config-nPresu" type="number" inputmode="numeric" class="w-full p-4 rounded-2xl border-none font-bold uppercase shadow-sm">
+            <label class="block text-[9px] font-black opacity-40 uppercase ml-2 mt-2">Condiciones (salen al pie del PDF)</label>
+            <textarea id="config-condiciones" rows="4" class="w-full p-4 rounded-2xl border-none font-bold text-sm shadow-sm"></textarea>
             <button onclick="guardarAjustes()" class="w-full bg-blue-600 text-white p-5 rounded-3xl font-black uppercase italic shadow-lg mt-4">Guardar Configuración</button>
         </div>
 
         <div class="mt-8 p-6 bg-white rounded-[35px] shadow-sm border border-slate-200">
-            <p class="text-[10px] font-black opacity-40 mb-4 uppercase italic">Resumen IVA Facturado</p>
+            <p class="text-[10px] font-black opacity-40 mb-4 uppercase italic">Resumen de presupuestos</p>
             <div id="resumen-iva-lista" class="space-y-3"></div>
         </div>
 
@@ -81,6 +90,7 @@
                 <button onclick="exportarDatos()" class="flex-1 bg-white p-4 rounded-2xl text-[10px] font-black uppercase active-scale shadow-sm">💾 Exportar</button>
                 <button onclick="document.getElementById('import-file').click()" class="flex-1 bg-white p-4 rounded-2xl text-[10px] font-black uppercase active-scale shadow-sm">📥 Importar</button>
             </div>
+            <p id="info-copia" class="text-[9px] text-center opacity-50 mt-3 font-bold"></p>
             <input type="file" id="import-file" class="hidden" accept=".json" onchange="importarDatos(event)">
         </div>
     </div>
@@ -100,6 +110,7 @@
             <div>
                 <h2 id="titulo-obra-actual" class="text-xl font-black italic text-blue-800 uppercase leading-none"></h2>
                 <input type="date" id="fecha-obra" class="mt-2 text-[10px] font-bold border-none bg-transparent outline-none">
+                <p id="aviso-edicion" class="text-[9px] font-black text-amber-600 uppercase"></p>
             </div>
             <div class="flex gap-2">
                 <button onclick="guardarObraCompleta()" class="bg-green-500 text-white p-3 rounded-2xl shadow-md font-bold">PDF</button>
