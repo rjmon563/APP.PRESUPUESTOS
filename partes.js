@@ -350,10 +350,11 @@ function buildParteBlob(p, cli, fotos, firmaUrl) {
 
 window.generarPartePDF = async () => {
     if (!parteActual) return;
-    if (!window.jspdf) return estadoParte('No se ha cargado el generador de PDF. Recarga la página.', true);
     if (!parteTieneContenido(parteActual)) return estadoParte('Añade al menos un trabajo, una foto o la firma.', true);
     const boton = document.getElementById('parte-pdf'); boton.disabled = true; estadoParte('Preparando el PDF…');
     try {
+        try { await cargarScript('libs/jspdf.umd.min.js'); }
+        catch (e) { return estadoParte('No se ha podido cargar el generador de PDF. Abre la app una vez con cobertura y vuelve a intentarlo.', true); }
         guardarParte();
         const firmaUrl = parteActual.firma ? await medios.get('firma:' + parteActual.id) : null;
         const blob = buildParteBlob(parteActual, clienteActual, parteFotos, firmaUrl);

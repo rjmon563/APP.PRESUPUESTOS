@@ -1,7 +1,7 @@
 // ==========================================
 // 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
-const VERSION = '6';
+const VERSION = '7';
 
 // Si el móvil conserva un index.html antiguo, se borra la copia guardada y se recarga limpio (máximo 2 intentos)
 (function comprobarVersion() {
@@ -94,6 +94,61 @@ const asegurarGuardado = () => {
     catch (e) { alert('No se han podido guardar los datos en el móvil. Haz una copia de seguridad (⚙️ > Exportar).'); }
 };
 
+// ---- Borrador de la medición en curso: sobrevive a que el móvil cierre o recargue la app ----
+const CLAVE_BORRADOR = 'presupro_borrador';
+
+function guardarBorrador() {
+    try {
+        if (!clienteActual || !obraEnCurso || (!obraEnCurso.lineas.length && !obraEnCurso.nombre)) return;
+        localStorage.setItem(CLAVE_BORRADOR, JSON.stringify({ clienteId: clienteActual.id, obra: obraEnCurso, ts: Date.now() }));
+    } catch (e) { }
+}
+
+function leerBorrador() {
+    try {
+        const b = JSON.parse(localStorage.getItem(CLAVE_BORRADOR));
+        if (!b || !b.obra || !Array.isArray(b.obra.lineas)) return null;
+        if (!db.clientes.some(c => c.id === b.clienteId)) return null;
+        return b;
+    } catch (e) { return null; }
+}
+
+function borrarBorrador() { try { localStorage.removeItem(CLAVE_BORRADOR); } catch (e) { } }
+
+function renderAvisoBorrador() {
+    const aviso = document.getElementById('aviso-borrador');
+    if (!aviso) return;
+    const b = leerBorrador();
+    if (!b || (!b.obra.lineas.length && !b.obra.presuId)) { aviso.innerHTML = ''; return; }
+    const cli = db.clientes.find(c => c.id === b.clienteId);
+    const n = b.obra.lineas.length;
+    aviso.innerHTML = `<div class="notice"><span>Medición sin terminar: <b>${esc(b.obra.nombre)}</b> (${esc(cli.nombre)}, ${n === 1 ? '1 línea' : n + ' líneas'}).</span>
+        <span style="display:flex;gap:8px"><button onclick="continuarBorrador()">Seguir</button><button onclick="descartarBorrador()" style="background:#fff;color:var(--ink);border:1px solid #c9b25a">Borrar</button></span></div>`;
+}
+
+window.continuarBorrador = () => {
+    const b = leerBorrador();
+    if (!b) return renderAvisoBorrador();
+    clienteActual = db.clientes.find(c => c.id === b.clienteId);
+    obraEnCurso = Object.assign(nuevaObra(''), b.obra);
+    abrirPantallaTrabajo();
+};
+
+window.descartarBorrador = () => {
+    if (!confirm('¿Borrar la medición sin terminar? No se puede recuperar.')) return;
+    borrarBorrador(); renderAvisoBorrador();
+};
+
+window.cambiarFechaObra = (v) => { obraEnCurso.fecha = v || hoyISO(); guardarBorrador(); };
+
+window.renombrarObra = () => {
+    const n = prompt('Nombre de la obra', obraEnCurso.nombre);
+    if (n === null || !n.trim()) return;
+    obraEnCurso.nombre = n.trim().toUpperCase();
+    document.getElementById('titulo-obra-actual').innerText = obraEnCurso.nombre;
+    guardarBorrador();
+};
+
 // Totales de una obra o presupuesto: base de líneas, ajuste por total corregido, IVA y total
 function calcularTotales(lineas, iva, totalManual) {
     const subtotal = redondear(lineas.reduce((a, b) => a + (b.subtotal || 0), 0));
@@ -178,6 +233,7 @@ window.teclear = (n) => {
             obraEnCurso.totalManual = null; // las líneas cambiaron: el total vuelve a ser el calculado
             document.getElementById('modal-calc').classList.add('hidden');
             renderMedidas();
+            guardarBorrador();
         }
     } else if (n === 'DEL') {
         if (calcEstado.memoria !== '') { calcEstado.memoria = ''; }
@@ -259,6 +315,7 @@ window.renderListaClientes = () => {
                 ${ps.length ? `<div class="amount">${fNum(suma)} €</div>` : ''}
             </button>`;
         }).join('');
+    renderAvisoBorrador();
     renderAvisoCopia();
 };
 
@@ -273,12 +330,41 @@ function renderAvisoCopia() {
     } else aviso.innerHTML = '';
 }
 
+// El mismo formulario sirve para crear un cliente y para corregir sus datos
+let clienteEditando = null;
+const CAMPOS_CLIENTE = { nombre: 'cli-nombre', cif: 'cli-cif', tel: 'cli-tel', dir: 'cli-dir', cp: 'cli-cp' };
+
+function prepararFormularioCliente(c) {
+    clienteEditando = c ? c.id : null;
+    Object.keys(CAMPOS_CLIENTE).forEach(k => { document.getElementById(CAMPOS_CLIENTE[k]).value = c ? (c[k] || '') : ''; });
+    document.getElementById('titulo-form-cliente').innerText = c ? 'Editar cliente' : 'Nuevo cliente';
+    document.getElementById('btn-guardar-cliente').innerText = c ? 'Guardar cambios' : 'Guardar cliente';
+}
+
+window.editarCliente = (id) => {
+    const c = db.clientes.find(x => x.id === id);
+    if (!c) return;
+    prepararFormularioCliente(c);
+    irAPantalla('nuevo-cliente');
+};
+
+window.cancelarFormularioCliente = () => {
+    const id = clienteEditando;
+    prepararFormularioCliente(null);
+    if (id) abrirExpediente(id); else irAPantalla('clientes');
+};
+
 window.guardarDatosCliente = () => {
-    const nom = document.getElementById('cli-nombre').value.trim();
-    if (!nom) return alert("Nombre?");
-    db.clientes.push({ id: Date.now(), nombre: nom.toUpperCase(), cif: document.getElementById('cli-cif').value.toUpperCase(), tel: document.getElementById('cli-tel').value, dir: document.getElementById('cli-dir').value.toUpperCase(), cp: document.getElementById('cli-cp').value.toUpperCase(), presupuestos: [], notas: "" });
-    ['cli-nombre', 'cli-cif', 'cli-tel', 'cli-dir', 'cli-cp'].forEach(i => document.getElementById(i).value = '');
-    asegurarGuardado(); irAPantalla('clientes');
+    const v = (k) => document.getElementById(CAMPOS_CLIENTE[k]).value.trim();
+    if (!v('nombre')) return alert("Nombre?");
+    const datos = { nombre: v('nombre').toUpperCase(), cif: v('cif').toUpperCase(), tel: v('tel'), dir: v('dir').toUpperCase(), cp: v('cp').toUpperCase() };
+    const idEditado = clienteEditando;
+    const existente = idEditado ? db.clientes.find(x => x.id === idEditado) : null;
+    if (existente) Object.assign(existente, datos); // se modifica el mismo objeto: sus presupuestos y partes no se tocan
+    else db.clientes.push(Object.assign({ id: Date.now(), presupuestos: [], notas: "" }, datos));
+    prepararFormularioCliente(null);
+    asegurarGuardado();
+    if (existente) abrirExpediente(existente.id); else irAPantalla('clientes');
 };
 
 window.abrirExpediente = (id) => {
@@ -291,7 +377,9 @@ window.abrirExpediente = (id) => {
         <div class="client-head">
             <h2>${esc(clienteActual.nombre)}</h2>
             <p>${esc(clienteActual.dir)} ${esc(clienteActual.cp || '')}</p>
+            ${(clienteActual.cif || clienteActual.tel) ? `<p>${[clienteActual.cif && 'NIF ' + esc(clienteActual.cif), clienteActual.tel && 'Tel. ' + esc(clienteActual.tel)].filter(Boolean).join(' · ')}</p>` : ''}
         </div>
+        <button class="btn btn-light" style="margin-bottom:14px" onclick="editarCliente(${clienteActual.id})">Editar datos del cliente</button>
         <div class="note">
             <b>Notas de la obra</b>
             <textarea oninput="guardarNotas(${clienteActual.id}, this.value)">${esc(clienteActual.notas)}</textarea>
@@ -323,11 +411,20 @@ window.alternarAceptado = (idPresu) => {
 // ==========================================
 // 5. INICIAR MEDICIÓN
 // ==========================================
+// Si ya hay una medición sin terminar con líneas, empezar otra la sustituiría: se avisa antes
+function confirmarPerderBorrador() {
+    const b = leerBorrador();
+    if (!b || !b.obra.lineas.length) return true;
+    return confirm(`Tienes una medición sin terminar (${b.obra.nombre}). Si sigues, se perderá. ¿Continuar?`);
+}
+
 window.confirmarNombreObra = () => {
     const v = document.getElementById('input-nombre-obra').value.trim();
     if (!v) return alert("Pon un nombre a la obra");
+    if (!confirmarPerderBorrador()) return;
     obraEnCurso = nuevaObra(v.toUpperCase());
     document.getElementById('input-nombre-obra').value = "";
+    borrarBorrador();
     abrirPantallaTrabajo();
 };
 
@@ -375,6 +472,7 @@ window.renderMedidas = () => {
 window.corregirTotal = (valor) => {
     const n = parseNum(valor);
     obraEnCurso.totalManual = n > 0 ? n : null;
+    guardarBorrador();
     const t = calcularTotales(obraEnCurso.lineas, obraEnCurso.iva, obraEnCurso.totalManual);
     document.getElementById('fila-ajuste').classList.toggle('hidden', !t.ajuste);
     document.getElementById('valor-ajuste').innerText = `${fNum(t.ajuste)}€`;
@@ -406,6 +504,7 @@ window.guardarObraCompleta = async () => {
     }
     obraEnCurso.presuId = presu.id;
     asegurarGuardado();
+    borrarBorrador(); // ya está guardada en el cliente: el borrador sobra
 
     await generarPDF(presu, clienteActual);
     abrirExpediente(clienteActual.id);
@@ -482,7 +581,21 @@ function htmlPresupuesto(p, cli) {
     </div>`;
 }
 
+// Las librerías de PDF viven en libs/ (el service worker las guarda): funcionan sin cobertura
+const _scripts = {};
+function cargarScript(src) {
+    if (!_scripts[src]) _scripts[src] = new Promise((ok, ko) => {
+        const s = document.createElement('script');
+        s.src = src; s.onload = () => ok();
+        s.onerror = () => { delete _scripts[src]; s.remove(); ko(new Error('No se pudo cargar ' + src)); };
+        document.head.appendChild(s);
+    });
+    return _scripts[src];
+}
+
 async function generarPDF(presu, cli) {
+    try { await cargarScript('libs/html2pdf.bundle.min.js'); }
+    catch (e) { alert('El presupuesto se ha guardado, pero no se pudo preparar el PDF. Abre la app una vez con cobertura y vuelve a pulsar PDF.'); return; }
     const nombreArchivo = `Presupuesto_${presu.numero}_${(cli.nombre || '').replace(/[^A-Za-z0-9]+/g, '_').slice(0, 30)}.pdf`;
     const opt = { margin: 10, filename: nombreArchivo, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' } };
     // La plantilla se monta en un contenedor real (tapado por la pantalla) para que html2canvas la dibuje bien
@@ -560,14 +673,16 @@ window.cambiarMes = (n) => { fechaCal.setDate(1); fechaCal.setMonth(fechaCal.get
 // 9. AUXILIARES Y AJUSTES
 // ==========================================
 window.renderBotones = () => { document.getElementById('botones-trabajo').innerHTML = Object.keys(CONFIG_MEDIDAS).map(k => `<button onclick="prepararMedida('${k}')" class="tile"><span class="ico">${CONFIG_MEDIDAS[k].i}</span>${CONFIG_MEDIDAS[k].n}<small>${CONFIG_MEDIDAS[k].u}</small></button>`).join(''); };
-window.borrarLinea = (id) => { if (confirm("¿Eliminar?")) { obraEnCurso.lineas = obraEnCurso.lineas.filter(x => x.id !== id); obraEnCurso.totalManual = null; renderMedidas(); } };
+window.borrarLinea = (id) => { if (confirm("¿Eliminar?")) { obraEnCurso.lineas = obraEnCurso.lineas.filter(x => x.id !== id); obraEnCurso.totalManual = null; renderMedidas(); guardarBorrador(); } };
 window.cambiarIVA = (valor) => {
-    if (valor !== obraEnCurso.iva) obraEnCurso.totalManual = null;
+    const cambio = valor !== obraEnCurso.iva;
+    if (cambio) obraEnCurso.totalManual = null;
     obraEnCurso.iva = valor;
     document.querySelectorAll('.iva-btn').forEach(btn => btn.classList.remove('on'));
     const b = document.getElementById(`btn-iva-${valor}`);
     if (b) b.classList.add('on');
     renderMedidas();
+    if (cambio) guardarBorrador();
 };
 
 const CAMPOS_AJUSTES = ['nombre', 'cif', 'tel', 'email', 'dir', 'cp', 'ciudad', 'condiciones', 'prefParte'];
@@ -592,13 +707,15 @@ window.guardarAjustes = () => {
     asegurarGuardado(); alert("Guardado"); irAPantalla('clientes');
 };
 
-window.nuevoCliente = () => irAPantalla('nuevo-cliente');
+window.nuevoCliente = () => { prepararFormularioCliente(null); irAPantalla('nuevo-cliente'); };
 window.borrarCliente = (id) => { if (confirm("¿BORRAR?")) { const c = db.clientes.find(x => x.id === id); if (c && typeof limpiarMediosCliente === 'function') limpiarMediosCliente(c); db.clientes = db.clientes.filter(c => c.id !== id); asegurarGuardado(); irAPantalla('clientes'); } };
 window.borrarPresupuestoIndividual = (idPresu) => { if (confirm("¿Eliminar?")) { clienteActual.presupuestos = clienteActual.presupuestos.filter(p => p.id !== idPresu); asegurarGuardado(); abrirExpediente(clienteActual.id); } };
 
 window.verPresupuestoGuardado = (idPresu) => {
     const p = clienteActual.presupuestos.find(x => x.id === idPresu);
     if (!p) return;
+    if (!confirmarPerderBorrador()) return;
+    borrarBorrador();
     const t = totalesDePresupuesto(p);
     let fechaISO = p.fechaISO;
     if (!fechaISO && p.fecha) { const m = p.fecha.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (m) fechaISO = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`; }
@@ -692,7 +809,9 @@ window.onload = () => {
     if ('serviceWorker' in navigator) {
         // Si se publica una versión nueva, la app se recarga sola una vez para usarla
         let recargando = !navigator.serviceWorker.controller; // primera visita: no hace falta recargar
-        navigator.serviceWorker.addEventListener('controllerchange', () => { if (!recargando) { recargando = true; location.reload(); } });
+        // Nunca se recarga en mitad de una medición, un parte o la calculadora: se espera a la próxima vez que se abra
+        const trabajando = () => ['pantalla-trabajo', 'pantalla-parte', 'modal-calc'].some(id => { const el = document.getElementById(id); return el && !el.classList.contains('hidden'); });
+        navigator.serviceWorker.addEventListener('controllerchange', () => { if (!recargando && !trabajando()) { recargando = true; location.reload(); } });
         navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' }).then(r => r.update()).catch(() => { });
     }
 };

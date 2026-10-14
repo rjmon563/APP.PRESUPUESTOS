@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>PresuPro</title>
-    <meta name="presupro-version" content="6">
+    <meta name="presupro-version" content="7">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0b3a6e">
     <link rel="apple-touch-icon" href="icon-192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=6">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet"></noscript>
+    <link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
 
@@ -31,6 +31,7 @@
             </div>
         </header>
         <div class="ruler" aria-hidden="true"></div>
+        <div id="aviso-borrador"></div>
         <div id="aviso-copia"></div>
         <div id="lista-clientes"></div>
         <button class="fab" onclick="nuevoCliente()" aria-label="Nuevo cliente">+</button>
@@ -54,14 +55,14 @@
 
     <!-- Nuevo cliente -->
     <div id="pantalla-nuevo-cliente" class="hidden screen screen-pad">
-        <button class="back" onclick="irAPantalla('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Volver</button>
-        <h2 class="h-screen">Nuevo cliente</h2>
+        <button class="back" onclick="cancelarFormularioCliente()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Volver</button>
+        <h2 class="h-screen" id="titulo-form-cliente">Nuevo cliente</h2>
         <label class="field"><span>Nombre del cliente</span><input id="cli-nombre" type="text" autocomplete="off"></label>
         <label class="field"><span>CIF / NIF</span><input id="cli-cif" type="text" autocomplete="off"></label>
         <label class="field"><span>Teléfono</span><input id="cli-tel" type="tel" autocomplete="off"></label>
         <label class="field"><span>Dirección</span><input id="cli-dir" type="text" autocomplete="off"></label>
         <label class="field"><span>Código postal</span><input id="cli-cp" type="text" inputmode="numeric" autocomplete="off"></label>
-        <button class="btn btn-primary" onclick="guardarDatosCliente()">Guardar cliente</button>
+        <button class="btn btn-primary" id="btn-guardar-cliente" onclick="guardarDatosCliente()">Guardar cliente</button>
     </div>
 
     <!-- Mis datos -->
@@ -145,8 +146,8 @@
     <div id="pantalla-trabajo" class="hidden screen screen-pad" style="padding-bottom:120px">
         <div class="work-head">
             <div>
-                <h2 id="titulo-obra-actual" class="work-title"></h2>
-                <input type="date" id="fecha-obra" class="work-date">
+                <h2 id="titulo-obra-actual" class="work-title" onclick="renombrarObra()" title="Toca para cambiar el nombre"></h2>
+                <input type="date" id="fecha-obra" class="work-date" onchange="cambiarFechaObra(this.value)">
                 <div id="aviso-edicion" class="work-edit"></div>
             </div>
             <div class="work-actions">
@@ -191,8 +192,7 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="app.js?v=6"></script>
-    <script src="partes.js?v=6"></script>
+    <script src="app.js?v=7"></script>
+    <script src="partes.js?v=7"></script>
 </body>
 </html>

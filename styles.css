@@ -195,3 +195,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 .firma-box { background: var(--card); border: 1.5px dashed #8ea2b6; border-radius: 12px; }
 .firma-box canvas { display: block; width: 100%; height: 160px; touch-action: none; }
 .btn-link { padding: 12px 2px; margin-bottom: 8px; font-weight: 700; color: var(--navy); }
+
+/* Título de la obra: se puede tocar para renombrarla */
+.work-title { cursor: pointer; }
+.work-title::after { content: ' ✎'; font-size: .55em; opacity: .5; }
