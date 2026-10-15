@@ -1,7 +1,7 @@
 // ==========================================
 // 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
-const VERSION = '9';
+const VERSION = '10';
 
 // Si el móvil conserva un index.html antiguo, se borra la copia guardada y se recarga limpio (máximo 2 intentos)
 (function comprobarVersion() {
@@ -61,7 +61,9 @@ const CONFIG_MEDIDAS = {
     'camaras':    { n: 'Cámara',      i: '🔲', pasos: 2, m1: 'Suma de tramos', m2: 'Altura/Fondo', u: 'm²' },
     'tabicas':    { n: 'Tabica',      i: '📐', pasos: 2, m1: 'Ancho',          m2: 'Largo',       u: 'm²' },
     'cantoneras': { n: 'Cantonera',   i: '📏', pasos: 1, m1: 'Metros Totales',                    u: 'ml' },
-    'horas':      { n: 'Horas Admin', i: '🕒', pasos: 1, m1: 'Número de Horas',                   u: 'h' }
+    'horas':      { n: 'Horas Admin', i: '🕒', pasos: 1, m1: 'Número de Horas',                   u: 'h' },
+    // Trabajos añadidos a petición del cliente (desescombro, andamio...): concepto libre, sin zona
+    'extras':     { n: 'Extras',      i: '➕', pasos: 1, m1: 'Cantidad',                         u: 'ud', sinZona: true }
 };
 
 const fNum = (n) => Number(n || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -229,7 +231,7 @@ window.teclear = (n) => {
             const conf = CONFIG_MEDIDAS[calcEstado.tipo];
             const l = {
                 id: calcEstado.editandoId || Date.now(), tipo: calcEstado.tipo, tarea: calcEstado.tarea, zona: calcEstado.zona,
-                nombre: `${conf.i} ${calcEstado.tarea} - ${calcEstado.zona}`,
+                nombre: `${conf.i} ${calcEstado.tarea}${calcEstado.zona ? ' - ' + calcEstado.zona : ''}`,
                 m1: calcEstado.v1, m2: calcEstado.v2, unidad: conf.u,
                 cantidad: calcEstado.totalMetros, precio: res, subtotal: redondear(calcEstado.totalMetros * res)
             };
@@ -266,7 +268,8 @@ const valorPrevio = (v) => (v === null || v === undefined) ? '' : String(v).repl
 // Último precio usado por trabajo (p. ej. TABIQUE + MONTAJE) y, si no hay, por tipo de medida
 function precioRecordado(tipo, tarea) {
     const p = db.ajustes.ultimosPrecios || {};
-    const v = p[tipo + '|' + tarea] != null ? p[tipo + '|' + tarea] : p[tipo];
+    // Cada extra tiene su propio precio: no se ofrece el de otro extra distinto
+    const v = p[tipo + '|' + tarea] != null ? p[tipo + '|' + tarea] : (tipo === 'extras' ? null : p[tipo]);
     return v != null && v > 0 ? v : null;
 }
 
@@ -274,7 +277,7 @@ function recordarPrecio(tipo, tarea, precio) {
     if (!(precio > 0)) return;
     if (!db.ajustes.ultimosPrecios) db.ajustes.ultimosPrecios = {};
     db.ajustes.ultimosPrecios[tipo + '|' + tarea] = precio;
-    db.ajustes.ultimosPrecios[tipo] = precio;
+    if (tipo !== 'extras') db.ajustes.ultimosPrecios[tipo] = precio;
     asegurarGuardado();
 }
 
@@ -292,16 +295,20 @@ function abrirCalculadora() {
     let titulo;
     if (calcEstado.modo === 'precio') titulo = `PRECIO €/${conf.u} · ${fNum(calcEstado.totalMetros)} ${conf.u}`;
     else titulo = calcEstado.paso === 1 ? conf.m1 : `${conf.m2} (${conf.m1}: ${fNum(calcEstado.v1)})`;
-    const ctx = document.getElementById('calc-ctx'); if (ctx) ctx.innerText = `${calcEstado.tarea} · ${calcEstado.zona}`;
+    const ctx = document.getElementById('calc-ctx'); if (ctx) ctx.innerText = [calcEstado.tarea, calcEstado.zona].filter(Boolean).join(' · ');
     document.getElementById('calc-titulo').innerText = titulo;
     actualizarDisplay();
     document.getElementById('modal-calc').classList.remove('hidden');
 }
 
 window.prepararMedida = (t) => {
-    const zona = prompt("¿ZONA?", "GENERAL"); if (!zona) return;
-    const tarea = (t === 'horas') ? prompt("¿CONCEPTO?", "ADMINISTRACIÓN") : prompt("¿TRABAJO?", "MONTAJE"); if (!tarea) return;
-    calcEstado = { tipo: t, paso: 1, v1: 0, v2: null, memoria: '', acumulado: 0, zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), modo: 'medida', editandoId: null, historialSuma: [], previo: { precio: precioRecordado(t, tarea.toUpperCase()) }, fresco: false };
+    const sinZona = !!CONFIG_MEDIDAS[t].sinZona;
+    const zona = sinZona ? '' : prompt("¿ZONA?", "GENERAL"); if (!sinZona && !zona) return;
+    const tarea = t === 'horas' ? prompt("¿CONCEPTO?", "ADMINISTRACIÓN")
+        : t === 'extras' ? prompt("¿QUÉ EXTRA? (p. ej. DESESCOMBRO, ANDAMIO)", "")
+        : prompt("¿TRABAJO?", "MONTAJE");
+    if (!tarea || !tarea.trim()) return;
+    calcEstado = { tipo: t, paso: 1, v1: 0, v2: null, memoria: '', acumulado: 0, zona: zona.toUpperCase(), tarea: tarea.trim().toUpperCase(), modo: 'medida', editandoId: null, historialSuma: [], previo: { precio: precioRecordado(t, tarea.trim().toUpperCase()) }, fresco: false };
     abrirCalculadora();
 };
 
@@ -312,11 +319,11 @@ window.editarLinea = (id) => {
     // Líneas antiguas no guardaban las medidas parciales: se usa el total y altura 1
     let m1 = l.m1, m2 = l.m2;
     if (m1 === undefined || m1 === null) { m1 = l.cantidad; m2 = conf.pasos === 2 ? 1 : null; }
-    const nuevaZona = prompt("¿ZONA?", l.zona); if (nuevaZona === null) return;
-    const nuevaTarea = prompt(l.tipo === 'horas' ? "¿CONCEPTO?" : "¿TRABAJO?", l.tarea); if (nuevaTarea === null) return;
+    const nuevaZona = conf.sinZona ? '' : prompt("¿ZONA?", l.zona); if (nuevaZona === null) return;
+    const nuevaTarea = prompt(l.tipo === 'horas' ? "¿CONCEPTO?" : l.tipo === 'extras' ? "¿QUÉ EXTRA?" : "¿TRABAJO?", l.tarea); if (nuevaTarea === null) return;
     calcEstado = {
         tipo: l.tipo, paso: 1, v1: 0, v2: null, memoria: valorPrevio(m1), acumulado: 0,
-        zona: (nuevaZona || l.zona).toUpperCase(), tarea: (nuevaTarea || l.tarea).toUpperCase(),
+        zona: conf.sinZona ? '' : (nuevaZona || l.zona).toUpperCase(), tarea: (nuevaTarea || l.tarea).toUpperCase(),
         modo: 'medida', editandoId: id, historialSuma: [], previo: { m2, precio: l.precio }, fresco: true
     };
     abrirCalculadora();
@@ -475,7 +482,7 @@ window.renderMedidas = () => {
         return `<div class="line">
             <b>${conf.i || ''} ${esc(l.tarea)}</b>
             <span class="amount">${fNum(l.subtotal)} €</span>
-            <small>${esc(l.zona)} · ${fNum(l.cantidad)}&nbsp;${u} × ${fNum(l.precio)}&nbsp;€/${u}</small>
+            <small>${l.zona ? esc(l.zona) + ' · ' : ''}${fNum(l.cantidad)}&nbsp;${u} × ${fNum(l.precio)}&nbsp;€/${u}</small>
             <div class="line-actions">
                 <button onclick="editarLinea(${l.id})" class="mini" aria-label="Editar línea">${ICON.edit}</button>
                 <button onclick="borrarLinea(${l.id})" class="mini del" aria-label="Eliminar línea">${ICON.close}</button>
@@ -568,16 +575,23 @@ async function guardarObraYPDF() {
 function htmlPresupuesto(p, cli) {
     const a = db.ajustes;
     const t = totalesDePresupuesto(p);
-    const filas = p.lineas.map(l => {
+    const filaDe = (l) => {
         const u = l.unidad || unidadDe(l.tipo);
         const detalle = (l.m2 !== null && l.m2 !== undefined) ? `${fNum(l.m1)} × ${fNum(l.m2)}` : '';
+        const sub = [l.zona, detalle].filter(Boolean).join(' · ');
+        const tipoTxt = l.tipo === 'extras' ? '' : ' · ' + esc((CONFIG_MEDIDAS[l.tipo] || {}).n || ''); // los extras ya van bajo su cabecera
         return `<tr>
-            <td style="padding:6px 4px;border-bottom:1px solid #e2e8f0;"><b>${esc(l.tarea)}</b> · ${esc((CONFIG_MEDIDAS[l.tipo] || {}).n || '')}<br><span style="color:#64748b;font-size:9px;">${esc(l.zona)}${detalle ? ' · ' + detalle : ''}</span></td>
+            <td style="padding:6px 4px;border-bottom:1px solid #e2e8f0;"><b>${esc(l.tarea)}</b>${tipoTxt}${sub ? `<br><span style="color:#64748b;font-size:9px;">${esc(sub)}</span>` : ''}</td>
             <td style="padding:6px 4px;border-bottom:1px solid #e2e8f0;text-align:right;white-space:nowrap;">${fNum(l.cantidad)} ${u}</td>
             <td style="padding:6px 4px;border-bottom:1px solid #e2e8f0;text-align:right;white-space:nowrap;">${fNum(l.precio)} €/${u}</td>
             <td style="padding:6px 4px;border-bottom:1px solid #e2e8f0;text-align:right;white-space:nowrap;"><b>${fNum(l.subtotal)} €</b></td>
         </tr>`;
-    }).join('');
+    };
+    // Las partidas de obra primero; los extras, bajo su propia cabecera (todo suma en el mismo total)
+    const lineasObra = p.lineas.filter(l => l.tipo !== 'extras'), lineasExtra = p.lineas.filter(l => l.tipo === 'extras');
+    const filas = lineasObra.map(filaDe).join('') + (lineasExtra.length
+        ? `<tr><td colspan="4" style="padding:8px 4px 4px;background:#f1f5f9;font-size:9px;font-weight:900;letter-spacing:.5px;color:#64748b;">EXTRAS</td></tr>` + lineasExtra.map(filaDe).join('')
+        : '');
     const fila = (txt, val, estilo = '') => `<tr><td style="padding:4px;${estilo}">${txt}</td><td style="padding:4px;text-align:right;white-space:nowrap;${estilo}">${val}</td></tr>`;
     const lineaDatos = (...v) => v.filter(Boolean).map(esc).join(' · ');
 

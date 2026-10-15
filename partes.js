@@ -198,7 +198,7 @@ window.cargarDesdePresupuesto = (idPresu) => {
     const sel = document.getElementById('parte-presu');
     const p = (clienteActual.presupuestos || []).find(x => String(x.id) === String(idPresu));
     if (!p) return;
-    const nuevas = (p.lineas || []).map(l => ({ d: `${l.tarea} · ${l.zona}`, q: String(l.cantidad).replace('.', ','), u: UNIDADES_PARTE.includes(l.unidad) ? l.unidad : 'ud' }));
+    const nuevas = (p.lineas || []).map(l => ({ d: [l.tarea, l.zona].filter(Boolean).join(' · '), q: String(l.cantidad).replace('.', ','), u: UNIDADES_PARTE.includes(l.unidad) ? l.unidad : 'ud' }));
     const vacio = parteActual.lineas.length === 1 && !parteActual.lineas[0].d.trim() && !String(parteActual.lineas[0].q).trim();
     parteActual.lineas = vacio ? nuevas : parteActual.lineas.concat(nuevas);
     if (!parteActual.obra.trim()) { parteActual.obra = p.nombreObra; document.getElementById('parte-obra').value = p.nombreObra; }
