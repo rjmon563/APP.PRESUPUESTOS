@@ -1,7 +1,7 @@
 // ==========================================
 // 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
-const VERSION = '8';
+const VERSION = '9';
 
 // Si el móvil conserva un index.html antiguo, se borra la copia guardada y se recarga limpio (máximo 2 intentos)
 (function comprobarVersion() {
@@ -505,7 +505,30 @@ window.corregirTotal = (valor) => {
     document.getElementById('valor-iva').innerText = `${fNum(t.cuotaIva)}€`;
 };
 
+// Pregunta qué hacer al guardar un presupuesto que ya existía: tres botones claros en lugar de Aceptar/Cancelar
+function preguntarGuardado(numero) {
+    return new Promise(resolver => {
+        const m = document.getElementById('modal-guardar');
+        const fin = (r) => { m.classList.add('hidden'); resolver(r); };
+        document.getElementById('guardar-texto').textContent = `Estás editando el presupuesto nº ${numero}.`;
+        document.getElementById('guardar-sobrescribir').textContent = `Sobrescribir el nº ${numero}`;
+        document.getElementById('guardar-nuevo').textContent = `Guardar como nuevo (nº ${db.ajustes.nPresu})`;
+        document.getElementById('guardar-sobrescribir').onclick = () => fin('sobrescribir');
+        document.getElementById('guardar-nuevo').onclick = () => fin('nuevo');
+        document.getElementById('guardar-volver').onclick = () => fin(null);
+        m.onclick = (e) => { if (e.target === m) fin(null); }; // tocar fuera = volver sin guardar
+        m.classList.remove('hidden');
+    });
+}
+
+let guardandoObra = false; // evita crear dos presupuestos si se toca PDF dos veces
 window.guardarObraCompleta = async () => {
+    if (guardandoObra) return;
+    guardandoObra = true;
+    try { await guardarObraYPDF(); } finally { guardandoObra = false; }
+};
+
+async function guardarObraYPDF() {
     if (obraEnCurso.lineas.length === 0) return alert("Añade medidas");
     if (!db.ajustes.nombre && !confirm("Aún no has rellenado tus datos fiscales (⚙️). El PDF saldrá sin tus datos. ¿Continuar?")) return;
 
@@ -514,7 +537,11 @@ window.guardarObraCompleta = async () => {
     if (!clienteActual.presupuestos) clienteActual.presupuestos = [];
 
     let existente = obraEnCurso.presuId ? clienteActual.presupuestos.find(p => p.id === obraEnCurso.presuId) : null;
-    if (existente && !confirm(`¿Guardar los cambios en el presupuesto nº ${existente.numero}?\n\nAceptar = sobrescribir el nº ${existente.numero}\nCancelar = guardarlo como presupuesto nuevo`)) existente = null;
+    if (existente) {
+        const eleccion = await preguntarGuardado(existente.numero);
+        if (eleccion === null) return; // volver: no se guarda nada ni se gasta número
+        if (eleccion === 'nuevo') existente = null;
+    }
 
     const datos = {
         fechaISO, fecha: fechaES(fechaISO), nombreObra: obraEnCurso.nombre, lineas: JSON.parse(JSON.stringify(obraEnCurso.lineas)),
@@ -533,7 +560,7 @@ window.guardarObraCompleta = async () => {
 
     await generarPDF(presu, clienteActual);
     abrirExpediente(clienteActual.id);
-};
+}
 
 // ==========================================
 // 7. PDF DEL PRESUPUESTO (plantilla propia, no captura de pantalla)
