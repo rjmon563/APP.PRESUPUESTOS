@@ -1,6 +1,6 @@
 // Primero la red (para recibir siempre la última versión), pero sin esperar de más:
 // si la red tarda más de ESPERA_RED ms o no hay cobertura, se usa la copia guardada.
-const CACHE_NAME = "presupro-v9";
+const CACHE_NAME = "presupro-v10";
 const ESPERA_RED = 3500;
 const FILES = ["./", "./index.html", "./app.js",
   "./styles.css", "./partes.js", "./manifest.json", "./icon-192.png", "./icon-512.png"];
