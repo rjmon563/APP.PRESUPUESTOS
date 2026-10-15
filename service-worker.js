@@ -1,6 +1,6 @@
 // Primero la red (para recibir siempre la última versión), pero sin esperar de más:
 // si la red tarda más de ESPERA_RED ms o no hay cobertura, se usa la copia guardada.
-const CACHE_NAME = "presupro-v7";
+const CACHE_NAME = "presupro-v8";
 const ESPERA_RED = 3500;
 const FILES = ["./", "./index.html", "./app.js",
   "./styles.css", "./partes.js", "./manifest.json", "./icon-192.png", "./icon-512.png"];
@@ -23,7 +23,7 @@ self.addEventListener("activate", e => {
 async function redPrimero(e) {
   const req = e.request;
   const cache = await caches.open(CACHE_NAME);
-  // ignoreSearch: la página pide app.js?v=7 y lo precargado es app.js
+  // ignoreSearch: la página pide app.js?v=N y lo precargado es app.js
   const copia = await cache.match(req, { ignoreSearch: true });
   const red = fetch(req, { cache: "no-cache" }).then(res => {
     if (res.ok) cache.put(req, res.clone());

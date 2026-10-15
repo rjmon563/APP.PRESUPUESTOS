@@ -1,7 +1,7 @@
 // ==========================================
 // 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
-const VERSION = '7';
+const VERSION = '8';
 
 // Si el móvil conserva un index.html antiguo, se borra la copia guardada y se recarga limpio (máximo 2 intentos)
 (function comprobarVersion() {
@@ -189,6 +189,7 @@ window.irAPantalla = (id) => {
 window.teclear = (n) => {
     const fresco = calcEstado.fresco;
     calcEstado.fresco = false;
+    calcEstado.aviso = '';
 
     if (n === '+') {
         let valorActual = parseFloat(calcEstado.memoria.replace(',', '.')) || 0;
@@ -201,6 +202,12 @@ window.teclear = (n) => {
     } else if (n === 'OK') {
         let vF = parseFloat(calcEstado.memoria.replace(',', '.')) || 0;
         let res = redondear(calcEstado.acumulado + vF);
+        // Una medida o un precio de 0 daría una línea vacía: se pide un valor antes de seguir
+        if (res <= 0) {
+            calcEstado.aviso = calcEstado.modo === 'precio' ? 'Escribe el precio antes de pulsar OK.' : 'Escribe la medida antes de pulsar OK.';
+            actualizarDisplay();
+            return;
+        }
         calcEstado.historialSuma = [];
         calcEstado.acumulado = 0;
         if (calcEstado.modo === 'medida') {
@@ -230,6 +237,7 @@ window.teclear = (n) => {
                 const idx = obraEnCurso.lineas.findIndex(x => x.id === calcEstado.editandoId);
                 if (idx >= 0) obraEnCurso.lineas[idx] = l; else obraEnCurso.lineas.push(l);
             } else { obraEnCurso.lineas.push(l); }
+            recordarPrecio(l.tipo, l.tarea, l.precio);
             obraEnCurso.totalManual = null; // las líneas cambiaron: el total vuelve a ser el calculado
             document.getElementById('modal-calc').classList.add('hidden');
             renderMedidas();
@@ -255,11 +263,28 @@ window.teclear = (n) => {
 
 const valorPrevio = (v) => (v === null || v === undefined) ? '' : String(v).replace('.', ',');
 
+// Último precio usado por trabajo (p. ej. TABIQUE + MONTAJE) y, si no hay, por tipo de medida
+function precioRecordado(tipo, tarea) {
+    const p = db.ajustes.ultimosPrecios || {};
+    const v = p[tipo + '|' + tarea] != null ? p[tipo + '|' + tarea] : p[tipo];
+    return v != null && v > 0 ? v : null;
+}
+
+function recordarPrecio(tipo, tarea, precio) {
+    if (!(precio > 0)) return;
+    if (!db.ajustes.ultimosPrecios) db.ajustes.ultimosPrecios = {};
+    db.ajustes.ultimosPrecios[tipo + '|' + tarea] = precio;
+    db.ajustes.ultimosPrecios[tipo] = precio;
+    asegurarGuardado();
+}
+
 function actualizarDisplay() {
     let visual = esc(calcEstado.memoria || '0');
     let textoHistorial = calcEstado.acumulado > 0 ? `<span class="calc-acc">Acumulado ${fNum(calcEstado.acumulado)} +</span>` : '';
-    let pista = calcEstado.fresco ? `<span class="calc-hint">Valor anterior. Pulsa OK para mantenerlo.</span>` : '';
-    document.getElementById('calc-display').innerHTML = textoHistorial + visual + pista;
+    const textoPista = (calcEstado.modo === 'precio' && !calcEstado.editandoId) ? 'Último precio que usaste. Pulsa OK para mantenerlo.' : 'Valor anterior. Pulsa OK para mantenerlo.';
+    let pista = calcEstado.fresco ? `<span class="calc-hint">${textoPista}</span>` : '';
+    let aviso = calcEstado.aviso ? `<span class="calc-hint" style="color:#ff8a7a;font-weight:700">${esc(calcEstado.aviso)}</span>` : '';
+    document.getElementById('calc-display').innerHTML = textoHistorial + visual + pista + aviso;
 }
 
 function abrirCalculadora() {
@@ -276,7 +301,7 @@ function abrirCalculadora() {
 window.prepararMedida = (t) => {
     const zona = prompt("¿ZONA?", "GENERAL"); if (!zona) return;
     const tarea = (t === 'horas') ? prompt("¿CONCEPTO?", "ADMINISTRACIÓN") : prompt("¿TRABAJO?", "MONTAJE"); if (!tarea) return;
-    calcEstado = { tipo: t, paso: 1, v1: 0, v2: null, memoria: '', acumulado: 0, zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), modo: 'medida', editandoId: null, historialSuma: [], previo: {}, fresco: false };
+    calcEstado = { tipo: t, paso: 1, v1: 0, v2: null, memoria: '', acumulado: 0, zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), modo: 'medida', editandoId: null, historialSuma: [], previo: { precio: precioRecordado(t, tarea.toUpperCase()) }, fresco: false };
     abrirCalculadora();
 };
 
