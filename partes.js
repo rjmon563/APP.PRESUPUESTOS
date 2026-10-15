@@ -43,6 +43,8 @@ const medios = {
 
 let parteActual = null;   // registro del parte que se está editando (vive dentro de clienteActual.partes)
 let parteFotos = [];      // fotos en memoria: { id, url, cap, w, h }
+let parteCarga = Promise.resolve(); // carga de fotos y firma del parte abierto (el PDF espera a que termine)
+let fotosEnProceso = 0;   // fotos que se están reduciendo y guardando: el PDF espera a que terminen
 let firmaCtx = null, firmaDibujando = false, firmaFirmado = false;
 
 const parteTieneContenido = p =>
@@ -128,19 +130,22 @@ window.abrirParte = async (id) => {
         ps.slice().reverse().map(p => `<option value="${p.id}">Nº ${esc(p.numero)} · ${esc(p.nombreObra)}</option>`).join('');
     medirFirma();
     const actual = parteActual;
-    for (const f of actual.fotos || []) {
-        const url = await medios.get('foto:' + f.id);
-        if (url && parteActual === actual) parteFotos.push({ id: f.id, url, cap: f.cap || '', w: f.w, h: f.h });
-    }
-    if (parteActual === actual) renderFotosParte();
-    if (actual.firma) {
-        const u = await medios.get('firma:' + actual.id);
-        if (u && parteActual === actual) {
-            const im = new Image();
-            im.onload = () => { const r = document.getElementById('firma-canvas').getBoundingClientRect(); firmaCtx.drawImage(im, 0, 0, r.width, r.height); firmaFirmado = true; };
-            im.src = u;
+    parteCarga = (async () => {
+        for (const f of actual.fotos || []) {
+            const url = await medios.get('foto:' + f.id);
+            if (url && parteActual === actual) parteFotos.push({ id: f.id, url, cap: f.cap || '', w: f.w, h: f.h });
         }
-    }
+        if (parteActual === actual) renderFotosParte();
+        if (actual.firma) {
+            const u = await medios.get('firma:' + actual.id);
+            if (u && parteActual === actual) {
+                const im = new Image();
+                im.onload = () => { const r = document.getElementById('firma-canvas').getBoundingClientRect(); firmaCtx.drawImage(im, 0, 0, r.width, r.height); firmaFirmado = true; };
+                im.src = u;
+            }
+        }
+    })().catch(() => { });
+    await parteCarga;
 };
 
 window.cerrarParte = () => {
@@ -223,21 +228,24 @@ window.anadirFotosParte = (files) => {
     [...files].forEach(f => {
         if (!f.type.startsWith('image/')) return;
         const url = URL.createObjectURL(f), img = new Image();
+        fotosEnProceso++;
         img.onload = async () => {
-            const max = 1280, k = Math.min(1, max / Math.max(img.width, img.height));
-            const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-            const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
-            URL.revokeObjectURL(url);
-            if (!parteActual) return;
-            const id = Date.now() + '_' + Math.floor(Math.random() * 1000);
-            const dataUrl = c.toDataURL('image/jpeg', .8);
-            try { await medios.set('foto:' + id, dataUrl); }
-            catch (e) { return estadoParte('No se ha podido guardar la foto en el móvil.', true); }
-            parteFotos.push({ id, url: dataUrl, cap: '', w: c.width, h: c.height });
-            parteActual.fotos.push({ id, cap: '', w: c.width, h: c.height });
-            guardarParte(); renderFotosParte();
+            try {
+                const max = 1280, k = Math.min(1, max / Math.max(img.width, img.height));
+                const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+                const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+                URL.revokeObjectURL(url);
+                if (!parteActual) return;
+                const id = Date.now() + '_' + Math.floor(Math.random() * 1000);
+                const dataUrl = c.toDataURL('image/jpeg', .8);
+                try { await medios.set('foto:' + id, dataUrl); }
+                catch (e) { return estadoParte('No se ha podido guardar la foto en el móvil.', true); }
+                parteFotos.push({ id, url: dataUrl, cap: '', w: c.width, h: c.height });
+                parteActual.fotos.push({ id, cap: '', w: c.width, h: c.height });
+                guardarParte(); renderFotosParte();
+            } finally { fotosEnProceso--; }
         };
-        img.onerror = () => { URL.revokeObjectURL(url); estadoParte('No se ha podido leer esa foto. Prueba con JPG o PNG.', true); };
+        img.onerror = () => { fotosEnProceso--; URL.revokeObjectURL(url); estadoParte('No se ha podido leer esa foto. Prueba con JPG o PNG.', true); };
         img.src = url;
     });
 };
@@ -353,6 +361,14 @@ window.generarPartePDF = async () => {
     if (!parteTieneContenido(parteActual)) return estadoParte('Añade al menos un trabajo, una foto o la firma.', true);
     const boton = document.getElementById('parte-pdf'); boton.disabled = true; estadoParte('Preparando el PDF…');
     try {
+        // El PDF no sale hasta que las fotos del parte estén cargadas y las recién hechas, guardadas (máx. 20 s)
+        const limite = Date.now() + 20000;
+        if (fotosEnProceso > 0 || parteFotos.length < (parteActual.fotos || []).length) estadoParte('Esperando a las fotos…');
+        await parteCarga;
+        while (fotosEnProceso > 0 && Date.now() < limite) await new Promise(r => setTimeout(r, 100));
+        if (fotosEnProceso > 0) return estadoParte('Las fotos tardan en guardarse. Espera un momento y vuelve a pulsar PDF.', true);
+        // Si alguna foto ya no está en el móvil, el PDF sale igualmente (con las que hay) y se avisa
+        const perdidas = Math.max(0, (parteActual.fotos || []).length - parteFotos.length);
         try { await cargarScript('libs/jspdf.umd.min.js'); }
         catch (e) { return estadoParte('No se ha podido cargar el generador de PDF. Abre la app una vez con cobertura y vuelve a intentarlo.', true); }
         guardarParte();
@@ -362,7 +378,8 @@ window.generarPartePDF = async () => {
         const emp = (db.ajustes.nombre || '').trim();
         const texto = 'Hola, te envío el albarán nº ' + parteActual.numero + ' de los trabajos realizados' + (parteActual.obra.trim() ? ' en ' + parteActual.obra.trim() : '') + '.' + (emp ? ' ' + emp : '');
         const r = await compartirPDF(blob, nombre, 'Albarán ' + parteActual.numero, texto);
-        estadoParte(r === 'compartido' ? 'PDF compartido.' : r === 'cancelado' ? 'Envío cancelado. El parte sigue aquí.' : 'PDF descargado. Adjúntalo en WhatsApp o en el correo.');
+        const aviso = perdidas ? ` Ojo: ${perdidas === 1 ? '1 foto no se ha podido recuperar' : perdidas + ' fotos no se han podido recuperar'} del móvil y no sale en el PDF.` : '';
+        estadoParte((r === 'compartido' ? 'PDF compartido.' : r === 'cancelado' ? 'Envío cancelado. El parte sigue aquí.' : 'PDF descargado. Adjúntalo en WhatsApp o en el correo.') + aviso, !!perdidas);
     } catch (e) { estadoParte('No se ha podido crear el PDF' + (e && e.message ? ': ' + e.message : '.'), true); }
     finally { boton.disabled = false; }
 };

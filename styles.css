@@ -199,3 +199,9 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 /* Título de la obra: se puede tocar para renombrarla */
 .work-title { cursor: pointer; }
 .work-title::after { content: ' ✎'; font-size: .55em; opacity: .5; }
+
+/* Diálogo de guardar: hoja inferior con tres botones */
+.sheet-bg { position: fixed; inset: 0; z-index: 70; display: flex; align-items: flex-end; justify-content: center; background: rgba(14, 34, 56, .6); }
+.sheet { width: 100%; max-width: 520px; display: grid; gap: 10px; padding: 20px 18px calc(18px + env(safe-area-inset-bottom)); background: var(--card); border-radius: 18px 18px 0 0; }
+.sheet h3 { margin: 0; font: 700 26px/1.1 var(--display); color: var(--navy); }
+.sheet p { margin: 0 0 6px; font-size: 16px; color: var(--ink); }

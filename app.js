@@ -1,7 +1,7 @@
 // ==========================================
 // 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
-const VERSION = '7';
+const VERSION = '9';
 
 // Si el móvil conserva un index.html antiguo, se borra la copia guardada y se recarga limpio (máximo 2 intentos)
 (function comprobarVersion() {
@@ -189,6 +189,7 @@ window.irAPantalla = (id) => {
 window.teclear = (n) => {
     const fresco = calcEstado.fresco;
     calcEstado.fresco = false;
+    calcEstado.aviso = '';
 
     if (n === '+') {
         let valorActual = parseFloat(calcEstado.memoria.replace(',', '.')) || 0;
@@ -201,6 +202,12 @@ window.teclear = (n) => {
     } else if (n === 'OK') {
         let vF = parseFloat(calcEstado.memoria.replace(',', '.')) || 0;
         let res = redondear(calcEstado.acumulado + vF);
+        // Una medida o un precio de 0 daría una línea vacía: se pide un valor antes de seguir
+        if (res <= 0) {
+            calcEstado.aviso = calcEstado.modo === 'precio' ? 'Escribe el precio antes de pulsar OK.' : 'Escribe la medida antes de pulsar OK.';
+            actualizarDisplay();
+            return;
+        }
         calcEstado.historialSuma = [];
         calcEstado.acumulado = 0;
         if (calcEstado.modo === 'medida') {
@@ -230,6 +237,7 @@ window.teclear = (n) => {
                 const idx = obraEnCurso.lineas.findIndex(x => x.id === calcEstado.editandoId);
                 if (idx >= 0) obraEnCurso.lineas[idx] = l; else obraEnCurso.lineas.push(l);
             } else { obraEnCurso.lineas.push(l); }
+            recordarPrecio(l.tipo, l.tarea, l.precio);
             obraEnCurso.totalManual = null; // las líneas cambiaron: el total vuelve a ser el calculado
             document.getElementById('modal-calc').classList.add('hidden');
             renderMedidas();
@@ -255,11 +263,28 @@ window.teclear = (n) => {
 
 const valorPrevio = (v) => (v === null || v === undefined) ? '' : String(v).replace('.', ',');
 
+// Último precio usado por trabajo (p. ej. TABIQUE + MONTAJE) y, si no hay, por tipo de medida
+function precioRecordado(tipo, tarea) {
+    const p = db.ajustes.ultimosPrecios || {};
+    const v = p[tipo + '|' + tarea] != null ? p[tipo + '|' + tarea] : p[tipo];
+    return v != null && v > 0 ? v : null;
+}
+
+function recordarPrecio(tipo, tarea, precio) {
+    if (!(precio > 0)) return;
+    if (!db.ajustes.ultimosPrecios) db.ajustes.ultimosPrecios = {};
+    db.ajustes.ultimosPrecios[tipo + '|' + tarea] = precio;
+    db.ajustes.ultimosPrecios[tipo] = precio;
+    asegurarGuardado();
+}
+
 function actualizarDisplay() {
     let visual = esc(calcEstado.memoria || '0');
     let textoHistorial = calcEstado.acumulado > 0 ? `<span class="calc-acc">Acumulado ${fNum(calcEstado.acumulado)} +</span>` : '';
-    let pista = calcEstado.fresco ? `<span class="calc-hint">Valor anterior. Pulsa OK para mantenerlo.</span>` : '';
-    document.getElementById('calc-display').innerHTML = textoHistorial + visual + pista;
+    const textoPista = (calcEstado.modo === 'precio' && !calcEstado.editandoId) ? 'Último precio que usaste. Pulsa OK para mantenerlo.' : 'Valor anterior. Pulsa OK para mantenerlo.';
+    let pista = calcEstado.fresco ? `<span class="calc-hint">${textoPista}</span>` : '';
+    let aviso = calcEstado.aviso ? `<span class="calc-hint" style="color:#ff8a7a;font-weight:700">${esc(calcEstado.aviso)}</span>` : '';
+    document.getElementById('calc-display').innerHTML = textoHistorial + visual + pista + aviso;
 }
 
 function abrirCalculadora() {
@@ -276,7 +301,7 @@ function abrirCalculadora() {
 window.prepararMedida = (t) => {
     const zona = prompt("¿ZONA?", "GENERAL"); if (!zona) return;
     const tarea = (t === 'horas') ? prompt("¿CONCEPTO?", "ADMINISTRACIÓN") : prompt("¿TRABAJO?", "MONTAJE"); if (!tarea) return;
-    calcEstado = { tipo: t, paso: 1, v1: 0, v2: null, memoria: '', acumulado: 0, zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), modo: 'medida', editandoId: null, historialSuma: [], previo: {}, fresco: false };
+    calcEstado = { tipo: t, paso: 1, v1: 0, v2: null, memoria: '', acumulado: 0, zona: zona.toUpperCase(), tarea: tarea.toUpperCase(), modo: 'medida', editandoId: null, historialSuma: [], previo: { precio: precioRecordado(t, tarea.toUpperCase()) }, fresco: false };
     abrirCalculadora();
 };
 
@@ -480,7 +505,30 @@ window.corregirTotal = (valor) => {
     document.getElementById('valor-iva').innerText = `${fNum(t.cuotaIva)}€`;
 };
 
+// Pregunta qué hacer al guardar un presupuesto que ya existía: tres botones claros en lugar de Aceptar/Cancelar
+function preguntarGuardado(numero) {
+    return new Promise(resolver => {
+        const m = document.getElementById('modal-guardar');
+        const fin = (r) => { m.classList.add('hidden'); resolver(r); };
+        document.getElementById('guardar-texto').textContent = `Estás editando el presupuesto nº ${numero}.`;
+        document.getElementById('guardar-sobrescribir').textContent = `Sobrescribir el nº ${numero}`;
+        document.getElementById('guardar-nuevo').textContent = `Guardar como nuevo (nº ${db.ajustes.nPresu})`;
+        document.getElementById('guardar-sobrescribir').onclick = () => fin('sobrescribir');
+        document.getElementById('guardar-nuevo').onclick = () => fin('nuevo');
+        document.getElementById('guardar-volver').onclick = () => fin(null);
+        m.onclick = (e) => { if (e.target === m) fin(null); }; // tocar fuera = volver sin guardar
+        m.classList.remove('hidden');
+    });
+}
+
+let guardandoObra = false; // evita crear dos presupuestos si se toca PDF dos veces
 window.guardarObraCompleta = async () => {
+    if (guardandoObra) return;
+    guardandoObra = true;
+    try { await guardarObraYPDF(); } finally { guardandoObra = false; }
+};
+
+async function guardarObraYPDF() {
     if (obraEnCurso.lineas.length === 0) return alert("Añade medidas");
     if (!db.ajustes.nombre && !confirm("Aún no has rellenado tus datos fiscales (⚙️). El PDF saldrá sin tus datos. ¿Continuar?")) return;
 
@@ -489,7 +537,11 @@ window.guardarObraCompleta = async () => {
     if (!clienteActual.presupuestos) clienteActual.presupuestos = [];
 
     let existente = obraEnCurso.presuId ? clienteActual.presupuestos.find(p => p.id === obraEnCurso.presuId) : null;
-    if (existente && !confirm(`¿Guardar los cambios en el presupuesto nº ${existente.numero}?\n\nAceptar = sobrescribir el nº ${existente.numero}\nCancelar = guardarlo como presupuesto nuevo`)) existente = null;
+    if (existente) {
+        const eleccion = await preguntarGuardado(existente.numero);
+        if (eleccion === null) return; // volver: no se guarda nada ni se gasta número
+        if (eleccion === 'nuevo') existente = null;
+    }
 
     const datos = {
         fechaISO, fecha: fechaES(fechaISO), nombreObra: obraEnCurso.nombre, lineas: JSON.parse(JSON.stringify(obraEnCurso.lineas)),
@@ -508,7 +560,7 @@ window.guardarObraCompleta = async () => {
 
     await generarPDF(presu, clienteActual);
     abrirExpediente(clienteActual.id);
-};
+}
 
 // ==========================================
 // 7. PDF DEL PRESUPUESTO (plantilla propia, no captura de pantalla)
