@@ -1,7 +1,7 @@
 // ==========================================
 // 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
-const VERSION = '12';
+const VERSION = '13';
 
 // Si el móvil conserva un index.html antiguo, se borra la copia guardada y se recarga limpio (máximo 2 intentos)
 (function comprobarVersion() {
@@ -364,7 +364,7 @@ function htmlAvisoCopia() {
     const dias = db.ajustes.ultimaCopia ? (Date.now() - db.ajustes.ultimaCopia) / 86400000 : Infinity;
     if (hayDatos && dias > 7) {
         const txt = db.ajustes.ultimaCopia ? `Última copia hace ${Math.floor(dias)} días.` : 'Aún no has hecho ninguna copia.';
-        html += `<div class="notice"><span>Tus datos solo están en este móvil. ${txt}</span><button onclick="exportarDatos()">Copia</button></div>`;
+        html += `<div class="notice" style="flex-direction:column;align-items:stretch;gap:10px"><span>Tus datos solo están en este móvil. ${txt} <i>(La copia de seguridad no es el PDF del presupuesto.)</i></span><button onclick="exportarDatos()">Hacer copia de seguridad</button></div>`;
     }
     return html;
 }
@@ -438,6 +438,7 @@ window.abrirExpediente = (id) => {
                     <div><b>Nº ${esc(p.numero)} · ${esc(p.nombreObra)}</b><small>${esc(p.fecha)}${p.aceptado ? ' · <span class="tag-ok">Aceptado</span>' : ''}</small></div>
                     <div class="amount">${fNum(p.total)} €</div>
                 </button>
+                <button onclick="pdfPresupuestoGuardado(${p.id})" aria-label="PDF del presupuesto ${esc(p.numero)}" class="sq pdf">PDF</button>
                 <button onclick="alternarAceptado(${p.id})" aria-label="${p.aceptado ? 'Quitar aceptado' : 'Marcar como aceptado'}" class="sq ${p.aceptado ? 'on' : ''}">${ICON.check}</button>
                 <button onclick="borrarPresupuestoIndividual(${p.id})" aria-label="Eliminar presupuesto" class="sq del">${ICON.trash}</button>
             </div>`).join('') || '<div class="empty" style="padding:18px 0">Todavía no hay presupuestos para este cliente.</div>'}
@@ -791,6 +792,16 @@ window.guardarAjustes = () => {
 window.nuevoCliente = () => { prepararFormularioCliente(null); irAPantalla('nuevo-cliente'); };
 window.borrarCliente = (id) => { if (confirm("¿BORRAR?")) { const c = db.clientes.find(x => x.id === id); if (c && typeof limpiarMediosCliente === 'function') limpiarMediosCliente(c); db.clientes = db.clientes.filter(c => c.id !== id); asegurarGuardado(); irAPantalla('clientes'); } };
 window.borrarPresupuestoIndividual = (idPresu) => { if (confirm("¿Eliminar?")) { clienteActual.presupuestos = clienteActual.presupuestos.filter(p => p.id !== idPresu); asegurarGuardado(); abrirExpediente(clienteActual.id); } };
+
+// PDF de un presupuesto ya guardado, sin abrirlo (para volver a sacarlo o reenviarlo)
+let generandoPDFGuardado = false;
+window.pdfPresupuestoGuardado = async (idPresu) => {
+    if (generandoPDFGuardado) return;
+    const p = ((clienteActual && clienteActual.presupuestos) || []).find(x => x.id === idPresu);
+    if (!p) return;
+    generandoPDFGuardado = true;
+    try { await generarPDF(p, clienteActual); } finally { generandoPDFGuardado = false; }
+};
 
 window.verPresupuestoGuardado = (idPresu) => {
     const p = clienteActual.presupuestos.find(x => x.id === idPresu);

@@ -100,6 +100,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 .sq { width: 50px; display: grid; place-items: center; border-radius: 12px; background: var(--card); border: 1px solid var(--line); color: #9aa7b3; }
 .sq svg { width: 22px; height: 22px; }
 .sq.on { background: var(--ok); border-color: var(--ok); color: #fff; }
+.sq.pdf { width: 54px; font-size: 13px; font-weight: 800; color: var(--ink); }
 .sq.del { color: var(--danger); background: #fbeceb; border-color: #f2cfcb; }
 .new-presu { margin-top: 26px; padding: 18px; background: #dbe2e8; border-radius: 16px; }
 .new-presu > b { display: block; margin-bottom: 10px; font: 700 20px var(--display); }
