@@ -1,7 +1,7 @@
 // ==========================================
 // 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
-const VERSION = '10';
+const VERSION = '11';
 
 // Si el móvil conserva un index.html antiguo, se borra la copia guardada y se recarga limpio (máximo 2 intentos)
 (function comprobarVersion() {
@@ -822,6 +822,15 @@ window.calcularResumenIVA = () => {
 // ==========================================
 // 11. COPIA DE SEGURIDAD
 // ==========================================
+// ---- Opiniones: abre WhatsApp con un mensaje ya empezado (versión y tipo de móvil, sin datos personales) ----
+const WHATSAPP_OPINIONES = '34615122000';
+window.enviarOpinion = () => {
+    const ua = navigator.userAgent || '';
+    const movil = /iPhone|iPad|iPod/.test(ua) ? 'iPhone' : /Android/.test(ua) ? 'Android' : 'otro dispositivo';
+    const texto = `Hola Antonio, te escribo sobre PresuPro (versión ${VERSION}, ${movil}).\n\nMi opinión:\n`;
+    window.open('https://wa.me/' + WHATSAPP_OPINIONES + '?text=' + encodeURIComponent(texto), '_blank', 'noopener');
+};
+
 window.exportarDatos = async () => {
     const nombre = `PRESUPRO_BACKUP_${hoyISO()}.json`;
     let datosMedios = {};
