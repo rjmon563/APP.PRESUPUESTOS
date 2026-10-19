@@ -1,7 +1,7 @@
 // ==========================================
 // 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
-const VERSION = '11';
+const VERSION = '12';
 
 // Si el móvil conserva un index.html antiguo, se borra la copia guardada y se recarga limpio (máximo 2 intentos)
 (function comprobarVersion() {
@@ -351,15 +351,30 @@ window.renderListaClientes = () => {
     renderAvisoCopia();
 };
 
-function renderAvisoCopia() {
-    const aviso = document.getElementById('aviso-copia');
-    if (!aviso) return;
+const CLAVE_RESUMEN_IMPORT = 'presupro_resumen_import';
+
+// Aviso de copia (más de 7 días sin hacerla) y, tras importar, resumen de lo recuperado
+function htmlAvisoCopia() {
+    let html = '';
+    try {
+        const r = localStorage.getItem(CLAVE_RESUMEN_IMPORT);
+        if (r) html += `<div class="notice"><span>✓ Copia recuperada: ${esc(r)}.</span><button onclick="cerrarResumenImport()">Entendido</button></div>`;
+    } catch (e) { }
     const hayDatos = db.clientes.length > 0;
     const dias = db.ajustes.ultimaCopia ? (Date.now() - db.ajustes.ultimaCopia) / 86400000 : Infinity;
     if (hayDatos && dias > 7) {
         const txt = db.ajustes.ultimaCopia ? `Última copia hace ${Math.floor(dias)} días.` : 'Aún no has hecho ninguna copia.';
-        aviso.innerHTML = `<div class="notice"><span>Tus datos solo están en este móvil. ${txt}</span><button onclick="exportarDatos()">Copia</button></div>`;
-    } else aviso.innerHTML = '';
+        html += `<div class="notice"><span>Tus datos solo están en este móvil. ${txt}</span><button onclick="exportarDatos()">Copia</button></div>`;
+    }
+    return html;
+}
+
+window.cerrarResumenImport = () => { try { localStorage.removeItem(CLAVE_RESUMEN_IMPORT); } catch (e) { } renderAvisoCopia(); };
+
+function renderAvisoCopia() {
+    const aviso = document.getElementById('aviso-copia');
+    if (!aviso) return;
+    aviso.innerHTML = htmlAvisoCopia();
 }
 
 // El mismo formulario sirve para crear un cliente y para corregir sus datos
@@ -405,7 +420,7 @@ window.abrirExpediente = (id) => {
     const historial = clienteActual.presupuestos || [];
     if (clienteActual.notas === undefined) clienteActual.notas = "";
 
-    document.getElementById('ficha-cliente-detalle').innerHTML = `
+    document.getElementById('ficha-cliente-detalle').innerHTML = htmlAvisoCopia() + `
         <div class="client-head">
             <h2>${esc(clienteActual.nombre)}</h2>
             <p>${esc(clienteActual.dir)} ${esc(clienteActual.cp || '')}</p>
@@ -861,6 +876,11 @@ window.importarDatos = (event) => {
             if (!json.clientes) return alert("Archivo no válido");
             if (confirm("¿IMPORTAR COPIA? Se borrarán los datos actuales.")) {
                 const datosMedios = json._medios; delete json._medios;
+                try {
+                    const nP = (json.clientes || []).reduce((s, c) => s + (c.presupuestos || []).length, 0), nT = (json.clientes || []).reduce((s, c) => s + (c.partes || []).length, 0), nM = Object.keys(datosMedios || {}).length;
+                    const pl = (n, u, p) => n + ' ' + (n === 1 ? u : p);
+                    localStorage.setItem(CLAVE_RESUMEN_IMPORT, [pl(json.clientes.length, 'cliente', 'clientes'), pl(nP, 'presupuesto', 'presupuestos'), pl(nT, 'parte', 'partes'), pl(nM, 'foto o firma', 'fotos y firmas')].join(', '));
+                } catch (e2) { }
                 db = json; db.ajustes = Object.assign({}, AJUSTES_DEFECTO, db.ajustes || {}); if (!db.agenda) db.agenda = {};
                 (async () => {
                     if (datosMedios && typeof medios !== 'undefined') { await medios.vaciar(); for (const k in datosMedios) await medios.set(k, datosMedios[k]); }
