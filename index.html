@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>PresuPro</title>
-    <meta name="presupro-version" content="13">
+    <meta name="presupro-version" content="14">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0b3a6e">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet"></noscript>
-    <link rel="stylesheet" href="styles.css?v=13">
+    <link rel="stylesheet" href="styles.css?v=14">
 </head>
 <body>
 
@@ -22,6 +22,9 @@
         <header class="appbar">
             <h1 class="brand">Presu<span>Pro</span></h1>
             <div class="appbar-actions">
+                <button class="icon-btn" aria-label="Mis sistemas y materiales" onclick="irAPantalla('sistemas')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>
+                </button>
                 <button class="icon-btn" aria-label="Agenda de obra" onclick="irAPantalla('calendario')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>
                 </button>
@@ -64,6 +67,34 @@
         <label class="field"><span>Dirección</span><input id="cli-dir" type="text" autocomplete="off"></label>
         <label class="field"><span>Código postal</span><input id="cli-cp" type="text" inputmode="numeric" autocomplete="off"></label>
         <button class="btn btn-primary" id="btn-guardar-cliente" onclick="guardarDatosCliente()">Guardar cliente</button>
+    </div>
+
+    <!-- Mis sistemas -->
+    <div id="pantalla-sistemas" class="hidden screen screen-pad">
+        <button class="back" onclick="irAPantalla('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Volver</button>
+        <h2 class="h-screen">Mis sistemas</h2>
+        <p class="small-p">Un sistema es una composición (p. ej. un tabique) con los materiales que lleva por m², tu mano de obra y tu margen. Al medir lo eliges y el precio sale solo.</p>
+        <div id="sistemas-lista"></div>
+        <button class="btn btn-primary" style="margin-top:14px" onclick="nuevoSistema()">+ Nuevo sistema</button>
+        <button class="btn btn-dark" style="margin-top:10px" onclick="irAPantalla('materiales')">Mis materiales y precios</button>
+    </div>
+
+    <!-- Mis materiales -->
+    <div id="pantalla-materiales" class="hidden screen screen-pad">
+        <button class="back" onclick="irAPantalla('sistemas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Sistemas</button>
+        <h2 class="h-screen">Mis materiales</h2>
+        <label class="field"><span>Descuento general sobre tarifa (%)</span><input id="mat-dto" type="text" inputmode="decimal" oninput="cambiarDtoGeneral(this.value)"></label>
+        <p class="small-p">Lo que ves a la derecha es el precio neto (tarifa menos descuento). Cuando cambie un precio, tócalo y corrígelo: todos tus sistemas se actualizan.</p>
+        <label class="field"><input id="mat-buscar" type="text" placeholder="Buscar material…" oninput="filtrarMateriales()"></label>
+        <div id="materiales-lista"></div>
+        <button class="btn btn-primary" style="margin-top:14px" onclick="nuevoMaterial()">+ Nuevo material</button>
+    </div>
+
+    <!-- Editar un sistema -->
+    <div id="pantalla-sistema" class="hidden screen screen-pad" style="padding-bottom:60px">
+        <button class="back" onclick="irAPantalla('sistemas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Sistemas</button>
+        <h2 id="sistema-titulo" class="h-screen">Sistema</h2>
+        <div id="sistema-form"></div>
     </div>
 
     <!-- Mis datos -->
@@ -184,6 +215,45 @@
         </div>
     </div>
 
+    <!-- Material: crear o editar -->
+    <div id="hoja-material" class="hidden sheet-bg" role="dialog" aria-modal="true" aria-labelledby="hoja-material-titulo">
+        <div class="sheet tall">
+            <h3 id="hoja-material-titulo">Material</h3>
+            <label class="field"><span>Nombre</span><input id="mat-nombre" type="text" placeholder="p. ej. Placa estándar 13 mm"></label>
+            <div class="row2b">
+                <label class="field"><span>Unidad</span><select id="mat-unidad" class="input"></select></label>
+                <label class="field"><span>Precio de tarifa (€)</span><input id="mat-pvp" type="text" inputmode="decimal"></label>
+            </div>
+            <label class="field"><span>Descuento propio (%), vacío = el general</span><input id="mat-dto-propio" type="text" inputmode="decimal"></label>
+            <p id="mat-aviso" class="small-p" style="color:var(--danger);font-weight:700"></p>
+            <button class="btn btn-primary" onclick="guardarMaterial()">Guardar</button>
+            <button class="btn btn-light" onclick="cerrarHojaMaterial()">Cancelar</button>
+            <button id="mat-borrar" class="btn-link-danger" onclick="borrarMaterial()">Borrar material</button>
+        </div>
+    </div>
+
+    <!-- Sistema: elegir un material -->
+    <div id="hoja-pick-material" class="hidden sheet-bg" role="dialog" aria-modal="true">
+        <div class="sheet tall">
+            <h3>Añadir material</h3>
+            <input id="pick-mat-buscar" class="input" type="text" placeholder="Buscar…" oninput="listaPickMaterial()">
+            <div id="pick-mat-lista" style="display:grid;gap:8px"></div>
+            <button class="btn btn-dark" onclick="sisNuevoMaterial()">+ Crear material nuevo</button>
+            <button class="btn btn-light" onclick="cerrarPickMaterial()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Medir: elegir sistema -->
+    <div id="hoja-elegir-sistema" class="hidden sheet-bg" role="dialog" aria-modal="true">
+        <div class="sheet tall">
+            <h3>¿Qué sistema?</h3>
+            <p>El precio sale de tus materiales. Podrás corregirlo al medir.</p>
+            <div id="elegir-sis-lista" style="display:grid;gap:8px"></div>
+            <button class="btn btn-light" onclick="elegirSistemaOtro()">Otro: pongo el precio a mano</button>
+            <button class="btn-link" onclick="elegirSistemaCancelar()">Cancelar</button>
+        </div>
+    </div>
+
     <!-- Calculadora -->
     <div id="modal-calc" class="hidden calc">
         <div class="ruler" aria-hidden="true"></div>
@@ -210,7 +280,8 @@
         </div>
     </div>
 
-    <script src="app.js?v=13"></script>
-    <script src="partes.js?v=13"></script>
+    <script src="app.js?v=14"></script>
+    <script src="partes.js?v=14"></script>
+    <script src="sistemas.js?v=14"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 // ==========================================
 // 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
-const VERSION = '13';
+const VERSION = '14';
 
 // Si el móvil conserva un index.html antiguo, se borra la copia guardada y se recarga limpio (máximo 2 intentos)
 (function comprobarVersion() {
@@ -34,6 +34,8 @@ const AJUSTES_DEFECTO = {
     nombre: '', tel: '', cif: '', dir: '', cp: '', ciudad: '', email: '', nPresu: 1,
     condiciones: 'Presupuesto válido durante 30 días desde su fecha.\nLos trabajos no incluidos expresamente se presupuestarán aparte.',
     ultimaCopia: null,
+    dtoMateriales: 0,
+    margenSistemas: null,
     prefParte: '',
     contParte: null
 };
@@ -44,6 +46,8 @@ if (!db) db = { clientes: [], ajustes: {}, agenda: {} };
 db.ajustes = Object.assign({}, AJUSTES_DEFECTO, db.ajustes || {});
 if (!db.agenda) db.agenda = {};
 if (!db.clientes) db.clientes = [];
+if (!Array.isArray(db.materiales)) db.materiales = [];
+if (!Array.isArray(db.sistemas)) db.sistemas = [];
 
 let clienteActual = null;
 let obraEnCurso = nuevaObra('');
@@ -182,6 +186,8 @@ window.irAPantalla = (id) => {
 
     if (id === 'clientes') renderListaClientes();
     if (id === 'calendario') renderCalendario();
+    if (id === 'sistemas' && typeof renderSistemas === 'function') renderSistemas();
+    if (id === 'materiales' && typeof renderMateriales === 'function') renderMateriales();
     if (id === 'ajustes') { cargarAjustesEnFormulario(); calcularResumenIVA(); }
 };
 
@@ -284,7 +290,7 @@ function recordarPrecio(tipo, tarea, precio) {
 function actualizarDisplay() {
     let visual = esc(calcEstado.memoria || '0');
     let textoHistorial = calcEstado.acumulado > 0 ? `<span class="calc-acc">Acumulado ${fNum(calcEstado.acumulado)} +</span>` : '';
-    const textoPista = (calcEstado.modo === 'precio' && !calcEstado.editandoId) ? 'Último precio que usaste. Pulsa OK para mantenerlo.' : 'Valor anterior. Pulsa OK para mantenerlo.';
+    const textoPista = (calcEstado.modo === 'precio' && !calcEstado.editandoId) ? (calcEstado.deSistema ? 'Precio de tu sistema. Pulsa OK para mantenerlo.' : 'Último precio que usaste. Pulsa OK para mantenerlo.') : 'Valor anterior. Pulsa OK para mantenerlo.';
     let pista = calcEstado.fresco ? `<span class="calc-hint">${textoPista}</span>` : '';
     let aviso = calcEstado.aviso ? `<span class="calc-hint" style="color:#ff8a7a;font-weight:700">${esc(calcEstado.aviso)}</span>` : '';
     document.getElementById('calc-display').innerHTML = textoHistorial + visual + pista + aviso;
@@ -301,14 +307,20 @@ function abrirCalculadora() {
     document.getElementById('modal-calc').classList.remove('hidden');
 }
 
-window.prepararMedida = (t) => {
+window.prepararMedida = (t, sis) => {
+    // Si hay sistemas para este trabajo, se ofrece elegir uno: el precio sale de sus materiales
+    if (sis === undefined && typeof sistemasDeTipo === 'function' && typeof elegirSistema === 'function' && sistemasDeTipo(t).length) {
+        return elegirSistema(t, (s) => prepararMedida(t, s || null));
+    }
     const sinZona = !!CONFIG_MEDIDAS[t].sinZona;
     const zona = sinZona ? '' : prompt("¿ZONA?", "GENERAL"); if (!sinZona && !zona) return;
-    const tarea = t === 'horas' ? prompt("¿CONCEPTO?", "ADMINISTRACIÓN")
+    const tarea = sis ? sis.nombre : t === 'horas' ? prompt("¿CONCEPTO?", "ADMINISTRACIÓN")
         : t === 'extras' ? prompt("¿QUÉ EXTRA? (p. ej. DESESCOMBRO, ANDAMIO)", "")
         : prompt("¿TRABAJO?", "MONTAJE");
     if (!tarea || !tarea.trim()) return;
-    calcEstado = { tipo: t, paso: 1, v1: 0, v2: null, memoria: '', acumulado: 0, zona: zona.toUpperCase(), tarea: tarea.trim().toUpperCase(), modo: 'medida', editandoId: null, historialSuma: [], previo: { precio: precioRecordado(t, tarea.trim().toUpperCase()) }, fresco: false };
+    const tareaMay = tarea.trim().toUpperCase();
+    const precioSis = sis && typeof calcSistema === 'function' ? calcSistema(sis).precio : null;
+    calcEstado = { tipo: t, paso: 1, v1: 0, v2: null, memoria: '', acumulado: 0, zona: zona.toUpperCase(), tarea: tareaMay, modo: 'medida', editandoId: null, historialSuma: [], previo: { precio: precioSis > 0 ? precioSis : precioRecordado(t, tareaMay) }, deSistema: precioSis > 0, fresco: false };
     abrirCalculadora();
 };
 
@@ -892,7 +904,7 @@ window.importarDatos = (event) => {
                     const pl = (n, u, p) => n + ' ' + (n === 1 ? u : p);
                     localStorage.setItem(CLAVE_RESUMEN_IMPORT, [pl(json.clientes.length, 'cliente', 'clientes'), pl(nP, 'presupuesto', 'presupuestos'), pl(nT, 'parte', 'partes'), pl(nM, 'foto o firma', 'fotos y firmas')].join(', '));
                 } catch (e2) { }
-                db = json; db.ajustes = Object.assign({}, AJUSTES_DEFECTO, db.ajustes || {}); if (!db.agenda) db.agenda = {};
+                db = json; db.ajustes = Object.assign({}, AJUSTES_DEFECTO, db.ajustes || {}); if (!db.agenda) db.agenda = {}; if (!Array.isArray(db.materiales)) db.materiales = []; if (!Array.isArray(db.sistemas)) db.sistemas = [];
                 (async () => {
                     if (datosMedios && typeof medios !== 'undefined') { await medios.vaciar(); for (const k in datosMedios) await medios.set(k, datosMedios[k]); }
                     asegurarGuardado(); location.reload();

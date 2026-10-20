@@ -206,3 +206,16 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 .sheet { width: 100%; max-width: 520px; display: grid; gap: 10px; padding: 20px 18px calc(18px + env(safe-area-inset-bottom)); background: var(--card); border-radius: 18px 18px 0 0; }
 .sheet h3 { margin: 0; font: 700 26px/1.1 var(--display); color: var(--navy); }
 .sheet p { margin: 0 0 6px; font-size: 16px; color: var(--ink); }
+
+/* Materiales y sistemas */
+.small-p { margin: -6px 2px 14px; font-size: 14px; color: var(--muted); }
+.sheet.tall { max-height: 88vh; overflow-y: auto; }
+.sl { display: grid; grid-template-columns: 1fr 78px 64px 40px; gap: 8px; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.sl .sl-name b { display: block; font-size: 15px; line-height: 1.2; }
+.sl .sl-name small { color: var(--muted); font-size: 12.5px; }
+.sl .input { padding: 10px 8px; font-size: 16px; text-align: right; }
+.sl-cost { font-weight: 800; text-align: right; font-size: 15px; }
+.sl .mini { width: 40px; height: 40px; }
+.sl.ex { grid-template-columns: 1fr 84px 40px; }
+.sl.ex .input:first-child { text-align: left; }
+.group .btn { padding: 13px; font-size: 16px; }

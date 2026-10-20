@@ -1,9 +1,9 @@
 // Primero la red (para recibir siempre la última versión), pero sin esperar de más:
 // si la red tarda más de ESPERA_RED ms o no hay cobertura, se usa la copia guardada.
-const CACHE_NAME = "presupro-v13";
+const CACHE_NAME = "presupro-v14";
 const ESPERA_RED = 3500;
 const FILES = ["./", "./index.html", "./app.js",
-  "./styles.css", "./partes.js", "./manifest.json", "./icon-192.png", "./icon-512.png"];
+  "./styles.css", "./partes.js", "./sistemas.js", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 // Librerías de PDF: pesadas, se guardan aparte para que, si fallan, no impidan guardar lo demás
 const LIBS = ["./libs/html2pdf.bundle.min.js", "./libs/jspdf.umd.min.js"];
 
