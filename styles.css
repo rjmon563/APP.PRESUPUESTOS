@@ -219,3 +219,12 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 .sl.ex { grid-template-columns: 1fr 84px 40px; }
 .sl.ex .input:first-child { text-align: left; }
 .group .btn { padding: 13px; font-size: 16px; }
+
+/* Botón con nombre en la cabecera */
+.pill-btn { height: 46px; display: inline-flex; align-items: center; gap: 6px; padding: 0 13px 0 11px; background: var(--navy); color: #fff; border-radius: 12px; font-weight: 700; font-size: 15px; }
+.pill-btn svg { width: 20px; height: 20px; }
+.pill-btn:active { transform: scale(.97); }
+.appbar { gap: 8px; } .appbar-actions { flex-shrink: 0; } .brand { min-width: 0; }
+@media (max-width: 430px) { .brand { font-size: 28px; } .appbar-actions { gap: 6px; } .appbar .icon-btn { width: 42px; height: 44px; } .pill-btn { height: 44px; padding: 0 11px 0 9px; font-size: 14px; gap: 5px; } .pill-btn svg { width: 19px; height: 19px; } }
+@media (max-width: 370px) { .brand { font-size: 25px; } .appbar-actions { gap: 5px; } .appbar .icon-btn { width: 40px; } .pill-btn { padding: 0 9px 0 8px; } }
+@media (max-width: 340px) { .pill-btn { font-size: 0; gap: 0; padding: 0 10px; width: 42px; justify-content: center; } }

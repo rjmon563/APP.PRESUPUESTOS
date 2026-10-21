@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>PresuPro</title>
-    <meta name="presupro-version" content="16">
+    <meta name="presupro-version" content="17">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0b3a6e">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet"></noscript>
-    <link rel="stylesheet" href="styles.css?v=16">
+    <link rel="stylesheet" href="styles.css?v=17">
 </head>
 <body>
 
@@ -22,8 +22,8 @@
         <header class="appbar">
             <h1 class="brand">Presu<span>Pro</span></h1>
             <div class="appbar-actions">
-                <button class="icon-btn" aria-label="Mis sistemas y materiales" onclick="irAPantalla('sistemas')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>
+                <button id="btn-sistemas" class="pill-btn" aria-label="Mis sistemas y materiales" onclick="irAPantalla('sistemas')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>Sistemas
                 </button>
                 <button class="icon-btn" aria-label="Agenda de obra" onclick="irAPantalla('calendario')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>
@@ -35,6 +35,7 @@
         </header>
         <div class="ruler" aria-hidden="true"></div>
         <div id="aviso-borrador"></div>
+        <div id="aviso-sistemas"></div>
         <div id="aviso-copia"></div>
         <div id="lista-clientes"></div>
         <button class="btn-link" id="btn-opinion-inicio" style="display:block;margin:18px auto 90px" onclick="enviarOpinion()">¿Ideas o fallos? Cuéntamelo por WhatsApp</button>
@@ -288,9 +289,9 @@
         </div>
     </div>
 
-    <script src="app.js?v=16"></script>
-    <script src="partes.js?v=16"></script>
-    <script src="sistemas.js?v=16"></script>
-    <script src="uso.js?v=16"></script>
+    <script src="app.js?v=17"></script>
+    <script src="partes.js?v=17"></script>
+    <script src="sistemas.js?v=17"></script>
+    <script src="uso.js?v=17"></script>
 </body>
 </html>

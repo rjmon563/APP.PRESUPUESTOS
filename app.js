@@ -1,7 +1,7 @@
 // ==========================================
 // 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
-const VERSION = '16';
+const VERSION = '17';
 // Aviso de uso anónimo: nunca puede romper la app
 const uso = (e) => { try { registrarUso(e); } catch (x) { } };
 
@@ -365,6 +365,7 @@ window.renderListaClientes = () => {
         }).join('');
     renderAvisoBorrador();
     renderAvisoCopia();
+    if (typeof renderAvisoSistemas === 'function') renderAvisoSistemas();
 };
 
 const CLAVE_RESUMEN_IMPORT = 'presupro_resumen_import';
