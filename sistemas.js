@@ -32,14 +32,18 @@ const netoMaterial = (m) => (Number(m.pvp) || 0) * (1 - dtoDe(m) / 100);
 
 // Sin redondear por el camino (como una hoja de cálculo); solo el precio final se redondea
 function calcSistema(s) {
-    let mat = 0;
-    (s.lineas || []).forEach(l => { const m = materialPorId(l.matId); if (m) mat += (Number(l.cantidad) || 0) * netoMaterial(m); });
+    let mat = 0, faltan = 0;
+    (s.lineas || []).forEach(l => {
+        const m = materialPorId(l.matId);
+        if (!m || !(Number(m.pvp) > 0)) { faltan++; return; } // material borrado o sin precio: el coste sería falso
+        mat += (Number(l.cantidad) || 0) * netoMaterial(m);
+    });
     const extras = (s.extras || []).reduce((a, e) => a + (Number(e.importe) || 0), 0);
     const mo = Number(s.manoObra) || 0;
     const coste = mat + mo + extras;
     const margen = Number(s.margen) || 0;
     const beneficio = coste * margen / 100;
-    return { mat, mo, extras, coste, margen, beneficio, precio: redondear(coste + beneficio) };
+    return { mat, mo, extras, coste, margen, beneficio, faltan, precio: redondear(coste + beneficio) };
 }
 window.calcSistema = calcSistema;
 window.sistemasDeTipo = (t) => (db.sistemas || []).filter(s => s.tipo === t);
@@ -50,17 +54,17 @@ window.renderSistemas = () => {
     const cont = document.getElementById('sistemas-lista');
     if (!cont) return;
     if (!db.sistemas.length) {
-        cont.innerHTML = `<div class="empty"><b>Aún no tienes sistemas</b>Crea el primero, o carga dos de ejemplo para ver cómo funciona.</div>
-            <button class="btn btn-light" onclick="cargarEjemploSistemas()">Cargar ejemplo (techo y tabique)</button>`;
+        cont.innerHTML = `<div class="empty"><b>Aún no tienes sistemas</b>Empieza con los habituales ya montados, o crea el tuyo desde cero.</div>
+            <button class="btn btn-dark" onclick="cargarSistemasPartida()">Cargar sistemas de partida (sin precios)</button>
+            <button class="btn btn-light" style="margin-top:10px" onclick="cargarEjemploSistemas()">Cargar ejemplo con precios (techo y tabique)</button>`;
         return;
     }
     cont.innerHTML = db.sistemas.map(s => {
         const c = calcSistema(s), u = (CONFIG_MEDIDAS[s.tipo] || {}).u || 'm²';
-        const sinMat = (s.lineas || []).some(l => !materialPorId(l.matId));
         return `<button onclick="abrirSistema(${s.id})" class="row-client">
-            <div><div class="name">${esc(s.nombre)}</div><div class="meta">${esc((CONFIG_MEDIDAS[s.tipo] || {}).n || '')} · coste ${fNum(c.coste)} €/${u}${sinMat ? ' · ⚠ falta un material' : ''}</div></div>
-            <div class="amount">${fNum(c.precio)} €/${u}</div></button>`;
-    }).join('');
+            <div><div class="name">${esc(s.nombre)}</div><div class="meta">${esc((CONFIG_MEDIDAS[s.tipo] || {}).n || '')}${c.faltan ? ' · ⚠ faltan ' + c.faltan + (c.faltan === 1 ? ' precio' : ' precios') : ' · coste ' + fNum(c.coste) + ' €/' + u}</div></div>
+            <div class="amount">${c.faltan ? '—' : fNum(c.precio) + ' €/' + u}</div></button>`;
+    }).join('') + `<button class="btn-link" style="display:block;margin:12px auto 0" onclick="cargarSistemasPartida()">+ Añadir los sistemas de partida (sin precios)</button>`;
 };
 
 // ---------- Pantalla: materiales ----------
@@ -80,8 +84,8 @@ function listaMateriales() {
     if (!db.materiales.length) { cont.innerHTML = '<div class="empty"><b>Sin materiales</b>Añade tu primer material con su precio de tarifa.</div>'; return; }
     if (!lista.length) { cont.innerHTML = '<div class="empty">Ningún material se llama así.</div>'; return; }
     cont.innerHTML = lista.map(m => `<button onclick="editarMaterial(${m.id})" class="row-client">
-        <div><div class="name">${esc(m.nombre)}</div><div class="meta">${uTxt(m.unidad)} · tarifa ${fNum3(m.pvp)} €${m.dto !== null && m.dto !== undefined && m.dto !== '' ? ' · dto. propio ' + aTexto(m.dto) + ' %' : ''}</div></div>
-        <div class="amount">${fNum3(netoMaterial(m))} €</div></button>`).join('');
+        <div><div class="name">${esc(m.nombre)}</div><div class="meta">${uTxt(m.unidad)} · ${Number(m.pvp) > 0 ? 'tarifa ' + fNum3(m.pvp) + ' €' : '⚠ pon tu precio'}${m.dto !== null && m.dto !== undefined && m.dto !== '' ? ' · dto. propio ' + aTexto(m.dto) + ' %' : ''}</div></div>
+        <div class="amount">${Number(m.pvp) > 0 ? fNum3(netoMaterial(m)) + ' €' : '—'}</div></button>`).join('');
 }
 window.filtrarMateriales = listaMateriales;
 
@@ -168,7 +172,7 @@ function renderEditorSistema() {
     const lineas = sisEd.lineas.map((l, i) => {
         const m = materialPorId(l.matId);
         if (!m) return `<div class="sl"><div class="sl-name"><b>Material borrado</b></div><span></span><span></span><button class="mini del" aria-label="Quitar" onclick="sisQuitarLinea(${i})">${ICON.trash}</button></div>`;
-        return `<div class="sl"><div class="sl-name"><b>${esc(m.nombre)}</b><small>${uTxt(m.unidad)} · neto ${fNum3(netoMaterial(m))} €</small></div>
+        return `<div class="sl"><div class="sl-name"><b>${esc(m.nombre)}</b><small>${uTxt(m.unidad)} · ${Number(m.pvp) > 0 ? 'neto ' + fNum3(netoMaterial(m)) + ' €' : '⚠ sin precio'}</small></div>
             <input class="input" inputmode="decimal" aria-label="Cantidad de ${esc(m.nombre)} por ${u}" value="${aTexto(l.cantidad)}" oninput="sisLinea(${i}, this.value)">
             <span class="sl-cost" id="slc-${i}">${fNum((Number(l.cantidad) || 0) * netoMaterial(m))} €</span>
             <button class="mini del" aria-label="Quitar" onclick="sisQuitarLinea(${i})">${ICON.trash}</button></div>`;
@@ -184,6 +188,7 @@ function renderEditorSistema() {
             ${lineas || '<p class="small">Añade los materiales y cuánto entra de cada uno por ' + u + '.</p>'}
             <button class="btn btn-light" style="margin-top:10px" onclick="sisElegirMaterial()">+ Añadir material</button></div>
         <div class="group"><h3>Mano de obra y extras</h3>
+            ${sisEd.horas ? `<p class="small-p" style="margin-top:0">Referencia: ${aTexto(sisEd.horas)} h de trabajo por ${u} (oficial + ayudante). Multiplícalo por tu coste por hora.</p>` : ''}
             <label class="field"><span>Mano de obra (€/${u})</span><input inputmode="decimal" value="${aTexto(sisEd.manoObra || '')}" placeholder="0" oninput="sisEd_set('manoObra', numDec(this.value))"></label>
             ${extras}
             <button class="btn btn-light" onclick="sisAddExtra()">+ Añadir extra (runa, acopio…)</button></div>
@@ -202,6 +207,7 @@ function actualizarResumenSis() {
     const c = calcSistema(sisEd), u = unidadSis();
     sisEd.lineas.forEach((l, i) => { const s = document.getElementById('slc-' + i), m = materialPorId(l.matId); if (s && m) s.textContent = fNum((Number(l.cantidad) || 0) * netoMaterial(m)) + ' €'; });
     el.innerHTML = `<div class="ruler thin" aria-hidden="true"></div>
+        ${c.faltan ? `<div class="kv adj"><span>⚠ Faltan ${c.faltan} ${c.faltan === 1 ? 'precio' : 'precios'} de materiales: este precio no es real</span></div>` : ''}
         <div class="kv"><span>Materiales</span><span>${fNum(c.mat)} €</span></div>
         <div class="kv"><span>Mano de obra</span><span>${fNum(c.mo)} €</span></div>
         <div class="kv"><span>Extras</span><span>${fNum(c.extras)} €</span></div>
@@ -261,11 +267,18 @@ window.borrarSistema = () => {
 // ---------- Al medir: elegir sistema ----------
 window.elegirSistema = (tipo, cb) => {
     const l = sistemasDeTipo(tipo), u = CONFIG_MEDIDAS[tipo].u;
-    document.getElementById('elegir-sis-lista').innerHTML = l.map(s => `<button class="btn btn-dark" data-sid="${s.id}" onclick="elegirSistemaOk(${s.id})">${esc(s.nombre)} · ${fNum(calcSistema(s).precio)} €/${u}</button>`).join('');
+    document.getElementById('elegir-sis-lista').innerHTML = l.map(s => { const c = calcSistema(s); return `<button class="btn ${c.faltan ? 'btn-light' : 'btn-dark'}" data-sid="${s.id}" onclick="elegirSistemaOk(${s.id})">${esc(s.nombre)} · ${c.faltan ? '⚠ faltan precios' : fNum(c.precio) + ' €/' + u}</button>`; }).join('');
     window._elegirSisCb = cb;
     document.getElementById('hoja-elegir-sistema').classList.remove('hidden');
 };
 window.elegirSistemaOk = (id) => {
+    const sel = id === null ? null : db.sistemas.find(s => s.id === id) || null;
+    // Un sistema con materiales sin precio daría un precio falso: se avisa y no se sigue
+    if (sel && calcSistema(sel).faltan) {
+        const n = calcSistema(sel).faltan;
+        alert('A «' + sel.nombre + '» le ' + (n === 1 ? 'falta el precio de 1 material' : 'faltan los precios de ' + n + ' materiales') + '. Ponlos en «Mis materiales y precios» (icono de capas de la pantalla de inicio) y vuelve a medir.');
+        return;
+    }
     document.getElementById('hoja-elegir-sistema').classList.add('hidden');
     const cb = window._elegirSisCb; window._elegirSisCb = null;
     if (cb) cb(id === null ? null : db.sistemas.find(s => s.id === id) || null);
@@ -291,4 +304,67 @@ window.cargarEjemploSistemas = () => {
         { matId: placa, cantidad: 2.1 }, { matId: canal, cantidad: 0.9 }, { matId: mont, cantidad: 3 }, { matId: pm, cantidad: 40 }, { matId: cc, cantidad: 6 },
         { matId: pasta, cantidad: 0.66 }, { matId: cinta, cantidad: 2.8 }, { matId: banda, cantidad: 1 }, { matId: lana, cantidad: 1 }] });
     asegurarGuardado(); renderSistemas();
+};
+// Sistemas de partida: nombres genéricos y cantidades por m² basadas en los descompuestos publicados por el fabricante. Sin precios.
+const PARTIDA_MATERIALES = {
+    placa15: ['Placa estándar 15 mm', 'm2'],
+    mont48: ['Montante 48/35', 'ml'],
+    canal48: ['Canal 48/30', 'ml'],
+    pasta: ['Pasta de juntas', 'kg'],
+    pm25: ['Tornillo PM 3,5x25', 'ud'],
+    mm: ['Tornillo chapa-chapa 3,5x9,5', 'ud'],
+    cinta: ['Cinta de juntas', 'ml'],
+    estanca48: ['Banda estanca 48 mm', 'ml'],
+    lana: ['Lana mineral', 'm2'],
+    mont70: ['Montante 70/35', 'ml'],
+    canal70: ['Canal 70/30', 'ml'],
+    estanca70: ['Banda estanca 70 mm', 'ml'],
+    mont90: ['Montante 90', 'ml'],
+    canal90: ['Canal 90', 'ml'],
+    placa13: ['Placa estándar 13 mm', 'm2'],
+    pm35: ['Tornillo PM 3,5x35', 'ud'],
+    agarre: ['Pasta de agarre', 'kg'],
+    maestra: ['Maestra 82x16', 'ml'],
+    perfilt45: ['Perfil de techo T-45', 'ml'],
+    clip: ['Canal clip de techo', 'ml'],
+    horq: ['Horquilla de techo T-45', 'ud'],
+    empalme: ['Pieza de empalme T-45', 'ud'],
+    varilla: ['Varilla roscada M6 de 1 m', 'ud'],
+    angular: ['Angular L 30', 'ml'],
+    ph45: ['Perfil PH-45', 'ml'],
+};
+const PARTIDA_SISTEMAS = [
+    { nombre: 'Tabique sencillo 48/35 a 400 · 1 placa de 15 por cara + lana', tipo: 'tabiques', horas: 0.5, lineas: [['placa15', 2.1], ['mont48', 3.5], ['canal48', 0.95], ['pasta', 0.81], ['pm25', 42.0], ['mm', 3.0], ['cinta', 3.15], ['estanca48', 1.72], ['lana', 1.05]] },
+    { nombre: 'Tabique sencillo 70/35 a 400 · 1 placa de 15 por cara + lana', tipo: 'tabiques', horas: 0.5, lineas: [['placa15', 2.1], ['mont70', 3.5], ['canal70', 0.95], ['pasta', 0.81], ['pm25', 42.0], ['mm', 3.0], ['cinta', 3.15], ['estanca70', 1.72], ['lana', 1.05]] },
+    { nombre: 'Tabique sencillo 90 a 400 · 1 placa de 15 por cara + lana', tipo: 'tabiques', horas: 0.5, lineas: [['placa15', 2.1], ['mont90', 3.5], ['canal90', 0.95], ['pasta', 0.81], ['pm25', 42.0], ['mm', 3.0], ['cinta', 3.15], ['estanca48', 3.44], ['lana', 1.05]] },
+    { nombre: 'Tabique doble 48/35 a 400 · 2 placas de 13 por cara + lana', tipo: 'tabiques', horas: 0.7, lineas: [['placa13', 4.2], ['mont48', 3.5], ['canal48', 0.95], ['pasta', 1.22], ['pm25', 21.0], ['pm35', 42.0], ['mm', 3.0], ['cinta', 6.3], ['estanca48', 1.72], ['lana', 1.05]] },
+    { nombre: 'Trasdosado autoportante 48/35 a 400 · 1 placa de 15 + lana', tipo: 'trasdosados', horas: 0.56, lineas: [['placa15', 1.05], ['mont48', 3.5], ['canal48', 0.95], ['pasta', 0.36], ['pm25', 21.0], ['mm', 3.0], ['cinta', 1.3], ['estanca48', 1.72], ['lana', 1.05]] },
+    { nombre: 'Trasdosado directo · 1 placa de 15 con pasta de agarre', tipo: 'trasdosados', horas: 0.3, lineas: [['placa15', 1.05], ['pasta', 0.36], ['agarre', 5.25], ['cinta', 1.3]] },
+    { nombre: 'Trasdosado semidirecto con maestras 82x16 a 400 · 1 placa de 15', tipo: 'trasdosados', horas: 0.4, lineas: [['placa15', 1.05], ['maestra', 3.33], ['pasta', 0.36], ['pm25', 21.0], ['cinta', 1.3]] },
+    { nombre: 'Techo continuo con maestras 82x16 a 400 · 1 placa de 13', tipo: 'techos', horas: 0.4, lineas: [['placa13', 1.05], ['maestra', 3.33], ['pasta', 0.42], ['pm25', 17.0], ['cinta', 1.89]] },
+    { nombre: 'Techo suspendido T-45 a 400 · 1 placa de 13', tipo: 'techos', horas: 0.52, lineas: [['placa13', 1.05], ['perfilt45', 2.63], ['clip', 0.7], ['horq', 2.39], ['empalme', 0.88], ['pasta', 0.423], ['pm25', 17.0], ['cinta', 1.89], ['estanca48', 0.7], ['varilla', 2.39]] },
+    { nombre: 'Techo suspendido T-45 a 400 · 1 placa de 13 + lana', tipo: 'techos', horas: 0.52, lineas: [['placa13', 1.05], ['perfilt45', 2.63], ['clip', 0.7], ['horq', 2.39], ['empalme', 0.88], ['pasta', 0.423], ['pm25', 17.0], ['cinta', 1.89], ['estanca48', 0.7], ['varilla', 2.39], ['lana', 1.05]] },
+    { nombre: 'Techo suspendido doble estructura PH-45 + T-45 a 400 · 1 placa de 13', tipo: 'techos', horas: 0.64, lineas: [['placa13', 1.05], ['angular', 0.7], ['perfilt45', 2.63], ['ph45', 0.95], ['empalme', 0.88], ['pasta', 0.423], ['pm25', 24.0], ['cinta', 1.89], ['estanca48', 0.7], ['varilla', 1.12]] },
+];
+
+// Añade los materiales (sin precio) y sistemas habituales. No toca lo que ya tienes: si un material o un sistema
+// ya existe con el mismo nombre, se reutiliza o se salta.
+window.cargarSistemasPartida = () => {
+    asegurarSistemas();
+    const idDe = {};
+    Object.keys(PARTIDA_MATERIALES).forEach(k => {
+        const [nombre, unidad] = PARTIDA_MATERIALES[k];
+        let m = db.materiales.find(x => x.nombre.toLowerCase() === nombre.toLowerCase());
+        if (!m) { m = { id: idN(), nombre, unidad, pvp: 0, dto: null }; db.materiales.push(m); }
+        idDe[k] = m.id;
+    });
+    const margen = db.ajustes.margenSistemas != null ? db.ajustes.margenSistemas : 20;
+    let nuevos = 0;
+    PARTIDA_SISTEMAS.forEach(p => {
+        if (db.sistemas.some(s => s.nombre.toLowerCase() === p.nombre.toLowerCase())) return;
+        db.sistemas.push({ id: idN(), nombre: p.nombre, tipo: p.tipo, horas: p.horas, manoObra: 0, extras: [], margen, lineas: p.lineas.map(([k, q]) => ({ matId: idDe[k], cantidad: q })) });
+        nuevos++;
+    });
+    asegurarGuardado(); renderSistemas();
+    alert(nuevos ? 'Cargados ' + nuevos + ' sistemas. Ahora pon el precio de cada material en «Mis materiales y precios»: hasta entonces los sistemas no calculan precio.' : 'Ya tenías todos los sistemas de partida.');
 };
