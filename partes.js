@@ -105,6 +105,7 @@ window.nuevoParte = async () => {
     const p = { id: Date.now(), numero: numeroParteSiguiente(), fecha: hoyISO(), obra: '', lineas: [{ d: '', q: '', u: 'm²' }], obs: '', firmante: '', fotos: [], firma: false };
     if (!clienteActual.partes) clienteActual.partes = [];
     clienteActual.partes.push(p);
+    uso('parte_nuevo');
     await abrirParte(p.id);
 };
 
@@ -378,6 +379,7 @@ window.generarPartePDF = async () => {
         const emp = (db.ajustes.nombre || '').trim();
         const texto = 'Hola, te envío el albarán nº ' + parteActual.numero + ' de los trabajos realizados' + (parteActual.obra.trim() ? ' en ' + parteActual.obra.trim() : '') + '.' + (emp ? ' ' + emp : '');
         const r = await compartirPDF(blob, nombre, 'Albarán ' + parteActual.numero, texto);
+        if (r !== 'cancelado') uso('parte_pdf');
         const aviso = perdidas ? ` Ojo: ${perdidas === 1 ? '1 foto no se ha podido recuperar' : perdidas + ' fotos no se han podido recuperar'} del móvil y no sale en el PDF.` : '';
         estadoParte((r === 'compartido' ? 'PDF compartido.' : r === 'cancelado' ? 'Envío cancelado. El parte sigue aquí.' : 'PDF descargado. Adjúntalo en WhatsApp o en el correo.') + aviso, !!perdidas);
     } catch (e) { estadoParte('No se ha podido crear el PDF' + (e && e.message ? ': ' + e.message : '.'), true); }
