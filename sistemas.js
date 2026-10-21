@@ -51,6 +51,7 @@ window.sistemasDeTipo = (t) => (db.sistemas || []).filter(s => s.tipo === t);
 // ---------- Pantalla: lista de sistemas ----------
 window.renderSistemas = () => {
     asegurarSistemas();
+    marcarAvisoSistemasVisto();
     const cont = document.getElementById('sistemas-lista');
     if (!cont) return;
     if (!db.sistemas.length) {
@@ -368,3 +369,14 @@ window.cargarSistemasPartida = () => {
     asegurarGuardado(); renderSistemas();
     alert(nuevos ? 'Cargados ' + nuevos + ' sistemas. Ahora pon el precio de cada material en «Mis materiales y precios»: hasta entonces los sistemas no calculan precio.' : 'Ya tenías todos los sistemas de partida.');
 };
+
+// Aviso en el inicio para quien aún no ha entrado en Sistemas
+const CLAVE_AVISO_SISTEMAS = 'presupro_aviso_sistemas';
+function marcarAvisoSistemasVisto() { try { localStorage.setItem(CLAVE_AVISO_SISTEMAS, '1'); } catch (e) { } }
+window.renderAvisoSistemas = () => {
+    const el = document.getElementById('aviso-sistemas'); if (!el) return;
+    let visto = false; try { visto = localStorage.getItem(CLAVE_AVISO_SISTEMAS) === '1'; } catch (e) { }
+    el.innerHTML = (visto || db.sistemas.length) ? '' : `<div class="notice"><span><b>Nuevo:</b> calcula tu precio por m² con tus materiales.</span>
+        <span style="display:flex;gap:8px"><button onclick="irAPantalla('sistemas')">Verlo</button><button aria-label="Cerrar aviso" onclick="cerrarAvisoSistemas()" style="background:#fff;color:var(--ink);border:1px solid #c9b25a">✕</button></span></div>`;
+};
+window.cerrarAvisoSistemas = () => { marcarAvisoSistemasVisto(); renderAvisoSistemas(); };
