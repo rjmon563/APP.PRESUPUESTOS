@@ -1,7 +1,9 @@
 // ==========================================
 // 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
-const VERSION = '14';
+const VERSION = '15';
+// Aviso de uso anónimo: nunca puede romper la app
+const uso = (e) => { try { registrarUso(e); } catch (x) { } };
 
 // Si el móvil conserva un index.html antiguo, se borra la copia guardada y se recarga limpio (máximo 2 intentos)
 (function comprobarVersion() {
@@ -188,6 +190,7 @@ window.irAPantalla = (id) => {
     if (id === 'calendario') renderCalendario();
     if (id === 'sistemas' && typeof renderSistemas === 'function') renderSistemas();
     if (id === 'materiales' && typeof renderMateriales === 'function') renderMateriales();
+    if (id === 'ajustes' && typeof renderUso === 'function') renderUso();
     if (id === 'ajustes') { cargarAjustesEnFormulario(); calcularResumenIVA(); }
 };
 
@@ -245,6 +248,7 @@ window.teclear = (n) => {
                 const idx = obraEnCurso.lineas.findIndex(x => x.id === calcEstado.editandoId);
                 if (idx >= 0) obraEnCurso.lineas[idx] = l; else obraEnCurso.lineas.push(l);
             } else { obraEnCurso.lineas.push(l); }
+            if (calcEstado.deSistema && !calcEstado.editandoId) uso('linea_sistema');
             recordarPrecio(l.tipo, l.tarea, l.precio);
             obraEnCurso.totalManual = null; // las líneas cambiaron: el total vuelve a ser el calculado
             document.getElementById('modal-calc').classList.add('hidden');
@@ -588,6 +592,7 @@ async function guardarObraYPDF() {
         presu = Object.assign({ id: Date.now(), numero: db.ajustes.nPresu, aceptado: false }, datos);
         clienteActual.presupuestos.push(presu);
         db.ajustes.nPresu++;
+        uso('presupuesto');
     }
     obraEnCurso.presuId = presu.id;
     asegurarGuardado();
@@ -921,6 +926,7 @@ window.importarDatos = (event) => {
 // ==========================================
 window.onload = () => {
     renderListaClientes();
+    try { registrarAbrir(); } catch (e) { }
     if (typeof iniciarFirma === 'function') iniciarFirma();
     // Pide al navegador que no borre los datos automáticamente
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => { });

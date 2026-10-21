@@ -244,7 +244,7 @@ window.guardarSistema = () => {
     const s = clonar(sisEd); s.nombre = nombre;
     s.extras = s.extras.filter(e => (e.nombre || '').trim() || Number(e.importe) > 0);
     if (s.id) { const i = db.sistemas.findIndex(x => x.id === s.id); if (i >= 0) db.sistemas[i] = s; else db.sistemas.push(s); }
-    else { s.id = idN(); db.sistemas.push(s); }
+    else { s.id = idN(); db.sistemas.push(s); uso('sistema'); }
     db.ajustes.margenSistemas = Number(s.margen) || 0;
     asegurarGuardado();
     irAPantalla('sistemas');
