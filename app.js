@@ -1,7 +1,7 @@
 // ==========================================
 // 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
-const VERSION = '17';
+const VERSION = '18';
 // Aviso de uso anónimo: nunca puede romper la app
 const uso = (e) => { try { registrarUso(e); } catch (x) { } };
 
