@@ -55,9 +55,14 @@ window.renderSistemas = () => {
     const cont = document.getElementById('sistemas-lista');
     if (!cont) return;
     if (!db.sistemas.length) {
-        cont.innerHTML = `<div class="empty"><b>Aún no tienes sistemas</b>Empieza con los habituales ya montados, o crea el tuyo desde cero.</div>
-            <button class="btn btn-dark" onclick="cargarSistemasPartida()">Cargar sistemas de partida (sin precios)</button>
-            <button class="btn btn-light" style="margin-top:10px" onclick="cargarEjemploSistemas()">Cargar ejemplo con precios (techo y tabique)</button>`;
+        cont.innerHTML = `<h3 class="h-sec">Aún no tienes sistemas</h3>
+            <p class="lead">Lo más rápido es partir de los habituales y poner tus precios.</p>
+            <button class="btn btn-primary btn-big" onclick="cargarSistemasPartida()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>
+                <span><b>Cargar sistemas habituales</b><small>Sin precios: pones los tuyos</small></span>
+            </button>
+            <button class="btn btn-outline" style="margin-top:12px" onclick="cargarEjemploSistemas()">Ver un ejemplo con precios</button>
+            <button class="btn-link" style="display:block;margin:6px auto 0" onclick="nuevoSistema()">+ Crear uno desde cero</button>`;
         return;
     }
     cont.innerHTML = db.sistemas.map(s => {
@@ -65,7 +70,8 @@ window.renderSistemas = () => {
         return `<button onclick="abrirSistema(${s.id})" class="row-client">
             <div><div class="name">${esc(s.nombre)}</div><div class="meta">${esc((CONFIG_MEDIDAS[s.tipo] || {}).n || '')}${c.faltan ? ' · ⚠ faltan ' + c.faltan + (c.faltan === 1 ? ' precio' : ' precios') : ' · coste ' + fNum(c.coste) + ' €/' + u}</div></div>
             <div class="amount">${c.faltan ? '—' : fNum(c.precio) + ' €/' + u}</div></button>`;
-    }).join('') + `<button class="btn-link" style="display:block;margin:12px auto 0" onclick="cargarSistemasPartida()">+ Añadir los sistemas de partida (sin precios)</button>`;
+    }).join('') + `<button class="btn btn-primary" style="margin-top:14px" onclick="nuevoSistema()">+ Nuevo sistema</button>
+        <button class="btn-link" style="display:block;margin:8px auto 0" onclick="cargarSistemasPartida()">+ Añadir los sistemas habituales (sin precios)</button>`;
 };
 
 // ---------- Pantalla: materiales ----------
