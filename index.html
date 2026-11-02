@@ -2,9 +2,9 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>PresuPro</title>
-    <meta name="presupro-version" content="18">
+    <meta name="presupro-version" content="19">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0b3a6e">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -13,38 +13,31 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet"></noscript>
-    <link rel="stylesheet" href="styles.css?v=18">
+    <link rel="stylesheet" href="styles.css?v=19">
 </head>
-<body>
+<body class="con-tabbar">
 
     <!-- Clientes -->
     <div id="pantalla-clientes" class="screen">
         <header class="appbar">
             <h1 class="brand">Presu<span>Pro</span></h1>
-            <div class="appbar-actions">
-                <button id="btn-sistemas" class="pill-btn" aria-label="Mis sistemas y materiales" onclick="irAPantalla('sistemas')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>Sistemas
-                </button>
-                <button class="icon-btn" aria-label="Agenda de obra" onclick="irAPantalla('calendario')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>
-                </button>
-                <button class="icon-btn" aria-label="Mis datos y copia de seguridad" onclick="irAPantalla('ajustes')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
-                </button>
-            </div>
         </header>
         <div class="ruler" aria-hidden="true"></div>
         <div id="aviso-borrador"></div>
         <div id="aviso-sistemas"></div>
         <div id="aviso-copia"></div>
+        <label id="buscar-clientes-box" class="search hidden">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input id="buscar-clientes" type="search" placeholder="Buscar cliente" aria-label="Buscar cliente" autocomplete="off" oninput="renderListaClientes()">
+        </label>
         <div id="lista-clientes"></div>
-        <button class="btn-link" id="btn-opinion-inicio" style="display:block;margin:18px auto 90px" onclick="enviarOpinion()">¿Ideas o fallos? Cuéntamelo por WhatsApp</button>
-        <button class="fab" onclick="nuevoCliente()" aria-label="Nuevo cliente">+</button>
+        <button id="fab-cliente" class="fab-ext hidden" onclick="nuevoCliente()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nuevo cliente
+        </button>
     </div>
 
     <!-- Agenda -->
     <div id="pantalla-calendario" class="hidden screen screen-pad">
-        <button class="back" onclick="irAPantalla('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Volver</button>
         <h2 class="h-screen">Agenda de obra</h2>
         <div class="cal-nav">
             <button onclick="cambiarMes(-1)" aria-label="Mes anterior">◀</button>
@@ -72,12 +65,15 @@
 
     <!-- Mis sistemas -->
     <div id="pantalla-sistemas" class="hidden screen screen-pad">
-        <button class="back" onclick="irAPantalla('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Volver</button>
         <h2 class="h-screen">Mis sistemas</h2>
         <p class="small-p">Un sistema es una composición (p. ej. un tabique) con los materiales que lleva por m², tu mano de obra y tu margen. Al medir lo eliges y el precio sale solo.</p>
         <div id="sistemas-lista"></div>
-        <button class="btn btn-primary" style="margin-top:14px" onclick="nuevoSistema()">+ Nuevo sistema</button>
-        <button class="btn btn-dark" style="margin-top:10px" onclick="irAPantalla('materiales')">Mis materiales y precios</button>
+        <p class="sub">Precios</p>
+        <button class="row-link" onclick="irAPantalla('materiales')">
+            <span class="row-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><path d="M7 7h.01"/></svg></span>
+            <span class="row-txt"><b>Mis materiales y precios</b><small>Tarifa y descuento de cada material</small></span>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
     </div>
 
     <!-- Mis materiales -->
@@ -100,8 +96,8 @@
 
     <!-- Mis datos -->
     <div id="pantalla-ajustes" class="hidden screen screen-pad">
-        <button class="back" onclick="irAPantalla('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Volver</button>
-        <h2 class="h-screen">Mis datos fiscales</h2>
+        <h2 class="h-screen">Mi empresa</h2>
+        <p class="sub" style="margin-top:0">Tus datos fiscales (salen en los PDF)</p>
         <label class="field"><span>Tu nombre o empresa</span><input id="config-nombre" type="text"></label>
         <label class="field"><span>Tu CIF</span><input id="config-cif" type="text"></label>
         <label class="field"><span>Teléfono</span><input id="config-tel" type="tel"></label>
@@ -289,9 +285,17 @@
         </div>
     </div>
 
-    <script src="app.js?v=18"></script>
-    <script src="partes.js?v=18"></script>
-    <script src="sistemas.js?v=18"></script>
-    <script src="uso.js?v=18"></script>
+    <!-- Barra de secciones (abajo, siempre a mano con el pulgar) -->
+    <nav id="tabbar" class="tabbar" aria-label="Secciones">
+        <button data-tab="clientes" onclick="irAPantalla('clientes')"><span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Clientes</button>
+        <button data-tab="calendario" onclick="irAPantalla('calendario')"><span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg></span>Agenda</button>
+        <button data-tab="sistemas" onclick="irAPantalla('sistemas')"><span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></span>Sistemas</button>
+        <button data-tab="ajustes" onclick="irAPantalla('ajustes')"><span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg></span>Mi empresa</button>
+    </nav>
+
+    <script src="app.js?v=19"></script>
+    <script src="partes.js?v=19"></script>
+    <script src="sistemas.js?v=19"></script>
+    <script src="uso.js?v=19"></script>
 </body>
 </html>

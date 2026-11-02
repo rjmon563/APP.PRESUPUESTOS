@@ -1,7 +1,7 @@
 // ==========================================
 // 1. ESTADO INICIAL Y BASE DE DATOS
 // ==========================================
-const VERSION = '18';
+const VERSION = '19';
 // Aviso de uso anónimo: nunca puede romper la app
 const uso = (e) => { try { registrarUso(e); } catch (x) { } };
 
@@ -186,6 +186,17 @@ window.irAPantalla = (id) => {
     if (p) p.classList.remove('hidden');
     window.scrollTo(0, 0);
 
+    // Barra de secciones: solo en las pantallas principales (materiales cuenta como Sistemas)
+    const pestana = { clientes: 'clientes', calendario: 'calendario', sistemas: 'sistemas', materiales: 'sistemas', ajustes: 'ajustes' }[id];
+    const barra = document.getElementById('tabbar');
+    if (barra) {
+        barra.classList.toggle('hidden', !pestana);
+        document.body.classList.toggle('con-tabbar', !!pestana);
+        barra.querySelectorAll('[data-tab]').forEach(b => {
+            if (b.dataset.tab === pestana) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+        });
+    }
+
     if (id === 'clientes') renderListaClientes();
     if (id === 'calendario') renderCalendario();
     if (id === 'sistemas' && typeof renderSistemas === 'function') renderSistemas();
@@ -353,9 +364,23 @@ window.cerrarCalc = () => document.getElementById('modal-calc').classList.add('h
 window.renderListaClientes = () => {
     const cont = document.getElementById('lista-clientes');
     if (!cont) return;
-    cont.innerHTML = db.clientes.length === 0
-        ? '<div class="empty"><b>Aún no hay clientes</b>Pulsa + para añadir el primero.</div>'
-        : db.clientes.slice().reverse().map(c => {
+    const hay = db.clientes.length > 0;
+    const fab = document.getElementById('fab-cliente');
+    if (fab) fab.classList.toggle('hidden', !hay);
+    const caja = document.getElementById('buscar-clientes-box');
+    if (caja) caja.classList.toggle('hidden', db.clientes.length < 4);
+    const q = ((document.getElementById('buscar-clientes') || {}).value || '').trim().toLowerCase();
+    const lista = db.clientes.slice().reverse().filter(c => !q || String(c.nombre || '').toLowerCase().includes(q));
+    cont.innerHTML = !hay
+        ? `<div class="empty-hero">
+            <div class="empty-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg></div>
+            <h2>Empieza por tu primer cliente</h2>
+            <p>Guarda sus datos una vez y haz todos sus presupuestos y partes desde aquí.</p>
+            <button class="btn btn-primary btn-ico" onclick="nuevoCliente()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Añadir mi primer cliente</button>
+          </div>`
+        : !lista.length
+        ? '<div class="empty">Ningún cliente se llama así.</div>'
+        : lista.map(c => {
             const ps = c.presupuestos || [];
             const suma = ps.reduce((a, p) => a + (Number(p.total) || 0), 0);
             return `<button onclick="abrirExpediente(${c.id})" class="row-client">

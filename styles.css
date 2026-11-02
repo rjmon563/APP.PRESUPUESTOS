@@ -8,7 +8,8 @@
   --tape: #ffc20e;
   --tape-deep: #d9a000;
   --line: #d2d9df;
-  --muted: #5f6f7e;
+  --muted: #4a5a69;
+  --field-line: #9fadba;
   --ok: #2c7a4b;
   --danger: #c0392b;
   --note: #fff1a8;
@@ -74,7 +75,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 /* Formularios */
 .field { display: block; margin-bottom: 14px; }
 .field > span { display: block; margin: 0 2px 6px; font-size: 14px; font-weight: 600; color: var(--muted); }
-.field input, .field textarea, .input { width: 100%; padding: 14px 14px; background: var(--card); border: 1.5px solid var(--line); border-radius: 10px; font-size: 17px; font-weight: 500; }
+.field input, .field textarea, .input { width: 100%; padding: 14px 14px; background: var(--card); border: 1.5px solid var(--field-line); border-radius: 10px; font-size: 17px; font-weight: 500; }
 .field input:focus, .field textarea:focus, .input:focus { outline: none; border-color: var(--navy); box-shadow: 0 0 0 3px rgba(255,194,14,.65); }
 .row2 { display: flex; gap: 10px; } .row2 .field:first-child { width: 36%; } .row2 .field:last-child { flex: 1; }
 .btn { display: block; width: 100%; padding: 17px; border-radius: 12px; font-weight: 700; font-size: 18px; text-align: center; }
@@ -228,3 +229,65 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 @media (max-width: 430px) { .brand { font-size: 28px; } .appbar-actions { gap: 6px; } .appbar .icon-btn { width: 42px; height: 44px; } .pill-btn { height: 44px; padding: 0 11px 0 9px; font-size: 14px; gap: 5px; } .pill-btn svg { width: 19px; height: 19px; } }
 @media (max-width: 370px) { .brand { font-size: 25px; } .appbar-actions { gap: 5px; } .appbar .icon-btn { width: 40px; } .pill-btn { padding: 0 9px 0 8px; } }
 @media (max-width: 340px) { .pill-btn { font-size: 0; gap: 0; padding: 0 10px; width: 42px; justify-content: center; } }
+
+/* ===== Rediseño v19: barra de secciones abajo, inicio que guía, jerarquía de botones ===== */
+body.con-tabbar .screen { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 6px 6px calc(8px + env(safe-area-inset-bottom));
+  background: var(--card); border-top: 1px solid var(--line);
+  box-shadow: 0 -4px 16px rgba(14, 34, 56, .06);
+}
+.tabbar button {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  min-height: 58px; padding: 4px 0; font-size: 13px; font-weight: 600; color: var(--muted);
+}
+.tab-ico { display: grid; place-items: center; width: 56px; height: 30px; border-radius: 15px; }
+.tab-ico svg { width: 22px; height: 22px; }
+.tabbar button[aria-current="page"] { color: var(--ink); font-weight: 700; }
+.tabbar button[aria-current="page"] .tab-ico { background: var(--tape); }
+.tabbar button:active .tab-ico { transform: scale(.94); }
+@media (min-width: 560px) { .tabbar { max-width: 520px; margin: 0 auto; border-left: 1px solid var(--line); border-right: 1px solid var(--line); border-radius: 16px 16px 0 0; } }
+
+/* Botón principal flotante, con texto, encima de la barra */
+.fab-ext {
+  position: fixed; z-index: 41; right: 20px; bottom: calc(88px + env(safe-area-inset-bottom));
+  display: inline-flex; align-items: center; gap: 8px; height: 56px; padding: 0 22px 0 18px;
+  border-radius: 16px; background: var(--tape); color: var(--ink); font-weight: 700; font-size: 17px;
+  box-shadow: 0 4px 0 var(--tape-deep), 0 8px 18px rgba(14, 34, 56, .2);
+}
+.fab-ext svg { width: 22px; height: 22px; }
+.fab-ext:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--tape-deep); }
+@media (min-width: 560px) { .fab-ext { right: calc(50% - 240px); } }
+
+/* Inicio vacío: dice qué hacer y da el botón al lado */
+.empty-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 40px 4px 20px; }
+.empty-hero h2 { margin: 6px 0 0; font: 700 28px/1.1 var(--display); }
+.empty-hero p { margin: 0 0 8px; max-width: 290px; font-size: 16px; line-height: 1.45; color: var(--muted); }
+.empty-ico { display: grid; place-items: center; width: 88px; height: 88px; border-radius: 24px; background: var(--card); border: 1px solid var(--line); color: var(--navy); }
+.empty-ico svg { width: 44px; height: 44px; }
+.btn-ico { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.btn-ico svg { width: 22px; height: 22px; }
+
+/* Buscador de clientes (aparece a partir de 4) */
+.search { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 16px; margin-bottom: 14px; background: var(--card); border: 1.5px solid var(--field-line); border-radius: 14px; color: var(--muted); }
+.search:focus-within { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(255,194,14,.65); }
+.search svg { width: 20px; height: 20px; flex: none; }
+.search input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font-size: 17px; color: var(--ink); }
+
+/* Jerarquía: amarillo = acción principal; borde = secundaria; fila con flecha = ir a otra pantalla */
+.btn-outline { background: var(--card); border: 2px solid var(--navy); color: var(--navy); padding: 15px; }
+.btn-big { display: flex; align-items: center; gap: 14px; padding: 14px 18px; text-align: left; }
+.btn-big svg { width: 24px; height: 24px; flex: none; }
+.btn-big span { display: flex; flex-direction: column; gap: 2px; }
+.btn-big b { font-size: 18px; } .btn-big small { font-size: 14px; font-weight: 500; }
+.h-sec { margin: 8px 0 4px; font: 700 26px/1.1 var(--display); }
+.lead { margin: 0 0 16px; font-size: 16px; line-height: 1.45; color: var(--muted); }
+.row-link { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 72px; padding: 10px 14px 10px 16px; text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 16px; }
+.row-link:active { transform: scale(.98); }
+.row-ico { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 12px; background: #e3ebf4; color: var(--navy); }
+.row-ico svg { width: 22px; height: 22px; }
+.row-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.row-txt b { font-size: 17px; } .row-txt small { font-size: 14px; color: var(--muted); }
+.chev { width: 20px; height: 20px; flex: none; color: var(--muted); }
